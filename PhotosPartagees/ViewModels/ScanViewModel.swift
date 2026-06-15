@@ -9,7 +9,6 @@ final class ScanViewModel: ObservableObject {
     @Published var state: ScanState = .idle
     @Published var hasReferenceFace = false
     @Published var matches: [MatchedPhoto] = []
-    @Published var autoUpload = true
 
     private let photoLibrary = PhotoLibraryService()
     private let faceDetection = FaceDetectionService()
@@ -84,22 +83,40 @@ final class ScanViewModel: ObservableObject {
             let prints = try faceDetection.faceFeaturePrints(in: image)
             guard let result = matcher.match(against: prints), result.isMatch else { return }
 
-            let matched = MatchedPhoto(photo: photo, distance: result.distance)
-            matches.append(matched)
-
-            if autoUpload {
-                await upload(matched)
-            }
+            // On collecte le match : l'utilisateur validera ensuite ce qu'il partage.
+            matches.append(MatchedPhoto(photo: photo, distance: result.distance))
         } catch {
             // Photo sans visage ou illisible : on ignore silencieusement.
         }
     }
 
+    // MARK: - Sélection (validation utilisateur)
+
+    var selectedCount: Int { matches.filter(\.isSelected).count }
+
+    var hasUploadableSelection: Bool {
+        matches.contains { $0.isSelected && $0.uploadStatus.isUploadable }
+    }
+
+    func toggleSelection(_ id: String) {
+        guard let idx = matches.firstIndex(where: { $0.id == id }) else { return }
+        matches[idx].isSelected.toggle()
+    }
+
+    func selectAll() {
+        for idx in matches.indices { matches[idx].isSelected = true }
+    }
+
+    func deselectAll() {
+        for idx in matches.indices { matches[idx].isSelected = false }
+    }
+
     // MARK: - Upload
 
-    func uploadAll() {
+    /// Partage uniquement les photos validées par l'utilisateur.
+    func uploadSelected() {
         Task {
-            for matched in matches where matched.uploadStatus == .pending {
+            for matched in matches where matched.isSelected && matched.uploadStatus.isUploadable {
                 await upload(matched)
             }
         }

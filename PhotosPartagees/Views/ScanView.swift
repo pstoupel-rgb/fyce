@@ -17,7 +17,11 @@ struct ScanView: View {
                 statusSection
 
                 if !viewModel.matches.isEmpty {
-                    PhotoGridView(matches: viewModel.matches)
+                    selectionToolbar
+                    PhotoGridView(
+                        matches: viewModel.matches,
+                        onToggle: viewModel.toggleSelection
+                    )
                 }
             }
             .padding()
@@ -28,8 +32,6 @@ struct ScanView: View {
 
     private var settingsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Toggle("Uploader automatiquement les matchs", isOn: $viewModel.autoUpload)
-
             HStack {
                 Text("Sensibilité")
                 Slider(value: Binding(
@@ -66,15 +68,32 @@ struct ScanView: View {
                 .disabled(!viewModel.hasReferenceFace)
             }
 
-            if !viewModel.autoUpload && !viewModel.matches.isEmpty {
+            if !viewModel.matches.isEmpty {
                 Button {
-                    viewModel.uploadAll()
+                    viewModel.uploadSelected()
                 } label: {
-                    Label("Uploader vers Supabase", systemImage: "icloud.and.arrow.up")
-                        .frame(maxWidth: .infinity)
+                    Label(
+                        "Partager la sélection (\(viewModel.selectedCount))",
+                        systemImage: "icloud.and.arrow.up"
+                    )
+                    .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
+                .disabled(!viewModel.hasUploadableSelection)
             }
+        }
+    }
+
+    private var selectionToolbar: some View {
+        HStack {
+            Text("\(viewModel.selectedCount) sélectionnée(s) sur \(viewModel.matches.count)")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button("Tout") { viewModel.selectAll() }
+                .font(.subheadline)
+            Button("Aucune") { viewModel.deselectAll() }
+                .font(.subheadline)
         }
     }
 
