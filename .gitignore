@@ -1,0 +1,21 @@
+# Xcode
+build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+
+# XcodeGen generates this; keep it out of VCS
+PhotosPartagees.xcodeproj/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Secrets
+Secrets.xcconfig
+*.env
+
+# macOS
+.DS_Store
