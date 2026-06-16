@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>PhotosPartagees</title>
+<meta name="theme-color" content="#5b78ef">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PhotosPartagees">
+<link rel="stylesheet" href="./styles.css">
+<script src="./config.js"></script>
+</head>
+<body>
+  <!-- Overlay de chargement du modèle -->
+  <div id="loader" class="loader">
+    <div class="spinner"></div>
+    <p id="loaderText">Chargement du modèle de reconnaissance…</p>
+  </div>
+
+  <header class="nav">
+    <h1>PhotosPartagees</h1>
+    <button id="settingsBtn" class="iconbtn" aria-label="Réglages">⚙️</button>
+  </header>
+
+  <main class="content">
+    <!-- Visage de référence -->
+    <section class="ref">
+      <div id="refAvatar" class="avatar"><span>＋</span></div>
+      <label class="pill">
+        <input id="refInput" type="file" accept="image/*" hidden>
+        <span id="refLabel">Choisir mon visage de référence</span>
+      </label>
+      <p id="refStatus" class="hint"></p>
+    </section>
+
+    <!-- Actions -->
+    <section class="actions">
+      <label class="btn btn-primary" id="pickBtn" aria-disabled="true">
+        <input id="photosInput" type="file" accept="image/*" multiple hidden>
+        🔍 Choisir mes photos à scanner
+      </label>
+      <button id="shareBtn" class="btn btn-primary hidden">☁️ Partager la sélection (0)</button>
+    </section>
+
+    <!-- Progression -->
+    <section id="progressBox" class="progress-box hidden">
+      <div class="progress"><i id="progressBar"></i></div>
+      <p id="progressText" class="hint"></p>
+    </section>
+
+    <!-- Barre de sélection -->
+    <section id="selbar" class="selbar hidden">
+      <span id="selCount" class="hint"></span>
+      <span>
+        <button class="link" id="selectAll">Tout</button>
+        <button class="link" id="selectNone">Aucune</button>
+      </span>
+    </section>
+
+    <!-- Résultats -->
+    <section id="results"></section>
+
+    <!-- État vide -->
+    <section id="empty" class="placeholder">
+      <div class="ph-icon">🖼️</div>
+      <h2>Prêt à scanner</h2>
+      <p>Choisis ton visage de référence, puis sélectionne tes photos (tu peux faire « Tout sélectionner »).</p>
+    </section>
+  </main>
+
+  <!-- Feuille de réglages -->
+  <div id="settingsSheet" class="sheet-backdrop hidden">
+    <div class="sheet">
+      <div class="sheet-head">
+        <h2>Réglages</h2>
+        <button id="settingsClose" class="link">OK</button>
+      </div>
+      <div class="group">
+        <div class="item">
+          <span>Sensibilité</span>
+          <input id="threshold" type="range" min="0.4" max="0.7" step="0.01" value="0.55">
+          <span id="threshVal" class="mono">0.55</span>
+        </div>
+      </div>
+      <p class="foot">Plus la valeur est basse, plus le matching est strict.</p>
+      <div class="group">
+        <div class="item"><span>Supabase</span><span id="sbStatus" class="hint"></span></div>
+      </div>
+      <p class="foot" id="sbFoot"></p>
+    </div>
+  </div>
+
+  <!-- Récap de partage -->
+  <div id="recap" class="sheet-backdrop hidden">
+    <div class="sheet recap">
+      <div id="recapSeal" class="seal">✅</div>
+      <h2 id="recapTitle">Partage réussi</h2>
+      <p id="recapOk" class="sumrow ok"></p>
+      <p id="recapFail" class="sumrow fail hidden"></p>
+      <div class="spacer"></div>
+      <button id="copyLinks" class="btn btn-bordered hidden">🔗 Copier les liens de partage</button>
+      <button id="recapClose" class="btn btn-plain">Fermer</button>
+    </div>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
