@@ -5,13 +5,15 @@ enum UploadStatus: Equatable {
     case pending
     case uploading
     case uploaded(remotePath: String)
+    /// Déjà partagée lors d'un scan précédent (persistée localement).
+    case alreadyShared
     case failed(message: String)
 
     /// Peut être (re)tentée : en attente ou en échec.
     var isUploadable: Bool {
         switch self {
         case .pending, .failed: return true
-        case .uploading, .uploaded: return false
+        case .uploading, .uploaded, .alreadyShared: return false
         }
     }
 }

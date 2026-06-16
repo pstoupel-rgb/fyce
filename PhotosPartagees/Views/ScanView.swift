@@ -26,6 +26,13 @@ struct ScanView: View {
             }
             .padding()
         }
+        .sheet(item: $viewModel.summary) { summary in
+            UploadSummaryView(
+                summary: summary,
+                onRetry: viewModel.hasFailedUploads ? { viewModel.retryFailed() } : nil
+            )
+            .presentationDetents([.medium])
+        }
     }
 
     // MARK: - Sections

@@ -12,17 +12,26 @@ struct PhotoGridView: View {
     private let columns = [GridItem(.adaptive(minimum: 100), spacing: 8)]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 16) {
             Text("Photos matchées (\(matches.count))")
                 .font(.headline)
 
-            LazyVGrid(columns: columns, spacing: 8) {
-                ForEach(matches) { match in
-                    MatchedThumbnail(
-                        match: match,
-                        onToggle: { onToggle(match.id) },
-                        onPreview: { previewMatch = match }
-                    )
+            // Regroupement par mois (du plus récent au plus ancien).
+            ForEach(sections) { section in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(section.title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    LazyVGrid(columns: columns, spacing: 8) {
+                        ForEach(section.items) { match in
+                            MatchedThumbnail(
+                                match: match,
+                                onToggle: { onToggle(match.id) },
+                                onPreview: { previewMatch = match }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -38,6 +47,36 @@ struct PhotoGridView: View {
     private func currentSelection(for id: String) -> Bool {
         matches.first(where: { $0.id == id })?.isSelected ?? false
     }
+
+    // MARK: - Regroupement par date
+
+    private struct PhotoSection: Identifiable {
+        let id: Date          // premier jour du mois
+        let title: String
+        let items: [MatchedPhoto]
+    }
+
+    private var sections: [PhotoSection] {
+        let calendar = Calendar.current
+        let grouped = Dictionary(grouping: matches) { match -> Date in
+            let date = match.photo.asset.creationDate ?? .distantPast
+            let comps = calendar.dateComponents([.year, .month], from: date)
+            return calendar.date(from: comps) ?? .distantPast
+        }
+        return grouped.keys.sorted(by: >).map { key in
+            let items = grouped[key]!.sorted {
+                ($0.photo.asset.creationDate ?? .distantPast) > ($1.photo.asset.creationDate ?? .distantPast)
+            }
+            return PhotoSection(id: key, title: Self.monthFormatter.string(from: key), items: items)
+        }
+    }
+
+    private static let monthFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "fr_FR")
+        formatter.dateFormat = "LLLL yyyy"
+        return formatter
+    }()
 }
 
 /// Vignette unitaire : tap = sélection/désélection, loupe = aperçu plein écran.
@@ -105,6 +144,8 @@ private struct MatchedThumbnail: View {
             ProgressView().tint(.white).scaleEffect(0.7)
         case .uploaded:
             Image(systemName: "checkmark.icloud.fill").foregroundStyle(.green)
+        case .alreadyShared:
+            Image(systemName: "clock.badge.checkmark.fill").foregroundStyle(.white, .blue)
         case .failed:
             Image(systemName: "exclamationmark.icloud.fill").foregroundStyle(.red)
         }

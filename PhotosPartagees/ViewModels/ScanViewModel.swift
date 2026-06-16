@@ -9,11 +9,14 @@ final class ScanViewModel: ObservableObject {
     @Published var state: ScanState = .idle
     @Published var hasReferenceFace = false
     @Published var matches: [MatchedPhoto] = []
+    /// Récap affiché à la fin d'un partage (succès / échecs).
+    @Published var summary: UploadSummary?
 
     private let photoLibrary = PhotoLibraryService()
     private let faceDetection = FaceDetectionService()
     private let matcher = FaceMatcher()
     private let supabase = SupabaseService()
+    private let sharedStore = SharedPhotosStore()
 
     private var scanTask: Task<Void, Never>?
 
@@ -83,8 +86,13 @@ final class ScanViewModel: ObservableObject {
             let prints = try faceDetection.faceFeaturePrints(in: image)
             guard let result = matcher.match(against: prints), result.isMatch else { return }
 
-            // On collecte le match : l'utilisateur validera ensuite ce qu'il partage.
-            matches.append(MatchedPhoto(photo: photo, distance: result.distance))
+            var matched = MatchedPhoto(photo: photo, distance: result.distance)
+            // Déjà partagée auparavant : marquée et non sélectionnée par défaut.
+            if sharedStore.contains(photo.id) {
+                matched.uploadStatus = .alreadyShared
+                matched.isSelected = false
+            }
+            matches.append(matched)
         } catch {
             // Photo sans visage ou illisible : on ignore silencieusement.
         }
@@ -98,13 +106,21 @@ final class ScanViewModel: ObservableObject {
         matches.contains { $0.isSelected && $0.uploadStatus.isUploadable }
     }
 
+    var hasFailedUploads: Bool {
+        matches.contains { if case .failed = $0.uploadStatus { return true } else { return false } }
+    }
+
     func toggleSelection(_ id: String) {
         guard let idx = matches.firstIndex(where: { $0.id == id }) else { return }
+        // On ne (dé)sélectionne que ce qui peut encore être partagé.
+        guard matches[idx].uploadStatus.isUploadable else { return }
         matches[idx].isSelected.toggle()
     }
 
     func selectAll() {
-        for idx in matches.indices { matches[idx].isSelected = true }
+        for idx in matches.indices where matches[idx].uploadStatus.isUploadable {
+            matches[idx].isSelected = true
+        }
     }
 
     func deselectAll() {
@@ -115,14 +131,33 @@ final class ScanViewModel: ObservableObject {
 
     /// Partage uniquement les photos validées par l'utilisateur.
     func uploadSelected() {
-        Task {
-            for matched in matches where matched.isSelected && matched.uploadStatus.isUploadable {
-                await upload(matched)
-            }
-        }
+        let ids = matches
+            .filter { $0.isSelected && $0.uploadStatus.isUploadable }
+            .map(\.id)
+        Task { await runUpload(of: ids) }
     }
 
-    private func upload(_ matched: MatchedPhoto) async {
+    /// Relance uniquement les photos en échec.
+    func retryFailed() {
+        let ids = matches
+            .filter { if case .failed = $0.uploadStatus { return true } else { return false } }
+            .map(\.id)
+        Task { await runUpload(of: ids) }
+    }
+
+    private func runUpload(of ids: [String]) async {
+        guard !ids.isEmpty else { return }
+        var succeeded = 0
+        var failed = 0
+        for id in ids {
+            guard let matched = matches.first(where: { $0.id == id }) else { continue }
+            if await upload(matched) { succeeded += 1 } else { failed += 1 }
+        }
+        summary = UploadSummary(succeeded: succeeded, failed: failed)
+    }
+
+    @discardableResult
+    private func upload(_ matched: MatchedPhoto) async -> Bool {
         updateStatus(for: matched.id, to: .uploading)
         do {
             let (data, uti) = try await photoLibrary.loadOriginalData(for: matched.photo.asset)
@@ -133,8 +168,11 @@ final class ScanViewModel: ObservableObject {
                 contentType: meta.contentType
             )
             updateStatus(for: matched.id, to: .uploaded(remotePath: remotePath))
+            sharedStore.markShared(matched.id)   // persiste pour les prochains scans
+            return true
         } catch {
             updateStatus(for: matched.id, to: .failed(message: error.localizedDescription))
+            return false
         }
     }
 
