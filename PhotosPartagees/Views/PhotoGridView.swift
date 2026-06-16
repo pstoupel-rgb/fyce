@@ -48,35 +48,11 @@ struct PhotoGridView: View {
         matches.first(where: { $0.id == id })?.isSelected ?? false
     }
 
-    // MARK: - Regroupement par date
+    // MARK: - Regroupement par date (logique pure : PhotoGrouping)
 
-    private struct PhotoSection: Identifiable {
-        let id: Date          // premier jour du mois
-        let title: String
-        let items: [MatchedPhoto]
+    private var sections: [PhotoGrouping.Section<MatchedPhoto>] {
+        PhotoGrouping.sections(matches) { $0.photo.asset.creationDate }
     }
-
-    private var sections: [PhotoSection] {
-        let calendar = Calendar.current
-        let grouped = Dictionary(grouping: matches) { match -> Date in
-            let date = match.photo.asset.creationDate ?? .distantPast
-            let comps = calendar.dateComponents([.year, .month], from: date)
-            return calendar.date(from: comps) ?? .distantPast
-        }
-        return grouped.keys.sorted(by: >).map { key in
-            let items = grouped[key]!.sorted {
-                ($0.photo.asset.creationDate ?? .distantPast) > ($1.photo.asset.creationDate ?? .distantPast)
-            }
-            return PhotoSection(id: key, title: Self.monthFormatter.string(from: key), items: items)
-        }
-    }
-
-    private static let monthFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "fr_FR")
-        formatter.dateFormat = "LLLL yyyy"
-        return formatter
-    }()
 }
 
 /// Vignette unitaire : tap = sélection/désélection, loupe = aperçu plein écran.

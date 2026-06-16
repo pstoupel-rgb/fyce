@@ -1,0 +1,28 @@
+disabled_rules:
+  - trailing_whitespace
+  - todo
+
+opt_in_rules:
+  - empty_count
+  - closure_spacing
+  - explicit_init
+  - first_where
+  - sorted_imports
+
+excluded:
+  - PhotosPartageesTests
+  - .build
+  - DerivedData
+
+line_length:
+  warning: 140
+  error: 200
+
+identifier_name:
+  min_length: 1
+  max_length:
+    warning: 50
+
+type_body_length:
+  warning: 350
+  error: 450

@@ -13,7 +13,8 @@ PhotosPartagees.xcodeproj/
 .build/
 .swiftpm/
 
-# Secrets
+# Secrets (garde Config/Secrets.example.xcconfig, ignore le vrai)
+Config/Secrets.xcconfig
 Secrets.xcconfig
 *.env
 

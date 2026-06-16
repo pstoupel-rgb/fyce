@@ -1,13 +1,20 @@
 import SwiftUI
 
-/// Récapitulatif affiché à la fin d'un partage : nombre de succès / d'échecs,
-/// avec possibilité de relancer les photos en échec.
+/// Récapitulatif affiché à la fin d'un partage : succès / échecs, relance des
+/// échecs et copie des liens de partage signés.
 struct UploadSummaryView: View {
     let summary: UploadSummary
     /// Fourni uniquement s'il reste des échecs à relancer.
     let onRetry: (() -> Void)?
+    /// Fourni si des liens de partage peuvent être générés. Renvoie le nombre copié.
+    let onCopyLinks: (() async -> Int)?
 
     @Environment(\.dismiss) private var dismiss
+    @State private var copyState: CopyState = .idle
+
+    private enum CopyState: Equatable {
+        case idle, copying, copied(Int)
+    }
 
     var body: some View {
         NavigationStack {
@@ -44,12 +51,42 @@ struct UploadSummaryView: View {
                         .buttonStyle(.borderedProminent)
                     }
 
+                    if let onCopyLinks {
+                        Button {
+                            Task { await copyLinks(onCopyLinks) }
+                        } label: {
+                            Label(copyLabel, systemImage: copyIcon)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(copyState == .copying)
+                    }
+
                     Button("Fermer") { dismiss() }
                         .frame(maxWidth: .infinity)
                 }
             }
             .padding()
         }
+    }
+
+    private var copyLabel: String {
+        switch copyState {
+        case .idle: return "Copier les liens de partage"
+        case .copying: return "Génération des liens…"
+        case .copied(let count): return "\(count) lien(s) copié(s)"
+        }
+    }
+
+    private var copyIcon: String {
+        if case .copied = copyState { return "checkmark" }
+        return "link"
+    }
+
+    private func copyLinks(_ action: () async -> Int) async {
+        copyState = .copying
+        let count = await action()
+        copyState = .copied(count)
     }
 
     private func row(icon: String, color: Color, text: String) -> some View {

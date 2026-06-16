@@ -10,7 +10,7 @@ import CoreImage
 /// `VNGenerateImageFeaturePrintRequest` sur le visage recadré comme empreinte
 /// comparable. C'est une approximation raisonnable, remplaçable par un modèle
 /// Core ML de reconnaissance faciale pour gagner en précision.
-final class FaceDetectionService {
+final class FaceDetectionService: FaceDetecting, @unchecked Sendable {
 
     enum FaceError: LocalizedError {
         case noFaceFound

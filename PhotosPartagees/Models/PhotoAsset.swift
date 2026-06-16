@@ -2,7 +2,10 @@ import Foundation
 import Photos
 
 /// Représente une photo de la photothèque candidate au scan.
-struct PhotoAsset: Identifiable, Hashable {
+///
+/// `@unchecked Sendable` : `PHAsset` est sûr en lecture concurrente, ce qui
+/// permet de transférer un `PhotoAsset` vers les tâches d'analyse parallèles.
+struct PhotoAsset: Identifiable, Hashable, @unchecked Sendable {
     let id: String          // PHAsset.localIdentifier
     let asset: PHAsset
 

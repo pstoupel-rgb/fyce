@@ -4,7 +4,7 @@ import UIKit
 
 /// Accès à la photothèque via PhotoKit : autorisation, énumération et
 /// chargement des images.
-final class PhotoLibraryService {
+final class PhotoLibraryService: PhotoLibraryProviding, @unchecked Sendable {
 
     enum PhotoLibraryError: LocalizedError {
         case accessDenied

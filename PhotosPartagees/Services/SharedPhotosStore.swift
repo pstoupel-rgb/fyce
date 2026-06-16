@@ -2,7 +2,7 @@ import Foundation
 
 /// Persiste localement les identifiants des photos déjà partagées afin de ne
 /// pas les reproposer (ni les ré-uploader) lors des scans suivants.
-final class SharedPhotosStore {
+final class SharedPhotosStore: SharedPhotosStoring {
     private let key = "shared_photo_ids"
     private let defaults: UserDefaults
     private(set) var sharedIDs: Set<String>

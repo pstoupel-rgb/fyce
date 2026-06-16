@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import Photos
+import os
 
 /// Orchestre le flux complet : référence → scan photothèque → matching Vision → upload Supabase.
 @MainActor
@@ -12,22 +13,41 @@ final class ScanViewModel: ObservableObject {
     /// Récap affiché à la fin d'un partage (succès / échecs).
     @Published var summary: UploadSummary?
 
-    private let photoLibrary = PhotoLibraryService()
-    private let faceDetection = FaceDetectionService()
-    private let matcher = FaceMatcher()
-    private let supabase = SupabaseService()
-    private let sharedStore = SharedPhotosStore()
+    // MARK: Dépendances injectées
+
+    private let photoLibrary: PhotoLibraryProviding
+    private let faceDetection: FaceDetecting
+    private let matcher: FaceMatching
+    private let uploader: PhotoUploading
+    private let sharedStore: SharedPhotosStoring
 
     private var scanTask: Task<Void, Never>?
+    private var photosByID: [String: PhotoAsset] = [:]
+    private var lastUploadedPaths: [String] = []
+
+    init(
+        photoLibrary: PhotoLibraryProviding = PhotoLibraryService(),
+        faceDetection: FaceDetecting = FaceDetectionService(),
+        matcher: FaceMatching = FaceMatcher(),
+        uploader: PhotoUploading = SupabaseService(),
+        sharedStore: SharedPhotosStoring = SharedPhotosStore()
+    ) {
+        self.photoLibrary = photoLibrary
+        self.faceDetection = faceDetection
+        self.matcher = matcher
+        self.uploader = uploader
+        self.sharedStore = sharedStore
+    }
 
     var threshold: Float {
         get { matcher.threshold }
         set { matcher.threshold = newValue }
     }
 
+    var sharedCount: Int { sharedStore.sharedIDs.count }
+
     // MARK: - Visage de référence
 
-    /// Définit le visage de référence à partir d'une image choisie par l'utilisateur.
     func setReferenceFace(_ image: UIImage) {
         do {
             let print = try faceDetection.referenceFeaturePrint(from: image)
@@ -55,7 +75,6 @@ final class ScanViewModel: ObservableObject {
     }
 
     private func runScan() async {
-        // 1. Autorisation
         if !photoLibrary.isAuthorized {
             let status = await photoLibrary.requestAuthorization()
             guard status == .authorized || status == .limited else {
@@ -64,41 +83,54 @@ final class ScanViewModel: ObservableObject {
             }
         }
 
-        // 2. Énumération
         let photos = photoLibrary.fetchAllPhotos()
+        photosByID = Dictionary(photos.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         matches = []
         state = .scanning(processed: 0, total: photos.count)
 
-        // 3. Détection + matching, photo par photo
-        for (index, photo) in photos.enumerated() {
-            if Task.isCancelled { return }
+        let sharedIDs = sharedStore.sharedIDs
+        let scanner = FaceScanner(photoLibrary: photoLibrary, faceDetection: faceDetection, matcher: matcher)
+        let batchSize = max(1, min(4, ProcessInfo.processInfo.activeProcessorCount))
+        Logger.scan.info("Scan de \(photos.count) photos (concurrence: \(batchSize))")
 
-            await process(photo: photo)
-            state = .scanning(processed: index + 1, total: photos.count)
+        var processed = 0
+        var index = 0
+        while index < photos.count {
+            if Task.isCancelled { return }
+            let batch = Array(photos[index..<min(index + batchSize, photos.count)])
+
+            // Analyse parallèle du lot hors du main thread.
+            let found = await withTaskGroup(of: ScanMatch?.self) { group -> [ScanMatch] in
+                for photo in batch { group.addTask { await scanner.analyze(photo) } }
+                var results: [ScanMatch] = []
+                for await result in group {
+                    if let result { results.append(result) }
+                }
+                return results
+            }
+
+            for match in found { appendMatch(match, sharedIDs: sharedIDs) }
+            processed += batch.count
+            index += batchSize
+            state = .scanning(processed: processed, total: photos.count)
         }
 
+        if Task.isCancelled { return }
+        Logger.scan.info("Scan terminé : \(self.matches.count) match(s)")
         state = .finished(matches: matches.count)
     }
 
-    private func process(photo: PhotoAsset) async {
-        do {
-            let image = try await photoLibrary.loadImage(for: photo.asset)
-            let prints = try faceDetection.faceFeaturePrints(in: image)
-            guard let result = matcher.match(against: prints), result.isMatch else { return }
-
-            var matched = MatchedPhoto(photo: photo, distance: result.distance)
-            // Déjà partagée auparavant : marquée et non sélectionnée par défaut.
-            if sharedStore.contains(photo.id) {
-                matched.uploadStatus = .alreadyShared
-                matched.isSelected = false
-            }
-            matches.append(matched)
-        } catch {
-            // Photo sans visage ou illisible : on ignore silencieusement.
+    private func appendMatch(_ match: ScanMatch, sharedIDs: Set<String>) {
+        guard let photo = photosByID[match.id] else { return }
+        var matched = MatchedPhoto(photo: photo, distance: match.distance)
+        if sharedIDs.contains(match.id) {
+            matched.uploadStatus = .alreadyShared
+            matched.isSelected = false
         }
+        matches.append(matched)
     }
 
-    // MARK: - Sélection (validation utilisateur)
+    // MARK: - Sélection
 
     var selectedCount: Int { matches.filter(\.isSelected).count }
 
@@ -110,9 +142,10 @@ final class ScanViewModel: ObservableObject {
         matches.contains { if case .failed = $0.uploadStatus { return true } else { return false } }
     }
 
+    var hasSharedLinks: Bool { !lastUploadedPaths.isEmpty }
+
     func toggleSelection(_ id: String) {
         guard let idx = matches.firstIndex(where: { $0.id == id }) else { return }
-        // On ne (dé)sélectionne que ce qui peut encore être partagé.
         guard matches[idx].uploadStatus.isUploadable else { return }
         matches[idx].isSelected.toggle()
     }
@@ -127,9 +160,19 @@ final class ScanViewModel: ObservableObject {
         for idx in matches.indices { matches[idx].isSelected = false }
     }
 
+    // MARK: - Réglages
+
+    func resetSharedHistory() {
+        sharedStore.reset()
+        lastUploadedPaths.removeAll()
+        for idx in matches.indices where matches[idx].uploadStatus == .alreadyShared {
+            matches[idx].uploadStatus = .pending
+        }
+        objectWillChange.send()
+    }
+
     // MARK: - Upload
 
-    /// Partage uniquement les photos validées par l'utilisateur.
     func uploadSelected() {
         let ids = matches
             .filter { $0.isSelected && $0.uploadStatus.isUploadable }
@@ -137,7 +180,6 @@ final class ScanViewModel: ObservableObject {
         Task { await runUpload(of: ids) }
     }
 
-    /// Relance uniquement les photos en échec.
     func retryFailed() {
         let ids = matches
             .filter { if case .failed = $0.uploadStatus { return true } else { return false } }
@@ -151,29 +193,49 @@ final class ScanViewModel: ObservableObject {
         var failed = 0
         for id in ids {
             guard let matched = matches.first(where: { $0.id == id }) else { continue }
-            if await upload(matched) { succeeded += 1 } else { failed += 1 }
+            if let path = await upload(matched) {
+                succeeded += 1
+                lastUploadedPaths.append(path)
+            } else {
+                failed += 1
+            }
         }
         summary = UploadSummary(succeeded: succeeded, failed: failed)
     }
 
-    @discardableResult
-    private func upload(_ matched: MatchedPhoto) async -> Bool {
+    private func upload(_ matched: MatchedPhoto) async -> String? {
         updateStatus(for: matched.id, to: .uploading)
         do {
             let (data, uti) = try await photoLibrary.loadOriginalData(for: matched.photo.asset)
             let meta = SupabaseService.fileMetadata(forUTI: uti, assetID: matched.id)
-            let remotePath = try await supabase.upload(
+            let remotePath = try await uploader.upload(
                 data: data,
                 fileName: meta.fileName,
                 contentType: meta.contentType
             )
             updateStatus(for: matched.id, to: .uploaded(remotePath: remotePath))
-            sharedStore.markShared(matched.id)   // persiste pour les prochains scans
-            return true
+            sharedStore.markShared(matched.id)
+            return remotePath
         } catch {
             updateStatus(for: matched.id, to: .failed(message: error.localizedDescription))
-            return false
+            return nil
         }
+    }
+
+    /// Génère des liens signés pour les photos partagées et les copie dans le presse-papiers.
+    /// - Returns: le nombre de liens copiés.
+    @discardableResult
+    func copyShareLinks(expiresIn: Int = 60 * 60 * 24 * 7) async -> Int {
+        var links: [String] = []
+        for path in lastUploadedPaths {
+            if let url = try? await uploader.createSignedURL(path: path, expiresIn: expiresIn) {
+                links.append(url.absoluteString)
+            }
+        }
+        if !links.isEmpty {
+            UIPasteboard.general.string = links.joined(separator: "\n")
+        }
+        return links.count
     }
 
     private func updateStatus(for id: String, to status: UploadStatus) {

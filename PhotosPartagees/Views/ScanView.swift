@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Écran principal : configuration du visage de référence, lancement du scan,
-/// suivi de la progression et affichage des photos matchées.
+/// Écran principal : visage de référence, lancement du scan, progression et
+/// affichage / validation des photos matchées.
 struct ScanView: View {
     @ObservedObject var viewModel: ScanViewModel
 
@@ -10,13 +10,13 @@ struct ScanView: View {
             VStack(spacing: 24) {
                 ReferenceFaceView(viewModel: viewModel)
 
-                settingsSection
-
                 actionSection
 
                 statusSection
 
-                if !viewModel.matches.isEmpty {
+                if viewModel.matches.isEmpty {
+                    emptyState
+                } else {
                     selectionToolbar
                     PhotoGridView(
                         matches: viewModel.matches,
@@ -29,30 +29,14 @@ struct ScanView: View {
         .sheet(item: $viewModel.summary) { summary in
             UploadSummaryView(
                 summary: summary,
-                onRetry: viewModel.hasFailedUploads ? { viewModel.retryFailed() } : nil
+                onRetry: viewModel.hasFailedUploads ? { viewModel.retryFailed() } : nil,
+                onCopyLinks: viewModel.hasSharedLinks ? { await viewModel.copyShareLinks() } : nil
             )
             .presentationDetents([.medium])
         }
     }
 
     // MARK: - Sections
-
-    private var settingsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Sensibilité")
-                Slider(value: Binding(
-                    get: { Double(viewModel.threshold) },
-                    set: { viewModel.threshold = Float($0) }
-                ), in: 0.3...1.0)
-                Text(String(format: "%.2f", viewModel.threshold))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding()
-        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
-    }
 
     private var actionSection: some View {
         VStack(spacing: 12) {
@@ -107,7 +91,7 @@ struct ScanView: View {
     @ViewBuilder
     private var statusSection: some View {
         switch viewModel.state {
-        case .idle:
+        case .idle, .finished:
             EmptyView()
         case .needsReferenceFace:
             label("Choisis d'abord un visage de référence.", systemImage: "exclamationmark.triangle", color: .orange)
@@ -118,11 +102,44 @@ struct ScanView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
-        case .finished(let count):
-            label("Terminé : \(count) photo(s) avec ton visage.", systemImage: "checkmark.circle", color: .green)
         case .error(let message):
             label(message, systemImage: "xmark.octagon", color: .red)
         }
+    }
+
+    @ViewBuilder
+    private var emptyState: some View {
+        switch viewModel.state {
+        case .finished:
+            placeholder(
+                title: "Aucune photo avec ton visage",
+                systemImage: "person.crop.circle.badge.xmark",
+                message: "Essaie d'ajuster la sensibilité dans les réglages."
+            )
+        case .idle, .needsReferenceFace:
+            placeholder(
+                title: "Prêt à scanner",
+                systemImage: "photo.on.rectangle.angled",
+                message: "Choisis ton visage de référence puis lance le scan."
+            )
+        default:
+            EmptyView()
+        }
+    }
+
+    private func placeholder(title: String, systemImage: String, message: String) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.system(size: 44))
+                .foregroundStyle(.secondary)
+            Text(title).font(.headline)
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 32)
     }
 
     private func label(_ text: String, systemImage: String, color: Color) -> some View {

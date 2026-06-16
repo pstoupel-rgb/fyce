@@ -1,84 +1,99 @@
 # PhotosPartagees
 
-Application iOS native (SwiftUI) qui :
+Application iOS native (SwiftUI, iOS 16+) qui :
 
 1. **Scanne la photothèque** locale via PhotoKit.
-2. **Détecte ton visage** avec le framework Vision (détection de visage + empreinte/feature print et comparaison à un visage de référence).
-3. **Upload les photos qui matchent** vers un bucket Supabase Storage.
+2. **Détecte ton visage** avec Vision (détection + feature print comparé à un visage de référence).
+3. Te laisse **valider/sélectionner** les photos matchées (aperçu plein écran, regroupement par mois).
+4. **Upload la sélection** vers Supabase Storage et te fournit des **liens de partage signés**.
 
-> ⚠️ Cette base de projet pose l'architecture et le flux complet. Le matching de
-> visage repose sur `VNGenerateImageFeaturePrintRequest` appliqué au visage
-> recadré — c'est un bon point de départ, remplaçable par un modèle Core ML de
+> ⚠️ Le matching repose sur `VNGenerateImageFeaturePrintRequest` appliqué au
+> visage recadré — bon point de départ, remplaçable par un modèle Core ML de
 > reconnaissance faciale dédié (FaceNet/ArcFace) pour plus de précision.
 
 ## Architecture
 
+Découpage **MVVM** + **injection de dépendances** (chaque service est derrière un
+protocole, ce qui rend le `ScanViewModel` testable et le scan mockable).
+
 ```
 PhotosPartagees/
 ├── App/                # Point d'entrée + Info.plist
-├── Configuration/      # Config Supabase (URL, clé, bucket)
-├── Models/             # Modèles de données
-├── Services/           # PhotoKit, Vision, Supabase
-├── ViewModels/         # Logique de présentation (MVVM)
-└── Views/              # Écrans SwiftUI
+├── Configuration/      # SupabaseConfig (lu depuis xcconfig) + SupabaseConfiguration
+├── Models/             # PhotoAsset, MatchedPhoto, ScanState, UploadSummary
+├── Services/           # Protocols + PhotoKit / Vision / Supabase / FaceScanner / Store
+├── Support/            # AppLogger (os.Logger), PhotoGrouping (pur, testable)
+├── ViewModels/         # ScanViewModel
+└── Views/              # ContentView, ScanView, SettingsView, PhotoGridView, …
+PhotosPartageesTests/   # Tests unitaires (XCTest)
+Config/                 # Secrets.example.xcconfig (le vrai Secrets.xcconfig est ignoré)
+.github/workflows/      # CI (build + test + SwiftLint)
 ```
 
-| Couche | Fichier | Rôle |
-|--------|---------|------|
-| PhotoKit | `PhotoLibraryService.swift` | Autorisation + énumération des `PHAsset`, chargement des images |
-| Vision | `FaceDetectionService.swift` | Détection de visages + génération de feature prints |
-| Vision | `FaceMatcher.swift` | Empreinte de référence + comparaison de distance |
-| Réseau | `SupabaseService.swift` | Upload vers Supabase Storage (REST) |
-| MVVM | `ScanViewModel.swift` | Orchestration scan → match → upload |
+| Couche | Protocole | Implémentation |
+|--------|-----------|----------------|
+| Photothèque | `PhotoLibraryProviding` | `PhotoLibraryService` (PhotoKit) |
+| Détection | `FaceDetecting` | `FaceDetectionService` (Vision) |
+| Matching | `FaceMatching` | `FaceMatcher` (distance de feature prints) |
+| Upload/partage | `PhotoUploading` | `SupabaseService` (REST + URL signées) |
+| Persistance | `SharedPhotosStoring` | `SharedPhotosStore` (UserDefaults) |
+
+### Points techniques
+
+- **Scan parallélisé hors main thread** : `FaceScanner` analyse les photos par lots
+  via `withTaskGroup` (concurrence bornée), l'UI reste fluide ; le `ScanViewModel`
+  (`@MainActor`) ne fait que publier la progression et les résultats.
+- **Validation utilisateur** : sélection/désélection, aperçu plein écran, *Tout*/*Aucune*.
+- **Persistance** : les photos déjà partagées sont mémorisées et non reproposées.
+- **Récap de partage** : succès/échecs, relance des échecs, **copie des liens signés**.
+- **Logging** : `os.Logger` (catégories `scan`, `upload`, `vision`).
 
 ## Prérequis
 
-- Xcode 15+
-- iOS 16+
-- [XcodeGen](https://github.com/yonyz/XcodeGen) (`brew install xcodegen`) pour générer le projet
+- Xcode 15+, iOS 16+
+- [XcodeGen](https://github.com/yonyz/XcodeGen) : `brew install xcodegen`
 
-## Générer et ouvrir le projet
+## Configuration
+
+```bash
+cp Config/Secrets.example.xcconfig Config/Secrets.xcconfig
+# édite Config/Secrets.xcconfig :
+#   SUPABASE_HOST      = abcdxyz.supabase.co      (sans https://)
+#   SUPABASE_ANON_KEY  = <clé anon>
+#   SUPABASE_BUCKET    = shared-photos
+```
+
+`Config/Secrets.xcconfig` est **gitignoré**. Les valeurs sont injectées dans
+l'`Info.plist` et lues au runtime par `SupabaseConfig`.
+
+> Ne committe jamais une clé `service_role`. Utilise la clé `anon` + RLS, ou un
+> endpoint d'upload signé côté serveur.
+
+## Générer et lancer
 
 ```bash
 xcodegen generate
 open PhotosPartagees.xcodeproj
 ```
 
-> Sans XcodeGen, tu peux aussi créer un projet App SwiftUI dans Xcode et y
-> glisser le dossier `PhotosPartagees/`.
+## Tests
 
-## Configuration Supabase
-
-1. Crée un bucket Storage (ex. `shared-photos`) dans ton projet Supabase.
-2. Renseigne tes identifiants dans `PhotosPartagees/Configuration/SupabaseConfig.swift`
-   (ou via les variables d'environnement / un fichier `Secrets.xcconfig` non commité).
-
-```swift
-static let url = URL(string: "https://<project-ref>.supabase.co")!
-static let anonKey = "<ton-anon-ou-service-key>"
-static let bucket = "shared-photos"
+```bash
+xcodebuild test \
+  -project PhotosPartagees.xcodeproj \
+  -scheme PhotosPartagees \
+  -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest'
 ```
 
-> Ne committe jamais une clé `service_role` dans un client. Pour de la prod,
-> passe par un endpoint signé / RLS et la clé `anon`.
+Couverts : `PhotoGrouping` (regroupement par date), `SharedPhotosStore`
+(persistance), `SupabaseService` (upload/erreurs/URL signées via `URLProtocol`
+mocké), `FaceMatcher` (état sans référence).
+
+## CI
+
+`.github/workflows/ci.yml` génère le projet, exécute les tests sur simulateur et
+lance SwiftLint à chaque push/PR.
 
 ## Permissions
 
-`Info.plist` déclare `NSPhotoLibraryUsageDescription` (lecture de la photothèque).
-
-## Flux utilisateur
-
-1. L'utilisateur choisit une **photo de référence** de son visage.
-2. L'app scanne la photothèque, détecte les visages et compare au visage de référence.
-3. Les photos matchées sont **regroupées par mois** et présentées pour validation.
-4. L'utilisateur **sélectionne** (ou prévisualise en plein écran) les photos à partager.
-5. Seule la sélection est **uploadée vers Supabase**, suivie d'un **récap** (succès / échecs).
-
-## Fonctionnalités
-
-- **Validation manuelle** : sélection/désélection des photos, aperçu plein écran, *Tout* / *Aucune*.
-- **Regroupement par date** : les matchs sont triés par mois (`PhotoGridView`).
-- **Persistance** : les photos déjà partagées sont mémorisées (`SharedPhotosStore`,
-  `UserDefaults`) et marquées « déjà partagée » sans être reproposées au partage.
-- **Récap de fin de partage** : `UploadSummaryView` indique succès/échecs avec
-  un bouton **Réessayer les échecs**.
+`Info.plist` déclare `NSPhotoLibraryUsageDescription`.

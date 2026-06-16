@@ -20,6 +20,12 @@
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>L'application a besoin d'accéder à votre photothèque pour détecter votre visage et partager les photos correspondantes.</string>
+	<key>SUPABASE_HOST</key>
+	<string>$(SUPABASE_HOST)</string>
+	<key>SUPABASE_ANON_KEY</key>
+	<string>$(SUPABASE_ANON_KEY)</string>
+	<key>SUPABASE_BUCKET</key>
+	<string>$(SUPABASE_BUCKET)</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

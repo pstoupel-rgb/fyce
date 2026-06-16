@@ -16,20 +16,15 @@ targets:
   PhotosPartagees:
     type: application
     platform: iOS
+    configFiles:
+      Debug: Config/Secrets.xcconfig
+      Release: Config/Secrets.xcconfig
     sources:
       - path: PhotosPartagees
-    info:
-      path: PhotosPartagees/App/Info.plist
-      properties:
-        CFBundleDisplayName: PhotosPartagees
-        UILaunchScreen: {}
-        NSPhotoLibraryUsageDescription: >-
-          L'application a besoin d'accéder à votre photothèque pour détecter
-          votre visage et partager les photos correspondantes.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.photospartagees.app
-        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_FILE: PhotosPartagees/App/Info.plist
         TARGETED_DEVICE_FAMILY: "1,2"
     # Pour utiliser le SDK officiel Supabase à la place de l'implémentation REST :
     # dependencies:
@@ -38,3 +33,25 @@ targets:
     #   Supabase:
     #     url: https://github.com/supabase/supabase-swift
     #     from: 2.0.0
+
+  PhotosPartageesTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: PhotosPartageesTests
+    dependencies:
+      - target: PhotosPartagees
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.photospartagees.app.tests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  PhotosPartagees:
+    build:
+      targets:
+        PhotosPartagees: all
+        PhotosPartageesTests: [test]
+    test:
+      targets:
+        - PhotosPartageesTests

@@ -2,7 +2,7 @@ import Foundation
 import Vision
 
 /// Compare des visages à un visage de référence à l'aide des feature prints Vision.
-final class FaceMatcher {
+final class FaceMatcher: FaceMatching, @unchecked Sendable {
 
     /// Empreinte du visage de référence (le tien).
     private(set) var reference: VNFeaturePrintObservation?
