@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhotosPartagees — Aperçu UI</title>
+<style>
+  :root{
+    --bg:#f2f2f7; --card:#fff; --sep:#e5e5ea; --label:#000; --sec:#8e8e93;
+    --accent:#007aff; --green:#34c759; --red:#ff3b30; --orange:#ff9500;
+  }
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased}
+  body{
+    margin:0;padding:40px 20px;background:#1c1c1e;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:#fff;
+  }
+  h1{font-size:22px;font-weight:700;text-align:center;margin:0 0 4px}
+  .sub{text-align:center;color:#aeaeb2;font-size:13px;margin-bottom:32px}
+  .row{display:flex;gap:28px;justify-content:center;flex-wrap:wrap}
+  .phone{
+    width:300px;height:640px;background:var(--bg);border-radius:44px;
+    border:11px solid #000;box-shadow:0 20px 60px rgba(0,0,0,.5);
+    overflow:hidden;position:relative;display:flex;flex-direction:column;
+  }
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:140px;height:26px;background:#000;border-radius:0 0 18px 18px;z-index:10}
+  .status{display:flex;justify-content:space-between;padding:12px 24px 4px;font-size:12px;font-weight:600;color:#000}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:4px 16px 10px}
+  .nav .title{font-size:28px;font-weight:700;color:#000}
+  .nav .gear{font-size:20px;color:var(--accent)}
+  .body{flex:1;overflow:auto;padding:0 16px 16px}
+  .label{color:var(--label)} .sec{color:var(--sec)}
+  /* reference face */
+  .face{width:88px;height:88px;border-radius:50%;margin:8px auto 6px;
+    background:linear-gradient(135deg,#ffd9a0,#ff9d6c);position:relative;
+    display:flex;align-items:center;justify-content:center;font-size:38px}
+  .check{position:absolute;right:2px;bottom:2px;width:24px;height:24px;border-radius:50%;
+    background:#fff;color:var(--green);display:flex;align-items:center;justify-content:center;font-size:15px}
+  .pill{display:block;margin:0 auto 14px;border:1px solid var(--accent);color:var(--accent);
+    background:rgba(0,122,255,.08);border-radius:10px;padding:8px 12px;font-size:13px;text-align:center;width:fit-content}
+  .btn{display:block;width:100%;border:none;border-radius:13px;padding:13px;font-size:16px;font-weight:600;margin-bottom:10px;text-align:center}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-bordered{background:rgba(120,120,128,.12);color:var(--accent)}
+  .progress{height:6px;border-radius:3px;background:#d1d1d6;overflow:hidden;margin:6px 0}
+  .progress>i{display:block;height:100%;width:62%;background:var(--accent)}
+  .small{font-size:12px;color:var(--sec)}
+  .toolbar{display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px}
+  .toolbar a{color:var(--accent);font-size:14px;text-decoration:none;margin-left:14px}
+  .month{font-size:13px;font-weight:600;color:var(--sec);margin:12px 0 6px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .thumb{position:relative;aspect-ratio:1;border-radius:9px;overflow:hidden}
+  .thumb img,.thumb .ph{width:100%;height:100%;object-fit:cover;display:block}
+  .ph{background:linear-gradient(135deg,#c7d2fe,#a5b4fc)}
+  .ph.b{background:linear-gradient(135deg,#fbcfe8,#f9a8d4)}
+  .ph.c{background:linear-gradient(135deg,#bbf7d0,#86efac)}
+  .ph.d{background:linear-gradient(135deg,#fde68a,#fcd34d)}
+  .ph.e{background:linear-gradient(135deg,#bae6fd,#7dd3fc)}
+  .selbadge{position:absolute;top:5px;left:5px;width:22px;height:22px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-size:13px;background:rgba(0,0,0,.25);color:#fff}
+  .selbadge.on{background:var(--accent);color:#fff}
+  .thumb.off{opacity:.45}
+  .thumb.sel{outline:3px solid var(--accent);outline-offset:-3px}
+  .up{position:absolute;bottom:5px;right:5px;font-size:14px}
+  .expand{position:absolute;bottom:5px;left:5px;font-size:15px;color:#fff;text-shadow:0 0 3px rgba(0,0,0,.6)}
+  /* settings */
+  .group{background:var(--card);border-radius:12px;margin:8px 0 4px;overflow:hidden}
+  .item{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--sep);font-size:15px;color:#000}
+  .item:last-child{border-bottom:none}
+  .ghead{font-size:12px;color:var(--sec);text-transform:uppercase;margin:18px 4px 2px}
+  .gfoot{font-size:12px;color:var(--sec);margin:4px 4px 0}
+  .slider{height:4px;background:#d1d1d6;border-radius:2px;position:relative;flex:1;margin:0 10px}
+  .slider>i{position:absolute;left:46%;top:50%;transform:translate(-50%,-50%);width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+  .destructive{color:var(--red)}
+  /* summary sheet */
+  .sheet{position:absolute;left:0;right:0;bottom:0;height:62%;background:#fff;border-radius:18px 18px 0 0;
+    padding:26px 22px;display:flex;flex-direction:column;align-items:center;color:#000}
+  .seal{font-size:54px;color:var(--green);margin:6px 0 12px}
+  .sheet h2{font-size:19px;margin:0 0 18px;text-align:center}
+  .sumrow{display:flex;align-items:center;gap:8px;font-size:15px;margin:4px 0}
+  .grow{flex:1}
+  .caption{font-size:12px;color:#aeaeb2;text-align:center;margin-top:10px}
+</style>
+</head>
+<body>
+  <h1>PhotosPartagees</h1>
+  <div class="sub">Aperçu UI · SwiftUI · iOS 16+ (maquette statique, non interactive)</div>
+
+  <div class="row">
+
+    <!-- 1. SCAN EN COURS -->
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="status"><span>9:41</span><span>📶 🔋</span></div>
+      <div class="nav"><span class="title">PhotosPartagees</span><span class="gear">⚙️</span></div>
+      <div class="body">
+        <div class="face">🙂<div class="check">✓</div></div>
+        <div class="pill">Changer mon visage de référence</div>
+        <button class="btn btn-bordered">⏹ Annuler le scan</button>
+        <div class="progress"><i></i></div>
+        <div class="small">Analyse 312/503 — 7 match(s)</div>
+      </div>
+    </div>
+
+    <!-- 2. RESULTATS / SELECTION -->
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="status"><span>9:41</span><span>📶 🔋</span></div>
+      <div class="nav"><span class="title">PhotosPartagees</span><span class="gear">⚙️</span></div>
+      <div class="body">
+        <button class="btn btn-primary">☁️ Partager la sélection (5)</button>
+        <div class="toolbar">
+          <span class="small">5 sélectionnée(s) sur 7</span>
+          <span><a href="#">Tout</a><a href="#">Aucune</a></span>
+        </div>
+        <div class="month">juin 2026</div>
+        <div class="grid">
+          <div class="thumb sel"><div class="ph"></div><div class="selbadge on">✓</div><div class="expand">⤢</div></div>
+          <div class="thumb sel"><div class="ph b"></div><div class="selbadge on">✓</div><div class="expand">⤢</div></div>
+          <div class="thumb off"><div class="ph c"></div><div class="selbadge">○</div><div class="up">🕓</div></div>
+          <div class="thumb sel"><div class="ph d"></div><div class="selbadge on">✓</div><div class="expand">⤢</div></div>
+          <div class="thumb sel"><div class="ph e"></div><div class="selbadge on">✓</div><div class="up">☁️✓</div></div>
+        </div>
+        <div class="month">mai 2026</div>
+        <div class="grid">
+          <div class="thumb sel"><div class="ph b"></div><div class="selbadge on">✓</div><div class="expand">⤢</div></div>
+          <div class="thumb off"><div class="ph"></div><div class="selbadge">○</div><div class="up" style="color:#ff3b30">⚠️</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. REGLAGES -->
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="status" style="color:#000"><span>9:41</span><span>📶 🔋</span></div>
+      <div class="nav"><span class="title" style="font-size:22px">Réglages</span><span class="gear">OK</span></div>
+      <div class="body">
+        <div class="ghead">Matching</div>
+        <div class="group">
+          <div class="item">
+            <span>Sensibilité</span>
+            <span class="slider"><i></i></span>
+            <span class="sec">0.60</span>
+          </div>
+        </div>
+        <div class="gfoot">Plus la valeur est basse, plus le matching est strict.</div>
+
+        <div class="ghead">Historique des partages</div>
+        <div class="group">
+          <div class="item"><span>Photos partagées</span><span class="sec">23</span></div>
+          <div class="item destructive"><span>🗑 Réinitialiser l'historique</span></div>
+        </div>
+        <div class="gfoot">Les photos déjà partagées ne sont pas reproposées. Réinitialiser permet de les repartager.</div>
+      </div>
+    </div>
+
+    <!-- 4. RECAP -->
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="status"><span>9:41</span><span>📶 🔋</span></div>
+      <div class="nav"><span class="title">PhotosPartagees</span><span class="gear">⚙️</span></div>
+      <div class="body" style="filter:brightness(.6)">
+        <button class="btn btn-primary">☁️ Partager la sélection (5)</button>
+        <div class="grid"><div class="thumb"><div class="ph"></div></div><div class="thumb"><div class="ph b"></div></div><div class="thumb"><div class="ph c"></div></div></div>
+      </div>
+      <div class="sheet">
+        <div class="seal">✅</div>
+        <h2>Partage réussi</h2>
+        <div class="sumrow" style="color:var(--green)">✔ 5 photo(s) partagée(s)</div>
+        <div class="grow"></div>
+        <button class="btn btn-bordered" style="color:#000;background:rgba(120,120,128,.12)">🔗 Copier les liens de partage</button>
+        <button class="btn" style="background:none;color:var(--accent)">Fermer</button>
+      </div>
+    </div>
+
+  </div>
+  <div class="caption">Maquette de présentation des écrans — le rendu réel est produit par SwiftUI sur appareil/simulateur iOS.</div>
+</body>
+</html>
