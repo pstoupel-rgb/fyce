@@ -1,0 +1,358 @@
+<title>PhotosPartagees — Modèle économique & simulateur</title>
+<style>
+  :root{
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,"Cascadia Mono",monospace;
+
+    --paper:#f4f4f9; --card:#ffffff; --ink:#15151f; --muted:#6a6a7a; --line:#e6e6ef;
+    --a1:#5b78ef; --a2:#9d5cff;
+    --grad:linear-gradient(135deg,#5b78ef,#9d5cff);
+    --money:#12a074; --money-bg:rgba(18,160,116,.10);
+    --amber:#c77b12; --amber-bg:rgba(240,160,32,.14);
+    --danger:#e0384a; --danger-bg:rgba(224,56,74,.09);
+    --shadow:0 10px 30px rgba(40,40,90,.09);
+    --r:18px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#08080e; --card:#14141e; --ink:#f2f2f8; --muted:#9797a8; --line:#262633;
+      --money:#2fdd9b; --money-bg:rgba(47,221,155,.10);
+      --amber:#f2b24a; --amber-bg:rgba(242,178,74,.12);
+      --danger:#ff6072; --danger-bg:rgba(255,96,114,.10);
+      --shadow:0 12px 34px rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="light"]{
+    --paper:#f4f4f9; --card:#ffffff; --ink:#15151f; --muted:#6a6a7a; --line:#e6e6ef;
+    --money:#12a074; --money-bg:rgba(18,160,116,.10);
+    --amber:#c77b12; --amber-bg:rgba(240,160,32,.14);
+    --danger:#e0384a; --danger-bg:rgba(224,56,74,.09);
+    --shadow:0 10px 30px rgba(40,40,90,.09);
+  }
+  :root[data-theme="dark"]{
+    --paper:#08080e; --card:#14141e; --ink:#f2f2f8; --muted:#9797a8; --line:#262633;
+    --money:#2fdd9b; --money-bg:rgba(47,221,155,.10);
+    --amber:#f2b24a; --amber-bg:rgba(242,178,74,.12);
+    --danger:#ff6072; --danger-bg:rgba(255,96,114,.10);
+    --shadow:0 12px 34px rgba(0,0,0,.55);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:
+      radial-gradient(1100px 460px at 50% -260px, rgba(122,100,255,.16), transparent 65%),
+      var(--paper);
+    color:var(--ink);font-family:var(--sans);line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:880px;margin:0 auto;padding:32px 20px 72px}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* Header */
+  header.top{display:flex;align-items:center;gap:12px;margin-bottom:30px}
+  .logo{width:34px;height:34px;border-radius:11px;background:var(--grad);position:relative;flex:none;
+    box-shadow:0 4px 12px rgba(91,120,239,.5)}
+  .logo::after{content:"";position:absolute;left:50%;top:36%;transform:translateX(-50%);width:11px;height:11px;border-radius:50%;background:#fff}
+  .logo::before{content:"";position:absolute;left:50%;bottom:5px;transform:translateX(-50%);width:19px;height:11px;border-radius:9px 9px 0 0;background:#fff}
+  .brandname{font-weight:800;letter-spacing:-.02em;font-size:18px}
+  .brandtag{color:var(--muted);font-size:13px}
+
+  .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-weight:700;color:var(--a2)}
+  h1{font-size:clamp(28px,5vw,40px);line-height:1.08;letter-spacing:-.03em;font-weight:850;
+    margin:.35em 0 .3em;text-wrap:balance}
+  h1 .g{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{color:var(--muted);font-size:17px;max-width:60ch}
+
+  section{margin-top:46px}
+  h2{font-size:22px;letter-spacing:-.02em;font-weight:800;margin:0 0 6px;display:flex;align-items:center;gap:10px}
+  h2 .k{font:700 12px/1 var(--mono);color:var(--a2);background:var(--money-bg);background:rgba(122,100,255,.12);
+    padding:5px 8px;border-radius:7px}
+  .sec-intro{color:var(--muted);margin:0 0 18px;max-width:62ch}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+
+  /* Simulator */
+  .sim{display:grid;grid-template-columns:1fr .9fr;gap:0;overflow:hidden}
+  @media(max-width:720px){.sim{grid-template-columns:1fr}}
+  .controls{padding:22px 22px 26px;border-right:1px solid var(--line)}
+  @media(max-width:720px){.controls{border-right:none;border-bottom:1px solid var(--line)}}
+  .controls h3,.out h3{margin:0 0 16px;font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+  .ctrl{margin-bottom:18px}
+  .ctrl label{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:600;margin-bottom:7px}
+  .ctrl label b{font:700 14px/1 var(--mono);color:var(--a1)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;
+    background:linear-gradient(var(--a1),var(--a1)) no-repeat, var(--line);background-size:var(--fill,50%) 100%;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;
+    border:none;box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:pointer;margin-top:-8px}
+  input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#fff;border:none;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+  input[type=range]:focus-visible{outline:3px solid var(--a2);outline-offset:4px}
+
+  .seg{display:flex;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:4px}
+  .seg button{flex:1;border:none;background:none;color:var(--muted);font:600 13px var(--sans);padding:9px;border-radius:8px;cursor:pointer}
+  .seg button[aria-pressed="true"]{background:var(--grad);color:#fff;box-shadow:0 4px 10px rgba(91,120,239,.35)}
+
+  .out{padding:22px}
+  .hero-money{font-variant-numeric:tabular-nums;font-weight:850;letter-spacing:-.03em;
+    font-size:clamp(34px,8vw,50px);line-height:1;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero-cap{color:var(--muted);font-size:13px;margin-top:6px;font-weight:600}
+  .cards2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+  .mini{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .mini .v{font-variant-numeric:tabular-nums;font-weight:800;font-size:19px}
+  .mini .l{color:var(--muted);font-size:12px;margin-top:2px}
+  .mini.money .v{color:var(--money)}
+  .bar{display:flex;height:12px;border-radius:7px;overflow:hidden;margin:20px 0 8px;background:var(--line)}
+  .bar .b2b{background:var(--grad)} .bar .conso{background:var(--money)}
+  .legend{display:flex;gap:16px;font-size:12px;color:var(--muted)}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
+  .note{margin-top:16px;font-size:13px;padding:11px 13px;border-radius:11px;border:1px solid var(--line);
+    background:var(--amber-bg);color:var(--amber)}
+  .note.web{background:var(--money-bg);color:var(--money)}
+
+  /* Vends / jamais */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:640px){.split{grid-template-columns:1fr}}
+  .col{padding:20px}
+  .col h3{margin:0 0 14px;font-size:15px;display:flex;align-items:center;gap:8px}
+  .col.sell h3{color:var(--money)} .col.never h3{color:var(--danger)}
+  .col ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:11px}
+  .col li{display:flex;gap:10px;font-size:14.5px;align-items:flex-start}
+  .col li .m{flex:none;font-weight:800;margin-top:1px}
+  .sell li .m{color:var(--money)} .never li .m{color:var(--danger)}
+
+  /* GTM steps */
+  .steps{display:flex;flex-direction:column;gap:12px;counter-reset:s}
+  .step{display:flex;gap:16px;padding:18px 20px;align-items:flex-start}
+  .step .n{counter-increment:s;flex:none;width:34px;height:34px;border-radius:10px;background:var(--grad);color:#fff;
+    font-weight:800;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
+  .step .n::before{content:counter(s)}
+  .step h4{margin:2px 0 4px;font-size:16px}
+  .step p{margin:0;color:var(--muted);font-size:14px}
+
+  .loop{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:18px;padding:16px 18px;
+    background:rgba(122,100,255,.08);border:1px dashed var(--a2);border-radius:14px;font-size:14px;font-weight:600}
+  .loop .chip{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:7px 11px}
+  .loop .arrow{color:var(--a2);font-weight:800}
+
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:640px){.grid3{grid-template-columns:1fr}}
+  .lever{padding:18px}
+  .lever .h{font-weight:800;font-size:15px;margin-bottom:5px}
+  .lever .d{color:var(--muted);font-size:13.5px}
+
+  .kpis{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .kpi{font:600 13px var(--sans);background:var(--money-bg);color:var(--money);padding:7px 12px;border-radius:9px}
+
+  footer{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+  footer b{color:var(--ink)}
+  @media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+
+  <header class="top">
+    <span class="logo" aria-hidden="true"></span>
+    <div>
+      <div class="brandname">PhotosPartagees</div>
+      <div class="brandtag">Modèle économique &amp; simulateur de revenus</div>
+    </div>
+  </header>
+
+  <p class="eyebrow">La thèse</p>
+  <h1>Tu ne gagnes pas en vendant des visages. Tu gagnes en devenant <span class="g">l'infrastructure qui retrouve et vend leurs photos aux gens.</span></h1>
+  <p class="lede">Besoin déjà prouvé (les gens paient pour leurs propres photos) × budgets B2B des events × une boucle virale où chaque photo ramène tout le monde dessus. Joue avec les curseurs : le CA se recalcule en direct.</p>
+
+  <section>
+    <h2><span class="k">01</span> Simulateur d'économie</h2>
+    <p class="sec-intro">Hypothèses modifiables. L'argent entre par deux robinets : les <b>contrats B2B</b> (organisateurs / marques) et les <b>achats conso</b> (packs &amp; téléchargements). Le canal de vente change tout à cause de la commission des stores.</p>
+
+    <div class="card sim">
+      <div class="controls">
+        <h3>Hypothèses</h3>
+        <div class="ctrl">
+          <label>Events / mois <b id="vEvents">8</b></label>
+          <input type="range" id="events" min="1" max="40" value="8">
+        </div>
+        <div class="ctrl">
+          <label>Participants / event <b id="vPart">600</b></label>
+          <input type="range" id="part" min="100" max="4000" step="50" value="600">
+        </div>
+        <div class="ctrl">
+          <label>Inscription (boucle virale) <b id="vViral">45 %</b></label>
+          <input type="range" id="viral" min="10" max="80" value="45">
+        </div>
+        <div class="ctrl">
+          <label>Inscrits qui paient <b id="vConv">8 %</b></label>
+          <input type="range" id="conv" min="1" max="25" value="8">
+        </div>
+        <div class="ctrl">
+          <label>Panier moyen payeur <b id="vBasket">7 €</b></label>
+          <input type="range" id="basket" min="2" max="30" value="7">
+        </div>
+        <div class="ctrl">
+          <label>Forfait B2B / event <b id="vB2b">900 €</b></label>
+          <input type="range" id="b2b" min="0" max="4000" step="50" value="900">
+        </div>
+        <div class="ctrl">
+          <label style="margin-bottom:9px">Canal de vente des packs</label>
+          <div class="seg" role="group" aria-label="Canal de vente">
+            <button id="chWeb" aria-pressed="true">Web · –3 %</button>
+            <button id="chApp" aria-pressed="false">In‑app iOS · –30 %</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="out">
+        <h3>Projection</h3>
+        <div class="hero-money num" id="oAnnual">—</div>
+        <div class="hero-cap">CA annuel projeté</div>
+
+        <div class="cards2">
+          <div class="mini"><div class="v num" id="oMonth">—</div><div class="l">CA / mois</div></div>
+          <div class="mini money"><div class="v num" id="oMargin">—</div><div class="l">Marge brute / an*</div></div>
+          <div class="mini"><div class="v num" id="oSignups">—</div><div class="l">Inscrits / mois</div></div>
+          <div class="mini"><div class="v num" id="oPayers">—</div><div class="l">Payeurs / mois</div></div>
+        </div>
+
+        <div class="bar" aria-hidden="true"><span class="b2b" id="barB2b" style="width:50%"></span><span class="conso" id="barConso" style="width:50%"></span></div>
+        <div class="legend">
+          <span><i style="background:var(--a1)"></i>B2B <b class="num" id="oB2b">—</b></span>
+          <span><i style="background:var(--money)"></i>Conso <b class="num" id="oConso">—</b></span>
+        </div>
+
+        <div class="note web" id="oNote">—</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="k">02</span> Ce qu'on vend — ce qu'on ne vend jamais</h2>
+    <p class="sec-intro">La ligne rouge n'est pas qu'éthique, elle est stratégique : la confiance est le seul actif qui fait que les gens consentent, donc qui alimente tout le reste.</p>
+    <div class="card split">
+      <div class="col sell">
+        <h3>✓ Ce qu'on vend</h3>
+        <ul>
+          <li><span class="m">→</span> Téléchargements HD de tes photos (crédits)</li>
+          <li><span class="m">→</span> Packs de crédits, vendus sur le <b>web</b></li>
+          <li><span class="m">→</span> Abo premium (stockage, HD, albums privés)</li>
+          <li><span class="m">→</span> Tirages, livres photo, goodies</li>
+          <li><span class="m">→</span> Accès B2B aux organisateurs &amp; marques</li>
+        </ul>
+      </div>
+      <div class="col never">
+        <h3>✕ Ce qu'on ne vend jamais</h3>
+        <ul>
+          <li><span class="m">✕</span> Les profils / comptes utilisateurs</li>
+          <li><span class="m">✕</span> Les empreintes de visages (biométrie)</li>
+          <li><span class="m">✕</span> Les données à des annonceurs / brokers</li>
+          <li><span class="m">✕</span> Les photos à des tiers sans model release</li>
+          <li><span class="m">✕</span> L'accès reconnaissance à d'autres apps</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="k">03</span> Plan go‑to‑market — festivals &amp; nightlife</h2>
+    <p class="sec-intro">Un vrai enchaînement, pas une liste. On amorce par le B2B (qui paie), la boucle virale fait le reste.</p>
+    <div class="card steps">
+      <div class="step"><span class="n"></span><div><h4>Choisir un vertical à fort budget</h4><p>Festivals, nightlife, sport, salles de sport : beaucoup de photos entre inconnus + un tiers qui a un budget.</p></div></div>
+      <div class="step"><span class="n"></span><div><h4>3 events pilotes gratuits</h4><p>On prouve la magie « je scanne mon visage → je retrouve mes photos » et on mesure le taux de partage.</p></div></div>
+      <div class="step"><span class="n"></span><div><h4>Signer 10 organisateurs en récurrent</h4><p>Forfait par event + pool de crédits financé par eux/les marques. Le récurrent = revenu prévisible.</p></div></div>
+      <div class="step"><span class="n"></span><div><h4>Monétiser le conso par‑dessus</h4><p>Packs (web, hors taxe Apple), téléchargements HD, tirages. Petit ticket × gros volume.</p></div></div>
+      <div class="step"><span class="n"></span><div><h4>Optimiser la boucle virale comme métrique n°1</h4><p>Chaque photo doit ramener le maximum de personnes inscrites → coût d'acquisition proche de zéro.</p></div></div>
+    </div>
+
+    <div class="loop">
+      <span class="chip">1 photo uploadée</span><span class="arrow">→</span>
+      <span class="chip">6 visages reconnus</span><span class="arrow">→</span>
+      <span class="chip">6 notifs « t'es dessus »</span><span class="arrow">→</span>
+      <span class="chip">nouveaux inscrits</span><span class="arrow">↺</span>
+      <span class="chip">qui uploadent à leur tour</span>
+    </div>
+
+    <div class="kpis">
+      <span class="kpi">Taux de partage</span>
+      <span class="kpi">Personnes ramenées / photo</span>
+      <span class="kpi">Coût par photo retrouvée</span>
+      <span class="kpi">Rétention 30 j</span>
+      <span class="kpi">Revenu récurrent B2B</span>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="k">04</span> Les leviers qui font grossir le CA</h2>
+    <div class="grid3">
+      <div class="card lever"><div class="h">Tirages &amp; albums</div><div class="d">Montent le panier moyen, marge 60–80 %, achat émotionnel.</div></div>
+      <div class="card lever"><div class="h">Vente web des packs</div><div class="d">Évite la commission Apple/Google de 30 % → tu gardes ta marge.</div></div>
+      <div class="card lever"><div class="h">Abonnement venues</div><div class="d">Revenu récurrent = valorisation ×5 le jour d'une revente.</div></div>
+      <div class="card lever"><div class="h">Fréquence</div><div class="d">Un festival = des dizaines d'events/an sous un même contrat.</div></div>
+      <div class="card lever"><div class="h">Crédits</div><div class="d">Moteur de rétention &amp; de viralité — pas une source de cash.</div></div>
+      <div class="card lever"><div class="h">L'endgame : le réseau</div><div class="d">Devenir LE lieu où l'on retrouve ses photos d'events → valeur = take rate × volume, et rachat possible.</div></div>
+    </div>
+  </section>
+
+  <footer>
+    <b>* Hypothèses &amp; limites.</b> Simulateur d'aide à la décision : la marge brute applique un coût variable forfaitaire de 22 % (hébergement, paiement, part reversée aux créateurs) et exclut les coûts fixes (salaires, marketing). La boucle virale est modélisée comme un taux d'inscription par event, pas comme une croissance composée dans le temps. Chiffres à calibrer sur tes vrais pilotes. Vendre des packs dans l'app iOS déclenche l'achat in‑app Apple (15–30 %). Le visage est une donnée biométrique : consentement explicite (RGPD art. 9), droit à l'effacement, avocat spécialisé avant lancement.
+  </footer>
+
+</div>
+
+<script>
+  const $=id=>document.getElementById(id);
+  const eur0=new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0});
+  const int=new Intl.NumberFormat('fr-FR');
+  const COST=0.22;
+  let channel='web'; // web | app
+
+  const ids=['events','part','viral','conv','basket','b2b'];
+  function setFill(el){const min=+el.min,max=+el.max;el.style.setProperty('--fill',((el.value-min)/(max-min)*100)+'%');}
+
+  function compute(){
+    const events=+$('events').value, part=+$('part').value, viral=+$('viral').value/100,
+          conv=+$('conv').value/100, basket=+$('basket').value, b2bFee=+$('b2b').value;
+
+    $('vEvents').textContent=events;
+    $('vPart').textContent=int.format(part);
+    $('vViral').textContent=$('viral').value+' %';
+    $('vConv').textContent=$('conv').value+' %';
+    $('vBasket').textContent=basket+' €';
+    $('vB2b').textContent=int.format(b2bFee)+' €';
+    ids.forEach(i=>setFill($(i)));
+
+    const participants=events*part;
+    const signups=Math.round(participants*viral);
+    const payers=Math.round(signups*conv);
+    const storeCut=channel==='app'?0.30:0.03;
+    const consoNet=payers*basket*(1-storeCut);
+    const b2b=events*b2bFee;
+    const month=consoNet+b2b;
+    const annual=month*12;
+    const margin=annual*(1-COST);
+
+    $('oAnnual').textContent=eur0.format(annual);
+    $('oMonth').textContent=eur0.format(month);
+    $('oMargin').textContent=eur0.format(margin);
+    $('oSignups').textContent=int.format(signups);
+    $('oPayers').textContent=int.format(payers);
+    $('oB2b').textContent=eur0.format(b2b*12);
+    $('oConso').textContent=eur0.format(consoNet*12);
+
+    const tot=Math.max(month,1);
+    $('barB2b').style.width=(b2b/tot*100)+'%';
+    $('barConso').style.width=(consoNet/tot*100)+'%';
+
+    const note=$('oNote');
+    if(channel==='app'){
+      note.className='note';
+      note.innerHTML='En vente <b>in‑app iOS</b>, Apple prélève 30 %. Bascule sur <b>Web</b> et compare le CA conso — c’est l’intérêt d’avoir une PWA.';
+    }else{
+      note.className='note web';
+      note.innerHTML='En vente <b>Web</b>, tu ne perds que ~3 % de frais de paiement au lieu des 30 % d’Apple. Marge préservée.';
+    }
+  }
+
+  ids.forEach(i=>$(i).addEventListener('input',compute));
+  $('chWeb').addEventListener('click',()=>{channel='web';$('chWeb').setAttribute('aria-pressed','true');$('chApp').setAttribute('aria-pressed','false');compute();});
+  $('chApp').addEventListener('click',()=>{channel='app';$('chApp').setAttribute('aria-pressed','true');$('chWeb').setAttribute('aria-pressed','false');compute();});
+  compute();
+</script>
