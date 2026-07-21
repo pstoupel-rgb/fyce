@@ -1,0 +1,361 @@
+<title>PhotosPartagees — Dossier &amp; Business Plan</title>
+<style>
+  :root{
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,"Cascadia Mono",monospace;
+    --paper:#f5f5fa; --card:#ffffff; --ink:#161620; --soft:#3b3b48; --muted:#6c6c7c; --line:#e6e6ef;
+    --a1:#5b78ef; --a2:#9d5cff; --grad:linear-gradient(135deg,#5b78ef,#9d5cff);
+    --money:#12a074; --money-bg:rgba(18,160,116,.10);
+    --amber:#b9760f; --amber-bg:rgba(240,160,32,.13);
+    --danger:#e0384a; --danger-bg:rgba(224,56,74,.08);
+    --shadow:0 10px 30px rgba(40,40,90,.08); --r:16px;
+  }
+  @media (prefers-color-scheme: dark){:root{
+    --paper:#08080e; --card:#14141e; --ink:#f2f2f8; --soft:#c9c9d6; --muted:#9494a6; --line:#262633;
+    --money:#2fdd9b; --money-bg:rgba(47,221,155,.10);
+    --amber:#f2b24a; --amber-bg:rgba(242,178,74,.12);
+    --danger:#ff6072; --danger-bg:rgba(255,96,114,.10);
+    --shadow:0 12px 34px rgba(0,0,0,.55);
+  }}
+  :root[data-theme="light"]{--paper:#f5f5fa;--card:#fff;--ink:#161620;--soft:#3b3b48;--muted:#6c6c7c;--line:#e6e6ef;--money:#12a074;--money-bg:rgba(18,160,116,.10);--amber:#b9760f;--amber-bg:rgba(240,160,32,.13);--danger:#e0384a;--danger-bg:rgba(224,56,74,.08);--shadow:0 10px 30px rgba(40,40,90,.08)}
+  :root[data-theme="dark"]{--paper:#08080e;--card:#14141e;--ink:#f2f2f8;--soft:#c9c9d6;--muted:#9494a6;--line:#262633;--money:#2fdd9b;--money-bg:rgba(47,221,155,.10);--amber:#f2b24a;--amber-bg:rgba(242,178,74,.12);--danger:#ff6072;--danger-bg:rgba(255,96,114,.10);--shadow:0 12px 34px rgba(0,0,0,.55)}
+
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1100px 460px at 50% -280px,rgba(122,100,255,.14),transparent 65%),var(--paper);
+    color:var(--ink);font-family:var(--sans);line-height:1.62;-webkit-font-smoothing:antialiased;font-size:16.5px}
+  .wrap{max-width:760px;margin:0 auto;padding:36px 22px 80px}
+  .num{font-variant-numeric:tabular-nums}
+  a{color:var(--a1);text-decoration:none} a:hover{text-decoration:underline}
+
+  /* Cover */
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:40px}
+  .logo{width:34px;height:34px;border-radius:11px;background:var(--grad);position:relative;flex:none;box-shadow:0 4px 12px rgba(91,120,239,.5)}
+  .logo::after{content:"";position:absolute;left:50%;top:36%;transform:translateX(-50%);width:11px;height:11px;border-radius:50%;background:#fff}
+  .logo::before{content:"";position:absolute;left:50%;bottom:5px;transform:translateX(-50%);width:19px;height:11px;border-radius:9px 9px 0 0;background:#fff}
+  .brand b{font-weight:800;letter-spacing:-.02em}
+  .cover .kicker{text-transform:uppercase;letter-spacing:.16em;font-size:12px;font-weight:700;color:var(--a2)}
+  .cover h1{font-size:clamp(32px,6vw,46px);line-height:1.05;letter-spacing:-.03em;font-weight:850;margin:.3em 0;text-wrap:balance}
+  .cover h1 .g{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .cover .sub{color:var(--soft);font-size:19px;max-width:60ch}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .tag{font:600 12.5px var(--sans);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 13px;color:var(--muted)}
+
+  /* TOC */
+  .toc{margin:34px 0;padding:18px 20px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+  .toc h4{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+  .toc ol{margin:0;padding:0;list-style:none;columns:2;column-gap:26px}
+  @media(max-width:560px){.toc ol{columns:1}}
+  .toc li{margin-bottom:8px;font-size:14.5px;break-inside:avoid}
+  .toc li a{color:var(--soft)} .toc li b{color:var(--a1);font:700 13px var(--mono);margin-right:8px}
+
+  /* Chapters */
+  section{margin-top:52px;scroll-margin-top:20px}
+  .chap{display:flex;align-items:baseline;gap:14px;margin-bottom:8px}
+  .chap .n{font:800 14px var(--mono);color:#fff;background:var(--grad);border-radius:8px;padding:5px 9px;flex:none}
+  h2{font-size:26px;letter-spacing:-.02em;font-weight:820;margin:0;line-height:1.15;text-wrap:balance}
+  h3{font-size:17px;margin:26px 0 6px;letter-spacing:-.01em}
+  p{color:var(--soft);margin:12px 0}
+  .lead{font-size:17.5px;color:var(--ink)}
+  strong{color:var(--ink)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:20px 22px;margin:18px 0}
+  .quote{border-left:4px solid transparent;border-image:var(--grad) 1;padding:6px 0 6px 18px;margin:22px 0;font-size:19px;font-weight:650;color:var(--ink);letter-spacing:-.01em}
+
+  ul.clean{list-style:none;padding:0;margin:14px 0;display:flex;flex-direction:column;gap:10px}
+  ul.clean li{display:flex;gap:11px;color:var(--soft)}
+  ul.clean li .m{flex:none;color:var(--a2);font-weight:800;margin-top:1px}
+
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.5px}
+  th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .twrap{overflow-x:auto}
+
+  .callout{border-radius:14px;padding:15px 17px;margin:18px 0;font-size:15px;border:1px solid var(--line)}
+  .callout.money{background:var(--money-bg);border-color:transparent} .callout.money b{color:var(--money)}
+  .callout.warn{background:var(--amber-bg);border-color:transparent} .callout.warn b{color:var(--amber)}
+  .callout.legal{background:var(--danger-bg);border-color:transparent} .callout.legal b{color:var(--danger)}
+
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:560px){.split{grid-template-columns:1fr}}
+  .mini{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .mini .big{font:800 24px var(--sans);font-variant-numeric:tabular-nums;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .mini .l{font-size:13px;color:var(--muted);margin-top:2px}
+
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:14px;font-weight:600;margin:16px 0}
+  .flow .chip{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+  .flow .chip.pay{border-color:var(--money);color:var(--money)}
+  .flow .ar{color:var(--a2);font-weight:800}
+
+  .steps{counter-reset:s;display:flex;flex-direction:column;gap:10px;margin:16px 0}
+  .st{display:flex;gap:14px;align-items:flex-start}
+  .st .n{counter-increment:s;flex:none;width:30px;height:30px;border-radius:9px;background:var(--grad);color:#fff;font:800 13px var(--mono);display:flex;align-items:center;justify-content:center}
+  .st .n::before{content:counter(s)}
+  .st b{color:var(--ink)}
+
+  footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+  hr.sep{border:none;border-top:1px solid var(--line);margin:0}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+
+  <div class="brand"><span class="logo" aria-hidden="true"></span><b>PhotosPartagees</b></div>
+
+  <div class="cover">
+    <div class="kicker">Dossier &amp; Business Plan · Édition 2026</div>
+    <h1>La couche photo <span class="g">consentie</span> des soirées, festivals et events.</h1>
+    <p class="sub">Retrouve automatiquement les photos où tu apparais grâce à ton visage — reconnaissance sur ton téléphone, jamais sur nos serveurs. Gratuit pour retrouver, payant pour garder en HD, financé par les organisateurs.</p>
+    <div class="meta">
+      <span class="tag">Reconnaissance on-device</span>
+      <span class="tag">Consentement au cœur</span>
+      <span class="tag">Boucle virale</span>
+      <span class="tag">B2B + conso</span>
+    </div>
+  </div>
+
+  <nav class="toc">
+    <h4>Sommaire</h4>
+    <ol>
+      <li><a href="#s1"><b>01</b>Résumé exécutif</a></li>
+      <li><a href="#s2"><b>02</b>Le problème</a></li>
+      <li><a href="#s3"><b>La solution</b></a></li>
+      <li><a href="#s4"><b>04</b>Pourquoi maintenant</a></li>
+      <li><a href="#s5"><b>05</b>Le marché</a></li>
+      <li><a href="#s6"><b>06</b>Modèle économique</a></li>
+      <li><a href="#s7"><b>07</b>Concurrence</a></li>
+      <li><a href="#s8"><b>08</b>Go-to-market</a></li>
+      <li><a href="#s9"><b>09</b>Produit</a></li>
+      <li><a href="#s10"><b>10</b>Confidentialité &amp; légal</a></li>
+      <li><a href="#s11"><b>11</b>Feuille de route</a></li>
+      <li><a href="#s12"><b>12</b>Projections</a></li>
+      <li><a href="#s13"><b>13</b>Risques</a></li>
+      <li><a href="#s14"><b>14</b>Besoins &amp; prochaine étape</a></li>
+    </ol>
+  </nav>
+
+  <section id="s1">
+    <div class="chap"><span class="n">01</span><h2>Résumé exécutif</h2></div>
+    <p class="lead">Aux events, des inconnus et des photographes prennent des centaines de photos où tu apparais — et tu ne les récupères <strong>jamais</strong>. PhotosPartagees résout ça : tu scannes ton visage une fois, l'app retrouve toutes tes photos, partout, pour toujours.</p>
+    <p>Le modèle est simple et sain : <strong>retrouver ses photos est gratuit</strong> (ça alimente la viralité), <strong>les garder en HD est payant</strong> (le revenu conso), et <strong>les organisateurs / marques paient</strong> pour offrir l'expérience à leur public (le revenu récurrent). La reconnaissance se fait <strong>sur le téléphone</strong> : on ne voit jamais le visage de personne — ce qui transforme le plus gros risque du secteur en argument de vente.</p>
+    <div class="split">
+      <div class="mini"><div class="big">2 robinets</div><div class="l">B2B (organisateurs) + conso (packs, HD, tirages)</div></div>
+      <div class="mini"><div class="big">On-device</div><div class="l">Reconnaissance privée, jamais sur serveur</div></div>
+      <div class="mini"><div class="big">Boucle virale</div><div class="l">Chaque photo ramène tout le monde dessus</div></div>
+      <div class="mini"><div class="big">Confiance</div><div class="l">« Ton visage t'appartient » = le moat</div></div>
+    </div>
+    <div class="callout money"><b>La thèse.</b> On ne gagne pas en vendant des visages. On gagne en devenant l'infrastructure qui retrouve et vend leurs photos aux gens — financée par les organisateurs, propagée par les gens eux-mêmes.</div>
+  </section>
+
+  <section id="s2">
+    <div class="chap"><span class="n">02</span><h2>Le problème</h2></div>
+    <p>Après une soirée, un festival, une course, une conférence : les meilleures photos de toi sont dans les téléphones de <strong>gens que tu ne connais pas</strong>, et sur les cartes des <strong>photographes</strong>. Tu ne peux pas leur demander — tu ne sais même pas qui ils sont.</p>
+    <ul class="clean">
+      <li><span class="m">→</span>Les photos existent mais sont <strong>inaccessibles</strong> pour la personne dessus.</li>
+      <li><span class="m">→</span>Les organisateurs ont des milliers de photos qui <strong>dorment</strong>, sans moyen simple de les redistribuer.</li>
+      <li><span class="m">→</span>Les rares solutions existantes ignorent le <strong>consentement</strong>, ce qui les rend juridiquement fragiles.</li>
+    </ul>
+  </section>
+
+  <section id="s3">
+    <div class="chap"><span class="n">03</span><h2>La solution</h2></div>
+    <p class="lead">Un scan de visage → toutes tes photos, où qu'elles soient prises.</p>
+    <div class="steps">
+      <div class="st"><span class="n"></span><div><b>Un selfie, une fois.</b> À l'inscription, tu scannes ton visage. L'analyse reste sur ton téléphone.</div></div>
+      <div class="st"><span class="n"></span><div><b>On te retrouve partout.</b> Dès qu'une photo où tu apparais est ajoutée (par un organisateur, un photographe, un ami), tu reçois une notif : « 📸 3 nouvelles photos de toi ».</div></div>
+      <div class="st"><span class="n"></span><div><b>Tu choisis, tu valides.</b> Tu vois tes photos (en aperçu), tu sélectionnes celles que tu veux, tu contrôles ce qui est partagé.</div></div>
+      <div class="st"><span class="n"></span><div><b>Tu gardes / tu partages.</b> Téléchargement HD, album souvenir, tirages — et un récap partageable qui fait grandir l'app.</div></div>
+    </div>
+    <p>Le prototype existe déjà en <strong>web app / PWA</strong> (installable sur l'écran d'accueil) et en app iOS native — la reconnaissance faciale tourne dans le navigateur ou sur l'appareil.</p>
+  </section>
+
+  <section id="s4">
+    <div class="chap"><span class="n">04</span><h2>Pourquoi maintenant</h2></div>
+    <ul class="clean">
+      <li><span class="m">→</span><strong>La reconnaissance sur l'appareil est devenue gratuite et privée.</strong> On peut enfin retrouver un visage sans l'envoyer sur un serveur — l'obstacle qui a tué les prédécesseurs.</li>
+      <li><span class="m">→</span><strong>La sensibilité à la vie privée est à son maximum.</strong> Après les scandales (Clearview), « on ne voit jamais ton visage » est un argument commercial fort, pas une contrainte.</li>
+      <li><span class="m">→</span><strong>La culture du partage d'events</strong> (stories, souvenirs) n'a jamais été aussi forte chez les 18–30 ans.</li>
+    </ul>
+  </section>
+
+  <section id="s5">
+    <div class="chap"><span class="n">05</span><h2>Le marché</h2></div>
+    <p>Les gens <strong>paient déjà</strong> pour leurs propres photos — le besoin est prouvé, pas hypothétique :</p>
+    <div class="twrap"><table>
+      <thead><tr><th>Référence</th><th>Ce que ça prouve</th></tr></thead>
+      <tbody>
+        <tr><td>Disney PhotoPass</td><td>Des centaines de millions $/an sur « tes photos de la journée »</td></tr>
+        <tr><td>MarathonFoto / PIC2GO</td><td>50–150 $ pour ses photos de course</td></tr>
+        <tr><td>Lifetouch (photo scolaire)</td><td>Racheté ~825 M$</td></tr>
+      </tbody>
+    </table></div>
+    <p><strong>Cible initiale (le wedge) :</strong> la <strong>nightlife / les clubs</strong> — fréquence hebdomadaire, mêmes lieux (contrats récurrents), public jeune qui partage énormément. Extension ensuite : festivals, sport amateur, events corporate, mariages.</p>
+  </section>
+
+  <section id="s6">
+    <div class="chap"><span class="n">06</span><h2>Modèle économique</h2></div>
+    <p class="lead">Une règle d'or : <strong>on fait payer ceux qui VEULENT des photos ; donner des photos est gratuit.</strong></p>
+
+    <h3>D'où vient l'argent</h3>
+    <div class="flow">
+      <span class="chip">Organisateur / marque</span><span class="ar">→ €</span>
+      <span class="chip">finance l'expérience + les cadeaux</span>
+    </div>
+    <div class="flow">
+      <span class="chip">Utilisateur qui veut ses photos</span><span class="ar">→ €</span>
+      <span class="chip pay">achète des points / packs</span><span class="ar">→</span>
+      <span class="chip">télécharge en HD, tirages</span>
+    </div>
+
+    <h3>La mécanique de points (validée, sans piège)</h3>
+    <div class="twrap"><table>
+      <thead><tr><th>Action</th><th class="num">Points</th><th>Rôle</th></tr></thead>
+      <tbody>
+        <tr><td>Acheter un pack (sur le <strong>web</strong>)</td><td class="num">100 = 4,99 €</td><td>Le vrai revenu (hors taxe Apple)</td></tr>
+        <tr><td>Télécharger 1 photo HD</td><td class="num">−5</td><td>Le sink : ce qu'on consomme</td></tr>
+        <tr><td>Quelqu'un télécharge une photo où tu es</td><td class="num">+2</td><td>Récompense — <strong>uniquement si téléchargée</strong></td></tr>
+        <tr><td>Cadeaux (points → lots)</td><td class="num">—</td><td>Financés par une <strong>marque sponsor</strong></td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout money"><b>Deux garde-fous.</b> 1) On ne donne des points que quand une photo est <b>réellement téléchargée</b> → aucun coût sans revenu, aucune triche. 2) On <b>plafonne</b> les gains → l'utilisateur occasionnel s'en sort gratuitement (croissance), le gros consommateur doit acheter (chiffre d'affaires).</div>
+    <div class="callout warn"><b>La taxe des stores.</b> Vendre les packs <b>dans l'app iOS</b> déclenche l'achat in-app d'Apple (15–30 %). On vend donc les packs <b>sur le web</b> → on ne perd que ~3 % de frais de paiement. C'est tout l'intérêt d'avoir une PWA.</div>
+
+    <h3>Les revenus, par ordre de solidité</h3>
+    <ul class="clean">
+      <li><span class="m">1.</span><strong>B2B / sponsoring event</strong> — récurrent, gros budgets, le socle.</li>
+      <li><span class="m">2.</span><strong>Conso : packs &amp; téléchargements HD</strong> — petit ticket × gros volume.</li>
+      <li><span class="m">3.</span><strong>Tirages, albums, goodies</strong> — grosse marge, achat émotionnel.</li>
+      <li><span class="m">4.</span><strong>Premium</strong> (stockage, HD illimité, albums privés).</li>
+      <li><span class="m">5.</span><strong>Le float des points</strong> — points prépayés = trésorerie d'avance + marge sur les points jamais dépensés (modèle Starbucks).</li>
+    </ul>
+    <p style="font-size:14.5px"><a href="https://claude.ai/code/artifact/79117147-1b85-4b2b-83b2-a6bbc0bbbdde">↗ Ouvrir le simulateur d'économie interactif</a> pour jouer avec les hypothèses.</p>
+  </section>
+
+  <section id="s7">
+    <div class="chap"><span class="n">07</span><h2>Concurrence &amp; différenciation</h2></div>
+    <p>L'idée « retrouve ton visage dans les photos » a déjà été tentée (Waldo Photos, MarathonFoto, apps mariage/festival) et Google/Apple font le regroupement par visage. Notre différence n'est <strong>pas la techno</strong> — elle est ailleurs :</p>
+    <div class="split">
+      <div class="mini"><div class="big">Consentement</div><div class="l">Le partage est validé, récompensé, contrôlé — pas subi</div></div>
+      <div class="mini"><div class="big">On-device</div><div class="l">On ne voit jamais les visages → confiance réelle</div></div>
+      <div class="mini"><div class="big">Le réseau d'events</div><div class="l">Des contrats organisateurs que personne ne peut copier vite</div></div>
+      <div class="mini"><div class="big">La boucle</div><div class="l">Le partage récompensé remplit l'app tout seul</div></div>
+    </div>
+    <p><strong>Face à Google/Apple :</strong> ils gèrent tes photos <em>privées</em> (celles que tes amis pourraient déjà t'envoyer). Nous, on donne accès aux photos que tu ne pourrais <strong>jamais</strong> avoir : celles prises par des inconnus et des pros aux events. C'est là qu'est la valeur — et l'argent.</p>
+  </section>
+
+  <section id="s8">
+    <div class="chap"><span class="n">08</span><h2>Go-to-market</h2></div>
+    <p>On amorce par le B2B (qui paie), la boucle virale fait le reste.</p>
+    <div class="steps">
+      <div class="st"><span class="n"></span><div><b>Choisir 1 vertical dominable</b> — la nightlife d'une ville/région.</div></div>
+      <div class="st"><span class="n"></span><div><b>3 events pilotes gratuits</b> — prouver le « waouh », mesurer le taux de partage.</div></div>
+      <div class="st"><span class="n"></span><div><b>Signer 10 lieux en récurrent</b> — forfait par soirée + cadeaux financés par eux/les marques.</div></div>
+      <div class="st"><span class="n"></span><div><b>Monétiser le conso par-dessus</b> — packs web, HD, tirages.</div></div>
+      <div class="st"><span class="n"></span><div><b>Intégrer une billetterie</b> — devenir la couche photo attachée à chaque billet : distribution massive, coût d'acquisition quasi nul.</div></div>
+    </div>
+    <div class="flow">
+      <span class="chip">1 photo</span><span class="ar">→</span>
+      <span class="chip">6 visages reconnus</span><span class="ar">→</span>
+      <span class="chip">6 notifs</span><span class="ar">→</span>
+      <span class="chip">nouveaux inscrits</span><span class="ar">↺</span>
+    </div>
+    <p><strong>Métrique n°1 :</strong> le nombre de nouveaux inscrits ramenés par photo. Tant qu'il est &gt; 1, on a une machine virale — on verse le carburant. S'il est &lt; 1, on le corrige avant toute dépense marketing.</p>
+  </section>
+
+  <section id="s9">
+    <div class="chap"><span class="n">09</span><h2>Produit — les fonctions clés</h2></div>
+    <p>Pour un premier lancement, trois fonctions portent tout :</p>
+    <div class="split">
+      <div class="mini"><div class="big">🔔 Revenir</div><div class="l"><b>La notif magique</b> « nouvelles photos de toi » — la raison de rouvrir l'app.</div></div>
+      <div class="mini"><div class="big">💰 Payer</div><div class="l"><b>La photo floutée</b> : tu vois que c'est toi, tu paies pour le HD net.</div></div>
+      <div class="mini"><div class="big">🚀 Grandir</div><div class="l"><b>Le récap partageable</b> « ton festival en 12 photos » → pub gratuite.</div></div>
+    </div>
+    <h3>Ensuite</h3>
+    <ul class="clean">
+      <li><span class="m">→</span><strong>Mode « nous »</strong> — scan pour tout un groupe de potes.</li>
+      <li><span class="m">→</span><strong>Sponsor</strong> — une marque finance les cadeaux et met son logo sur les souvenirs.</li>
+      <li><span class="m">→</span><strong>Coffre-fort du visage</strong> — « supprime-moi partout » en un tap (confiance visible).</li>
+      <li><span class="m">→</span><strong>Photos en direct</strong> pendant l'event, quand l'émotion (et l'envie de payer) est au max.</li>
+    </ul>
+  </section>
+
+  <section id="s10">
+    <div class="chap"><span class="n">10</span><h2>Confidentialité &amp; légal — le moat</h2></div>
+    <p>Le visage est une <strong>donnée biométrique</strong> (catégorie ultra-sensible, RGPD art. 9). C'est <em>le</em> risque qui tue ce type d'app — donc on en fait notre force.</p>
+    <div class="split">
+      <div class="col mini"><div class="big" style="font-size:16px;color:var(--money);-webkit-text-fill-color:var(--money)">✓ On vend</div>
+        <ul class="clean" style="margin-top:10px">
+          <li><span class="m">→</span>Téléchargements HD, packs (web)</li>
+          <li><span class="m">→</span>Premium, tirages, albums</li>
+          <li><span class="m">→</span>Accès B2B aux organisateurs</li>
+        </ul>
+      </div>
+      <div class="col mini"><div class="big" style="font-size:16px;color:var(--danger);-webkit-text-fill-color:var(--danger)">✕ On ne vend jamais</div>
+        <ul class="clean" style="margin-top:10px">
+          <li><span class="m" style="color:var(--danger)">✕</span>Les profils / données</li>
+          <li><span class="m" style="color:var(--danger)">✕</span>Les empreintes de visages</li>
+          <li><span class="m" style="color:var(--danger)">✕</span>Les photos à des tiers sans accord</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout legal"><b>À cadrer avec un avocat RGPD avant lancement.</b> Reconnaissance opt-in et <b>gratuite</b> (on ne récompense pas le fait d'être reconnu, seulement le partage d'une photo précise — proche d'un accord d'image). Consentement des personnes identifiées avant toute mise à disposition. Droit à l'effacement en un tap. Traitement sur l'appareil, empreintes chiffrées.</div>
+  </section>
+
+  <section id="s11">
+    <div class="chap"><span class="n">11</span><h2>Feuille de route</h2></div>
+    <div class="twrap"><table>
+      <thead><tr><th>Phase</th><th>Objectif</th><th>Preuve de réussite</th></tr></thead>
+      <tbody>
+        <tr><td><b>0–3 mois</b><br>Amorçage</td><td>3 events pilotes (web app existante), mécanique de points, points de vente web</td><td>Taux de partage mesuré, 1er « waouh »</td></tr>
+        <tr><td><b>3–9 mois</b><br>Traction</td><td>10 lieux récurrents, notif magique, photo floutée, sponsor pilote</td><td>Revenu B2B récurrent + 1ers achats conso</td></tr>
+        <tr><td><b>9–18 mois</b><br>Expansion</td><td>Nouvelle ville / vertical, intégration billetterie, premium</td><td>Boucle virale &gt; 1, croissance auto-financée</td></tr>
+        <tr><td><b>18 mois +</b><br>Réseau</td><td>Devenir la couche photo de référence des events</td><td>Valeur = commission × volume ; cible de rachat</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="s12">
+    <div class="chap"><span class="n">12</span><h2>Projections (illustratives)</h2></div>
+    <p>Scénario indicatif à calibrer sur les vrais pilotes — voir le simulateur pour jouer les hypothèses.</p>
+    <div class="twrap"><table>
+      <thead><tr><th>Année</th><th class="num">Events / mois</th><th class="num">CA annuel</th><th>Moteur dominant</th></tr></thead>
+      <tbody>
+        <tr><td>An 1 — amorçage</td><td class="num">~6</td><td class="num">~80 k€</td><td>Pilotes + 1ers contrats B2B</td></tr>
+        <tr><td>An 2 — traction</td><td class="num">~20</td><td class="num">~250 k€</td><td>B2B récurrent + conso</td></tr>
+        <tr><td>An 3 — réseau</td><td class="num">~50</td><td class="num">~1 M€+</td><td>Volume + sponsors + premium</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warn"><b>Hypothèses.</b> Marge brute après coût variable ~22 % (hébergement, paiement, part créateurs), hors coûts fixes (salaires, marketing). Chiffres à remplacer par les données réelles des pilotes.</div>
+  </section>
+
+  <section id="s13">
+    <div class="chap"><span class="n">13</span><h2>Risques &amp; parades</h2></div>
+    <div class="twrap"><table>
+      <thead><tr><th>Risque</th><th>Parade</th></tr></thead>
+      <tbody>
+        <tr><td>Légal / biométrie</td><td>On-device, opt-in, consentement, effacement, avocat dès le jour 1</td></tr>
+        <tr><td>Marché encombré</td><td>Wedge de niche dominé + le réseau d'events comme barrière</td></tr>
+        <tr><td>Rétention en pics</td><td>La notif magique comme raison de revenir</td></tr>
+        <tr><td>Économie de points déséquilibrée</td><td>Points seulement si téléchargement + plafond de gain</td></tr>
+        <tr><td>Taxe des stores</td><td>Vente des packs sur le web</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="s14">
+    <div class="chap"><span class="n">14</span><h2>Besoins &amp; prochaine étape</h2></div>
+    <p>Le produit existe (web app + iOS). Ce qu'il faut maintenant :</p>
+    <ul class="clean">
+      <li><span class="m">→</span><strong>Accès à un vertical</strong> — 3 lieux/organisateurs pour les pilotes.</li>
+      <li><span class="m">→</span><strong>Cadrage légal RGPD</strong> — consentement &amp; CGU.</li>
+      <li><span class="m">→</span><strong>Points de vente web</strong> pour les packs (hors taxe Apple).</li>
+      <li><span class="m">→</span><strong>Mesurer la boucle virale</strong> dès la 1ère photo.</li>
+    </ul>
+    <div class="quote">« Je ne construis pas une app qui reconnaît les visages. Je construis le réseau qui possède les photos de chaque soirée — financé par les organisateurs, propagé par les gens, défendu par la confiance que personne d'autre n'ose offrir. »</div>
+  </section>
+
+  <footer>
+    <b>PhotosPartagees — Dossier &amp; Business Plan, édition 2026.</b> Document de travail à visée stratégique. Les projections sont illustratives et doivent être calibrées sur des données réelles. Le traitement de données biométriques nécessite un cadrage juridique (RGPD) préalable à tout lancement commercial. Complété par le simulateur d'économie interactif.
+  </footer>
+
+</div>
