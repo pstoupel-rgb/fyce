@@ -1,285 +1,356 @@
-import * as faceapi from 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.esm.js';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
+// face-api est chargé dynamiquement (voir init) : si le CDN échoue, l'app reste
+// utilisable, seule la reconnaissance est désactivée.
+const FACEAPI_ESM = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.esm.js';
 const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+let faceapi = null;
+
+// ---- Constantes économie ----
+const WELCOME_POINTS = 20;
+const UNLOCK_COST = 5;
+const SHARE_REWARD = 5;
+const EARN_ON_DOWNLOAD = 2;
+
+// ---- Events de démo ----
+const EVENTS = [
+  { id:'duplex', name:'Le Duplex', place:'Paris · Club', when:'Samedi dernier', emoji:'🪩', grad:'linear-gradient(135deg,#5b78ef,#9d5cff)' },
+  { id:'sunset', name:'Sunset Festival', place:'Marseille · Plage', when:'Il y a 2 semaines', emoji:'🎪', grad:'linear-gradient(135deg,#ff7a59,#ff4d94)' },
+  { id:'colorrun', name:'Color Run', place:'Lyon · Parc', when:'Le mois dernier', emoji:'🏃', grad:'linear-gradient(135deg,#12a074,#3ec6ff)' },
+];
+
+// ---- Persistance locale ----
+const KEY = 'pp_v1';
+const store = {
+  data: { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false },
+  load(){ try{ Object.assign(this.data, JSON.parse(localStorage.getItem(KEY)||'{}')); }catch(_){} },
+  save(){ localStorage.setItem(KEY, JSON.stringify(this.data)); },
+};
+
+// ---- État de session ----
+const state = {
+  refDescriptor:null,   // Float32Array
+  modelsReady:false,
+  currentEvent:null,
+  matches:[],           // { id, file, url, thumb, distance }
+  urls:[],              // objectURLs à révoquer
+};
+
 const cfg = window.SUPABASE_CONFIG || {};
 const supabaseReady = !!(cfg.url && cfg.anonKey && !String(cfg.url).includes('YOUR-') && !String(cfg.anonKey).includes('YOUR-'));
-const sb = supabaseReady ? createClient(cfg.url, cfg.anonKey) : null;
 
-const state = {
-  referenceDescriptor: null,
-  threshold: 0.55,
-  matches: [],            // { id, file, thumb, distance, selected, status, remotePath }
-  uploadedPaths: [],
-};
+const $ = s => document.querySelector(s);
+const el = {};
+['modelBanner','walletPill','pointsBal',
+ 'refInput','refAvatar','refBtn','refStatus','meAvatar',
+ 'eventList','evTitle','evMeta','photosInput','loadBtn','evProgress','evBar','evProgressTxt','evEmpty','matchHead','matchCount','recapBtn','grid',
+ 'unlockSheet','unlockImg','unlockTitle','unlockDesc','unlockConfirm','unlockDownload','unlockClose',
+ 'walletSheet','walletBal','simEarn','history','walletClose',
+ 'recapSheet','recapTitle','recapGrid','recapShare','recapClose',
+ 'menuBtn','menuSheet','threshold','threshVal','sbStatus','wipeBtn','menuClose','toast'
+].forEach(id => el[id] = document.getElementById(id));
 
-const $ = (id) => document.getElementById(id);
-const els = {
-  loader: $('loader'), loaderText: $('loaderText'),
-  refInput: $('refInput'), refAvatar: $('refAvatar'), refLabel: $('refLabel'), refStatus: $('refStatus'),
-  pickBtn: $('pickBtn'), photosInput: $('photosInput'),
-  shareBtn: $('shareBtn'),
-  progressBox: $('progressBox'), progressBar: $('progressBar'), progressText: $('progressText'),
-  selbar: $('selbar'), selCount: $('selCount'), selectAll: $('selectAll'), selectNone: $('selectNone'),
-  results: $('results'), empty: $('empty'),
-  settingsBtn: $('settingsBtn'), settingsSheet: $('settingsSheet'), settingsClose: $('settingsClose'),
-  threshold: $('threshold'), threshVal: $('threshVal'), sbStatus: $('sbStatus'), sbFoot: $('sbFoot'),
-  recap: $('recap'), recapSeal: $('recapSeal'), recapTitle: $('recapTitle'),
-  recapOk: $('recapOk'), recapFail: $('recapFail'), copyLinks: $('copyLinks'), recapClose: $('recapClose'),
-};
+// ---------- Navigation ----------
+function showScreen(name){
+  document.querySelectorAll('[data-screen]').forEach(s => s.hidden = s.dataset.screen !== name);
+}
+document.querySelectorAll('[data-nav]').forEach(b => b.addEventListener('click', () => showScreen(b.dataset.nav)));
 
-// ---------- Initialisation ----------
-async function init() {
-  registerServiceWorker();
+const open = s => el[s].hidden = false;
+const close = s => el[s].hidden = true;
+
+// ---------- Toast ----------
+let toastT;
+function toast(msg){
+  el.toast.textContent = msg; el.toast.hidden = false;
+  clearTimeout(toastT); toastT = window.setTimeout(() => el.toast.hidden = true, 2300);
+}
+
+// ---------- Init ----------
+async function init(){
+  registerSW();
+  store.load();
+  el.threshold.value = store.data.threshold;
+  el.threshVal.textContent = (+store.data.threshold).toFixed(2);
+  renderPoints();
+  renderEvents();
+  updateSupabaseStatus();
+  wire();
+
+  if (store.data.face){
+    state.refDescriptor = new Float32Array(store.data.face);
+    if (store.data.faceThumb){
+      el.meAvatar.style.backgroundImage = `url(${store.data.faceThumb})`;
+      el.refAvatar.style.backgroundImage = `url(${store.data.faceThumb})`;
+      el.refAvatar.classList.add('ok');
+    }
+    el.walletPill.hidden = false;
+    showScreen('home');
+  } else {
+    showScreen('onboarding');
+  }
+
+  // Chargement de la reconnaissance en tâche de fond (ne bloque pas l'UI).
   try {
+    faceapi = await import(FACEAPI_ESM);
     await Promise.all([
       faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
       faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
       faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
     ]);
-  } catch (e) {
-    els.loaderText.textContent = "Échec du chargement du modèle (vérifie ta connexion).";
-    return;
+    state.modelsReady = true;
+    el.modelBanner.hidden = true;
+    el.refBtn.setAttribute('aria-disabled','false');
+    if (!store.data.face) el.refStatus.textContent = 'Prêt. Scanne ton visage pour commencer.';
+  } catch(_){
+    el.modelBanner.textContent = 'Reconnaissance indisponible (vérifie ta connexion).';
+    el.modelBanner.classList.add('err');
   }
-  els.loader.classList.add('hidden');
-  wireEvents();
-  refreshSupabaseStatus();
 }
 
-function wireEvents() {
-  els.refInput.addEventListener('change', (e) => onReference(e.target.files[0]));
-  els.photosInput.addEventListener('change', (e) => onPhotos([...e.target.files]));
-  els.shareBtn.addEventListener('click', uploadSelected);
-  els.selectAll.addEventListener('click', () => { setAllSelected(true); });
-  els.selectNone.addEventListener('click', () => { setAllSelected(false); });
-  els.settingsBtn.addEventListener('click', () => els.settingsSheet.classList.remove('hidden'));
-  els.settingsClose.addEventListener('click', () => els.settingsSheet.classList.add('hidden'));
-  els.threshold.addEventListener('input', (e) => {
-    state.threshold = parseFloat(e.target.value);
-    els.threshVal.textContent = state.threshold.toFixed(2);
+function wire(){
+  el.refInput.addEventListener('change', e => onReference(e.target.files[0]));
+  el.photosInput.addEventListener('change', e => onPhotos([...e.target.files]));
+  el.walletPill.addEventListener('click', openWallet);
+  el.walletClose.addEventListener('click', () => close('walletSheet'));
+  el.menuBtn.addEventListener('click', () => open('menuSheet'));
+  el.menuClose.addEventListener('click', () => close('menuSheet'));
+  el.recapBtn.addEventListener('click', openRecap);
+  el.recapClose.addEventListener('click', () => close('recapSheet'));
+  el.recapShare.addEventListener('click', shareRecap);
+  el.unlockClose.addEventListener('click', () => close('unlockSheet'));
+  el.simEarn.addEventListener('click', () => addPoints(EARN_ON_DOWNLOAD, 'Quelqu’un a téléchargé ta photo'));
+  el.wipeBtn.addEventListener('click', wipe);
+  el.threshold.addEventListener('input', e => {
+    store.data.threshold = +e.target.value; store.save();
+    el.threshVal.textContent = (+e.target.value).toFixed(2);
   });
-  els.recapClose.addEventListener('click', () => els.recap.classList.add('hidden'));
-  els.copyLinks.addEventListener('click', copyShareLinks);
+  document.querySelectorAll('.pack').forEach(p =>
+    p.addEventListener('click', () => buyPack(+p.dataset.pack, p.dataset.price)));
 }
 
 // ---------- Visage de référence ----------
-async function onReference(file) {
+async function onReference(file){
   if (!file) return;
-  els.refStatus.textContent = "Analyse du visage…";
+  if (!state.modelsReady){ toast('Reconnaissance en cours de chargement…'); return; }
+  el.refStatus.textContent = 'Analyse du visage…';
   const img = await loadImage(file);
-  els.refAvatar.style.backgroundImage = `url(${img.src})`;
-  els.refAvatar.querySelector('span')?.remove();
+  const thumb = toCanvas(img, 240).toDataURL('image/jpeg', 0.8);
 
-  const det = await faceapi
-    .detectSingleFace(toCanvas(img, 512))
-    .withFaceLandmarks().withFaceDescriptor();
+  const det = await faceapi.detectSingleFace(toCanvas(img, 512)).withFaceLandmarks().withFaceDescriptor();
+  URL.revokeObjectURL(img.src);
+  if (!det){ el.refStatus.textContent = 'Aucun visage détecté. Essaie une autre photo.'; return; }
 
-  if (!det) {
-    els.refStatus.textContent = "Aucun visage détecté. Essaie une autre photo.";
-    els.refAvatar.classList.remove('ok');
-    return;
-  }
-  state.referenceDescriptor = det.descriptor;
-  els.refAvatar.classList.add('ok');
-  els.refLabel.textContent = "Changer mon visage de référence";
-  els.refStatus.textContent = "Visage de référence prêt ✓";
-  els.pickBtn.setAttribute('aria-disabled', 'false');
+  state.refDescriptor = det.descriptor;
+  store.data.face = Array.from(det.descriptor);
+  store.data.faceThumb = thumb;
+  if (!store.data.started){ store.data.started = true; store.data.points = WELCOME_POINTS; store.data.history.unshift({t:'Bienvenue 🎉', n:WELCOME_POINTS}); }
+  store.save();
+
+  el.refAvatar.style.backgroundImage = `url(${thumb})`;
+  el.refAvatar.classList.add('ok');
+  el.meAvatar.style.backgroundImage = `url(${thumb})`;
+  el.walletPill.hidden = false;
+  renderPoints();
+  toast(`Visage enregistré · +${WELCOME_POINTS} points offerts`);
+  window.setTimeout(() => showScreen('home'), 700);
 }
 
-// ---------- Scan des photos ----------
-async function onPhotos(files) {
-  if (!state.referenceDescriptor) { alert("Choisis d'abord un visage de référence."); return; }
+// ---------- Events ----------
+function renderEvents(){
+  el.eventList.innerHTML = EVENTS.map(ev => `
+    <button class="event-card" data-ev="${ev.id}" style="background:${ev.grad}">
+      <span class="ev-badge">${ev.emoji} Ouvrir</span>
+      <span class="ev-when">${ev.when}</span>
+      <span class="ev-name">${ev.name}</span>
+      <span class="ev-place">${ev.place}</span>
+    </button>`).join('');
+  el.eventList.querySelectorAll('.event-card').forEach(c =>
+    c.addEventListener('click', () => openEvent(c.dataset.ev)));
+}
+
+function openEvent(id){
+  state.currentEvent = EVENTS.find(e => e.id === id);
+  clearMatches();
+  el.evTitle.textContent = state.currentEvent.name;
+  el.evMeta.textContent = `${state.currentEvent.place} · ${state.currentEvent.when}`;
+  el.evEmpty.hidden = true;
+  el.matchHead.hidden = true;
+  el.grid.innerHTML = '';
+  showScreen('event');
+}
+
+// ---------- Scan des photos de l'event ----------
+async function onPhotos(files){
+  if (!state.refDescriptor){ toast('Scanne d’abord ton visage.'); return; }
+  if (!state.modelsReady){ toast('Reconnaissance en cours de chargement…'); return; }
   if (!files.length) return;
 
-  state.matches = [];
-  state.uploadedPaths = [];
-  els.results.innerHTML = '';
-  els.empty.classList.add('hidden');
-  els.shareBtn.classList.add('hidden');
-  els.selbar.classList.add('hidden');
-  els.progressBox.classList.remove('hidden');
+  clearMatches();
+  el.grid.innerHTML=''; el.evEmpty.hidden = true; el.matchHead.hidden = true;
+  el.evProgress.hidden = false;
 
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    setProgress(i + 1, files.length);
-    try {
-      const match = await analyze(file);
-      if (match) { state.matches.push(match); renderResults(); }
-    } catch (_) { /* image illisible : ignorée */ }
-    await nextFrame();
+  const th = +store.data.threshold;
+  for (let i=0;i<files.length;i++){
+    setProgress(i+1, files.length);
+    try{
+      const m = await analyze(files[i], th);
+      if (m){ state.matches.push(m); renderGrid(); }
+    }catch(_){}
+    await raf();
   }
+  el.evProgress.hidden = true;
 
-  els.progressBox.classList.add('hidden');
-  if (!state.matches.length) {
-    els.empty.classList.remove('hidden');
-    els.empty.querySelector('h2').textContent = "Aucune photo avec ton visage";
-    els.empty.querySelector('p').textContent = "Essaie d'ajuster la sensibilité dans les réglages.";
-  } else {
-    els.shareBtn.classList.remove('hidden');
-    els.selbar.classList.remove('hidden');
-    updateSelectionUI();
+  if (!state.matches.length){ el.evEmpty.hidden = false; }
+  else {
+    el.matchHead.hidden = false;
+    el.matchCount.textContent = `${state.matches.length} photo(s) où tu es`;
   }
 }
 
-async function analyze(file) {
+async function analyze(file, threshold){
   const img = await loadImage(file);
   const canvas = toCanvas(img, 640);
   const results = await faceapi.detectAllFaces(canvas).withFaceLandmarks().withFaceDescriptors();
-  if (!results.length) { URL.revokeObjectURL(img.src); return null; }
-
+  if (!results.length){ URL.revokeObjectURL(img.src); return null; }
   let best = Infinity;
-  for (const r of results) {
-    const d = faceapi.euclideanDistance(state.referenceDescriptor, r.descriptor);
-    if (d < best) best = d;
-  }
-  if (best > state.threshold) { URL.revokeObjectURL(img.src); return null; }
+  for (const r of results){ const d = faceapi.euclideanDistance(state.refDescriptor, r.descriptor); if (d<best) best=d; }
+  if (best > threshold){ URL.revokeObjectURL(img.src); return null; }
 
-  const thumb = toCanvas(img, 220).toDataURL('image/jpeg', 0.7);
-  URL.revokeObjectURL(img.src);
-  return {
-    id: `${file.name}-${file.size}-${file.lastModified}`,
-    file, thumb, distance: best, date: new Date(file.lastModified || Date.now()),
-    selected: true, status: 'pending', remotePath: null,
-  };
+  const thumb = toCanvas(img, 300).toDataURL('image/jpeg', 0.72);
+  const url = img.src; state.urls.push(url);
+  return { id:`${file.name}-${file.size}-${file.lastModified}`, file, url, thumb, distance:best };
 }
 
-// ---------- Rendu ----------
-function renderResults() {
-  const sections = groupByMonth(state.matches);
-  els.results.innerHTML = sections.map(sec => `
-    <div class="month">${sec.title}</div>
-    <div class="grid">
-      ${sec.items.map(thumbHTML).join('')}
-    </div>`).join('');
-  els.results.querySelectorAll('.thumb').forEach(node => {
-    node.addEventListener('click', () => toggleSelect(node.dataset.id));
-  });
-  updateSelectionUI();
-}
+function clearMatches(){ state.urls.forEach(u=>URL.revokeObjectURL(u)); state.urls=[]; state.matches=[]; }
 
-function thumbHTML(m) {
-  const badge = { pending: '', uploading: '⏳', uploaded: '☁️✓', failed: '⚠️' }[m.status] || '';
-  return `<div class="thumb ${m.selected ? 'sel' : 'off'}" data-id="${m.id}">
+// ---------- Grille (flou / déblocage) ----------
+function isUnlocked(id){ return store.data.unlocked.includes(id); }
+
+function renderGrid(){
+  el.grid.innerHTML = state.matches.map(m => {
+    const unlocked = isUnlocked(m.id);
+    return `<div class="tile ${unlocked?'':'locked'}" data-id="${m.id}">
       <img src="${m.thumb}" alt="">
-      <span class="selbadge">${m.selected ? '✓' : '○'}</span>
-      ${badge ? `<span class="up">${badge}</span>` : ''}
+      ${unlocked
+        ? '<span class="done">✓</span>'
+        : `<div class="lock"><span class="ic">🔒</span><span class="cost">${UNLOCK_COST} pts</span></div>`}
     </div>`;
+  }).join('');
+  el.grid.querySelectorAll('.tile').forEach(t => t.addEventListener('click', () => openUnlock(t.dataset.id)));
 }
 
-function toggleSelect(id) {
-  const m = state.matches.find(x => x.id === id);
-  if (!m || m.status === 'uploaded' || m.status === 'uploading') return;
-  m.selected = !m.selected;
-  renderResults();
+function openUnlock(id){
+  const m = state.matches.find(x => x.id === id); if (!m) return;
+  el.unlockImg.src = m.url;
+  const unlocked = isUnlocked(id);
+  el.unlockTitle.textContent = unlocked ? 'Photo débloquée' : 'Débloquer en HD';
+  el.unlockDesc.textContent = unlocked ? 'Elle est à toi — télécharge-la en pleine qualité.' : `Coûte ${UNLOCK_COST} points. Tu as ${store.data.points} points.`;
+  el.unlockConfirm.hidden = unlocked;
+  el.unlockConfirm.textContent = `🔓 Débloquer (${UNLOCK_COST} pts)`;
+  el.unlockDownload.hidden = !unlocked;
+  el.unlockConfirm.onclick = () => doUnlock(m);
+  el.unlockDownload.onclick = () => download(m);
+  open('unlockSheet');
 }
 
-function setAllSelected(v) {
-  for (const m of state.matches) if (m.status !== 'uploaded' && m.status !== 'uploading') m.selected = v;
-  renderResults();
-}
-
-function updateSelectionUI() {
-  const sel = state.matches.filter(m => m.selected).length;
-  els.selCount.textContent = `${sel} sélectionnée(s) sur ${state.matches.length}`;
-  els.shareBtn.textContent = `☁️ Partager la sélection (${sel})`;
-  els.shareBtn.disabled = sel === 0 || !supabaseReady;
-}
-
-// ---------- Upload Supabase ----------
-async function uploadSelected() {
-  if (!supabaseReady) { alert("Supabase n'est pas configuré (web/config.js)."); return; }
-  const targets = state.matches.filter(m => m.selected && m.status !== 'uploaded' && m.status !== 'uploading');
-  if (!targets.length) return;
-
-  let ok = 0, fail = 0;
-  for (const m of targets) {
-    m.status = 'uploading'; renderResults();
-    const path = `${safeName(m.id)}.${ext(m.file)}`;
-    const { error } = await sb.storage.from(cfg.bucket).upload(path, m.file, {
-      upsert: true, contentType: m.file.type || 'image/jpeg',
-    });
-    if (error) { m.status = 'failed'; fail++; }
-    else { m.status = 'uploaded'; m.remotePath = path; state.uploadedPaths.push(path); ok++; }
-    renderResults();
+function doUnlock(m){
+  if (store.data.points < UNLOCK_COST){
+    toast('Pas assez de points — achète un pack.');
+    close('unlockSheet'); openWallet(); return;
   }
-  showRecap(ok, fail);
+  store.data.points -= UNLOCK_COST;
+  store.data.unlocked.push(m.id);
+  store.data.history.unshift({ t:`Déblocage HD`, n:-UNLOCK_COST });
+  store.save(); renderPoints(); renderGrid();
+  openUnlock(m.id); // rebascule en mode "télécharger"
+  toast('Débloquée ! 🎉');
 }
 
-async function copyShareLinks() {
-  const links = [];
-  for (const path of state.uploadedPaths) {
-    const { data } = await sb.storage.from(cfg.bucket).createSignedUrl(path, 60 * 60 * 24 * 7);
-    if (data?.signedUrl) links.push(data.signedUrl);
-  }
-  if (links.length) {
-    await navigator.clipboard?.writeText(links.join('\n')).catch(() => {});
-    els.copyLinks.textContent = `✓ ${links.length} lien(s) copié(s)`;
-  }
+function download(m){
+  const a = document.createElement('a');
+  a.href = m.url; a.download = m.file.name || 'photo.jpg';
+  document.body.appendChild(a); a.click(); a.remove();
 }
 
-function showRecap(ok, fail) {
-  els.recapSeal.textContent = fail ? '⚠️' : '✅';
-  els.recapTitle.textContent = fail ? 'Partage terminé avec des erreurs' : 'Partage réussi';
-  els.recapOk.textContent = `✔ ${ok} photo(s) partagée(s)`;
-  els.recapFail.classList.toggle('hidden', !fail);
-  els.recapFail.textContent = `✕ ${fail} échec(s)`;
-  els.copyLinks.classList.toggle('hidden', state.uploadedPaths.length === 0);
-  els.copyLinks.textContent = '🔗 Copier les liens de partage';
-  els.recap.classList.remove('hidden');
+// ---------- Portefeuille ----------
+function renderPoints(){
+  el.pointsBal.textContent = store.data.points;
+  el.walletBal.textContent = store.data.points;
+}
+function addPoints(n, label){
+  store.data.points += n;
+  store.data.history.unshift({ t:label, n });
+  store.save(); renderPoints(); renderHistory();
+  toast(`+${n} points`);
+}
+function buyPack(pts, price){
+  store.data.points += pts;
+  store.data.history.unshift({ t:`Pack acheté (${price})`, n:pts });
+  store.save(); renderPoints(); renderHistory();
+  toast(`+${pts} points ajoutés (démo)`);
+}
+function openWallet(){ renderHistory(); open('walletSheet'); }
+function renderHistory(){
+  const h = store.data.history.slice(0, 12);
+  el.history.innerHTML = h.length
+    ? h.map(x => `<li><span>${x.t}</span><span class="amt ${x.n>=0?'plus':'minus'}">${x.n>=0?'+':''}${x.n}</span></li>`).join('')
+    : '<li class="empty">Aucune activité pour l’instant.</li>';
 }
 
-// ---------- Helpers ----------
-function loadImage(file) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = URL.createObjectURL(file);
-  });
+// ---------- Récap ----------
+function openRecap(){
+  const shots = state.matches.filter(m => isUnlocked(m.id));
+  const pool = shots.length ? shots : state.matches;
+  el.recapTitle.textContent = state.currentEvent ? state.currentEvent.name : 'Ta soirée';
+  el.recapGrid.innerHTML = pool.slice(0,9)
+    .map(m => `<img src="${m.thumb}" style="${isUnlocked(m.id)?'':'filter:blur(6px)'}">`).join('');
+  open('recapSheet');
+}
+async function shareRecap(){
+  const text = `J'étais à ${state.currentEvent?.name||'la soirée'} 📸 — retrouve tes photos sur PhotosPartagees`;
+  try{
+    if (navigator.share){ await navigator.share({ title:'PhotosPartagees', text }); }
+    else { await navigator.clipboard?.writeText(text); toast('Texte de partage copié'); }
+    addPoints(SHARE_REWARD, 'Partage du récap');
+  }catch(_){}
 }
 
-function toCanvas(img, maxSide) {
-  const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+// ---------- Vie privée ----------
+function wipe(){
+  if (!confirm('Supprimer ton empreinte de visage et toutes tes données locales ?')) return;
+  localStorage.removeItem(KEY);
+  store.data = { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false };
+  state.refDescriptor = null; clearMatches();
+  el.refAvatar.classList.remove('ok'); el.refAvatar.style.backgroundImage='';
+  el.meAvatar.style.backgroundImage=''; el.walletPill.hidden = true;
+  close('menuSheet'); renderPoints();
+  el.refStatus.textContent = 'Tout est supprimé. Tu peux repartir de zéro.';
+  showScreen('onboarding');
+  toast('Données supprimées');
+}
+
+function updateSupabaseStatus(){
+  el.sbStatus.textContent = supabaseReady ? 'Configuré ✓' : 'Non configuré';
+}
+
+// ---------- Utils ----------
+function loadImage(file){
+  return new Promise((res, rej) => { const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=URL.createObjectURL(file); });
+}
+function toCanvas(img, maxSide){
+  const s = Math.min(1, maxSide/Math.max(img.width, img.height));
   const c = document.createElement('canvas');
-  c.width = Math.round(img.width * scale);
-  c.height = Math.round(img.height * scale);
+  c.width = Math.round(img.width*s); c.height = Math.round(img.height*s);
   c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
   return c;
 }
-
-function groupByMonth(items) {
-  const fmt = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' });
-  const map = new Map();
-  for (const it of items) {
-    const key = `${it.date.getFullYear()}-${it.date.getMonth()}`;
-    if (!map.has(key)) map.set(key, { key, date: new Date(it.date.getFullYear(), it.date.getMonth(), 1), items: [] });
-    map.get(key).items.push(it);
-  }
-  return [...map.values()]
-    .sort((a, b) => b.date - a.date)
-    .map(s => ({ title: fmt.format(s.date), items: s.items.sort((a, b) => b.date - a.date) }));
+function setProgress(done, total){
+  el.evBar.style.width = `${done/total*100}%`;
+  el.evProgressTxt.textContent = `Analyse ${done}/${total} — ${state.matches.length} trouvée(s)`;
 }
+const raf = () => new Promise(r => requestAnimationFrame(() => r()));
+function registerSW(){ if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js').catch(()=>{}); }
 
-function setProgress(done, total) {
-  els.progressBar.style.width = `${(done / total) * 100}%`;
-  els.progressText.textContent = `Analyse ${done}/${total} — ${state.matches.length} match(s)`;
-}
-
-const nextFrame = () => new Promise(r => requestAnimationFrame(() => r()));
-const safeName = (s) => s.replace(/[^a-zA-Z0-9._-]/g, '_');
-const ext = (file) => (file.name.split('.').pop() || 'jpg').toLowerCase();
-
-function refreshSupabaseStatus() {
-  els.sbStatus.textContent = supabaseReady ? 'Configuré ✓' : 'Non configuré';
-  els.sbFoot.textContent = supabaseReady
-    ? `Bucket : ${cfg.bucket}`
-    : "Renseigne web/config.js (URL + clé anon) pour activer l'upload. Le scan fonctionne sans.";
-}
-
-function registerServiceWorker() {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
-  }
-}
+// Exposé pour tests/déboguage
+window.__pp = { store, state, showScreen, renderGrid, renderPoints, openUnlock };
 
 init();
