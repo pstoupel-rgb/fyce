@@ -1,4 +1,4 @@
-# PhotosPartagees — Web app (PWA)
+# Poze — Web app (PWA)
 
 Version web installable sur le téléphone (« Ajouter à l'écran d'accueil ») de
 l'app : détection + **reconnaissance faciale dans le navigateur** (face-api.js,

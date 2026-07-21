@@ -1,6 +1,6 @@
 // Service worker minimal : cache de l'app shell (cache-first).
 // Les modèles face-api et le SDK Supabase sont chargés depuis un CDN (réseau requis).
-const CACHE = 'photospartagees-v1';
+const CACHE = 'poze-v1';
 const ASSETS = [
   './',
   './index.html',

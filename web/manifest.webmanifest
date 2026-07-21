@@ -1,7 +1,7 @@
 {
-  "name": "PhotosPartagees",
-  "short_name": "Partagees",
-  "description": "Détecte ton visage dans tes photos et partage les matchs.",
+  "name": "Poze",
+  "short_name": "Poze",
+  "description": "Retrouve les photos où tu es, aux soirées et events. Reconnaissance sur ton téléphone.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

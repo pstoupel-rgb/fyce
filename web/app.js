@@ -306,9 +306,9 @@ function openRecap(){
   open('recapSheet');
 }
 async function shareRecap(){
-  const text = `J'étais à ${state.currentEvent?.name||'la soirée'} 📸 — retrouve tes photos sur PhotosPartagees`;
+  const text = `J'étais à ${state.currentEvent?.name||'la soirée'} 📸 — retrouve tes photos sur Poze`;
   try{
-    if (navigator.share){ await navigator.share({ title:'PhotosPartagees', text }); }
+    if (navigator.share){ await navigator.share({ title:'Poze', text }); }
     else { await navigator.clipboard?.writeText(text); toast('Texte de partage copié'); }
     addPoints(SHARE_REWARD, 'Partage du récap');
   }catch(_){}

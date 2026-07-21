@@ -7,7 +7,7 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             ScanView(viewModel: viewModel)
-                .navigationTitle("PhotosPartagees")
+                .navigationTitle("Poze")
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button {

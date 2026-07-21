@@ -31,9 +31,9 @@ body{
   padding:calc(9px + var(--safe-top)) 16px 9px;border-bottom:1px solid var(--line);
   background:color-mix(in srgb,var(--paper) 82%,transparent);backdrop-filter:saturate(180%) blur(18px);-webkit-backdrop-filter:saturate(180%) blur(18px)}
 .brand{display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:-.02em}
-.logo{width:26px;height:26px;border-radius:9px;background:var(--grad);position:relative;flex:none;box-shadow:0 3px 8px rgba(91,120,239,.45)}
-.logo::after{content:"";position:absolute;left:50%;top:37%;transform:translateX(-50%);width:9px;height:9px;border-radius:50%;background:#fff}
-.logo::before{content:"";position:absolute;left:50%;bottom:4px;transform:translateX(-50%);width:16px;height:9px;border-radius:8px 8px 0 0;background:#fff}
+.logo{width:26px;height:26px;border-radius:50%;background:var(--grad);position:relative;flex:none;box-shadow:0 3px 8px rgba(91,120,239,.45)}
+.logo::after{content:"";position:absolute;inset:5px;border-radius:50%;border:2.5px solid #fff}
+.logo::before{content:"";position:absolute;left:50%;top:50%;width:5px;height:5px;transform:translate(-50%,-50%);border-radius:50%;background:#fff}
 .pill{border:none;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 13px;
   font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);cursor:pointer;box-shadow:var(--shadow)}
 
