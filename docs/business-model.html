@@ -1,4 +1,4 @@
-<title>PhotosPartagees — Modèle économique & simulateur</title>
+<title>Poze — Modèle économique & simulateur</title>
 <style>
   :root{
     --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -50,10 +50,10 @@
 
   /* Header */
   header.top{display:flex;align-items:center;gap:12px;margin-bottom:30px}
-  .logo{width:34px;height:34px;border-radius:11px;background:var(--grad);position:relative;flex:none;
+  .logo{width:34px;height:34px;border-radius:50%;background:var(--grad);position:relative;flex:none;
     box-shadow:0 4px 12px rgba(91,120,239,.5)}
-  .logo::after{content:"";position:absolute;left:50%;top:36%;transform:translateX(-50%);width:11px;height:11px;border-radius:50%;background:#fff}
-  .logo::before{content:"";position:absolute;left:50%;bottom:5px;transform:translateX(-50%);width:19px;height:11px;border-radius:9px 9px 0 0;background:#fff}
+  .logo::after{content:"";position:absolute;inset:6px;border-radius:50%;border:3px solid #fff}
+  .logo::before{content:"";position:absolute;left:50%;top:50%;width:7px;height:7px;transform:translate(-50%,-50%);border-radius:50%;background:#fff}
   .brandname{font-weight:800;letter-spacing:-.02em;font-size:18px}
   .brandtag{color:var(--muted);font-size:13px}
 
@@ -152,7 +152,7 @@
   <header class="top">
     <span class="logo" aria-hidden="true"></span>
     <div>
-      <div class="brandname">PhotosPartagees</div>
+      <div class="brandname">Poze</div>
       <div class="brandtag">Modèle économique &amp; simulateur de revenus</div>
     </div>
   </header>
@@ -163,7 +163,7 @@
 
   <section>
     <h2><span class="k">01</span> Simulateur d'économie</h2>
-    <p class="sec-intro">Hypothèses modifiables. L'argent entre par deux robinets : les <b>contrats B2B</b> (organisateurs / marques) et les <b>achats conso</b> (packs &amp; téléchargements). Le canal de vente change tout à cause de la commission des stores.</p>
+    <p class="sec-intro">Hypothèses modifiables. Le <b>troc</b> est gratuit (croissance) ; l'argent entre par deux robinets : les <b>contrats B2B</b> (organisateurs / marques) et le <b>raccourci payant</b> conso (pellicules &amp; développements HD). Le canal de vente change tout à cause de la commission des stores.</p>
 
     <div class="card sim">
       <div class="controls">
@@ -193,7 +193,7 @@
           <input type="range" id="b2b" min="0" max="4000" step="50" value="900">
         </div>
         <div class="ctrl">
-          <label style="margin-bottom:9px">Canal de vente des packs</label>
+          <label style="margin-bottom:9px">Canal de vente (raccourci payant)</label>
           <div class="seg" role="group" aria-label="Canal de vente">
             <button id="chWeb" aria-pressed="true">Web · –3 %</button>
             <button id="chApp" aria-pressed="false">In‑app iOS · –30 %</button>

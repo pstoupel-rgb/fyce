@@ -1,0 +1,217 @@
+-- Poze — Schéma Supabase (Postgres)
+-- Fondation backend : comptes, events, photos, troc (révélations).
+-- La logique de gain/dépense vit CÔTÉ SERVEUR (fonctions SECURITY DEFINER) pour
+-- empêcher toute triche côté client. Voir backend/README.md.
+
+-- ─────────────────────────────────────────────────────────────
+-- Profils
+-- ─────────────────────────────────────────────────────────────
+create table if not exists public.profiles (
+  id           uuid primary key references auth.users(id) on delete cascade,
+  display_name text,
+  created_at   timestamptz not null default now()
+);
+
+-- Empreinte de visage : OPTIONNELLE et sensible (donnée biométrique).
+-- Recommandé : garder la reconnaissance sur l'appareil. Si stockée, RLS stricte,
+-- consentement explicite, chiffrement. (pgvector requis : create extension vector)
+create table if not exists public.face_prints (
+  user_id    uuid primary key references public.profiles(id) on delete cascade,
+  embedding  jsonb,               -- ou vector(128) si extension pgvector
+  updated_at timestamptz not null default now()
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- Events
+-- ─────────────────────────────────────────────────────────────
+create table if not exists public.events (
+  id           uuid primary key default gen_random_uuid(),
+  name         text not null,
+  place        text,
+  starts_at    timestamptz,
+  organizer_id uuid references public.profiles(id) on delete set null,
+  created_at   timestamptz not null default now()
+);
+
+create table if not exists public.event_members (
+  event_id uuid references public.events(id) on delete cascade,
+  user_id  uuid references public.profiles(id) on delete cascade,
+  joined_at timestamptz not null default now(),
+  primary key (event_id, user_id)
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- Photos & visages détectés
+-- ─────────────────────────────────────────────────────────────
+create table if not exists public.photos (
+  id           uuid primary key default gen_random_uuid(),
+  event_id     uuid not null references public.events(id) on delete cascade,
+  uploader_id  uuid references public.profiles(id) on delete set null,
+  storage_path text not null,     -- objet dans le bucket Storage
+  created_at   timestamptz not null default now()
+);
+
+-- Un visage reconnu dans une photo, rattaché (avec consentement) à un utilisateur.
+create table if not exists public.photo_faces (
+  id         uuid primary key default gen_random_uuid(),
+  photo_id   uuid not null references public.photos(id) on delete cascade,
+  user_id    uuid references public.profiles(id) on delete set null,
+  consented  boolean not null default false,
+  created_at timestamptz not null default now(),
+  unique (photo_id, user_id)
+);
+
+-- Développements (une révélation dépensée pour obtenir le HD).
+create table if not exists public.reveals (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  photo_id   uuid not null references public.photos(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (user_id, photo_id)      -- idempotence : on ne développe qu'une fois
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- Le troc : ledger append-only. Solde = somme des deltas.
+-- ─────────────────────────────────────────────────────────────
+create table if not exists public.wallet_ledger (
+  id         bigint generated always as identity primary key,
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  delta      integer not null,             -- +gain / -dépense
+  reason     text not null,                -- 'welcome' | 'reveal' | 'reciprocity' | 'share' | 'purchase'
+  ref_id     uuid,
+  created_at timestamptz not null default now()
+);
+create index if not exists wallet_ledger_user_idx on public.wallet_ledger(user_id);
+
+create or replace view public.wallet_balance as
+  select user_id, coalesce(sum(delta), 0)::int as balance
+  from public.wallet_ledger group by user_id;
+
+-- Achats (raccourci payant) crédités après confirmation du paiement.
+create table if not exists public.purchases (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references public.profiles(id) on delete cascade,
+  pack         text not null,
+  amount_cents integer not null,
+  provider_ref text,
+  credited     integer not null default 0,
+  created_at   timestamptz not null default now()
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- RLS
+-- ─────────────────────────────────────────────────────────────
+alter table public.profiles       enable row level security;
+alter table public.face_prints    enable row level security;
+alter table public.events         enable row level security;
+alter table public.event_members  enable row level security;
+alter table public.photos         enable row level security;
+alter table public.photo_faces    enable row level security;
+alter table public.reveals        enable row level security;
+alter table public.wallet_ledger  enable row level security;
+alter table public.purchases      enable row level security;
+
+-- Profil : chacun lit/écrit le sien.
+create policy "own profile"        on public.profiles    for all using (id = auth.uid()) with check (id = auth.uid());
+create policy "own faceprint"      on public.face_prints for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- Events : visibles par leurs membres ; créés par l'organisateur.
+create policy "member reads event" on public.events for select
+  using (exists (select 1 from public.event_members m where m.event_id = id and m.user_id = auth.uid()));
+create policy "own membership"     on public.event_members for all
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- Photos : visibles par les membres de l'event (en aperçu). Le HD passe par la RPC.
+create policy "member reads photos" on public.photos for select
+  using (exists (select 1 from public.event_members m where m.event_id = photos.event_id and m.user_id = auth.uid()));
+
+-- Visages : chacun voit/consent ceux qui le concernent.
+create policy "own faces" on public.photo_faces for all
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- Ledger, reveals, purchases : lecture seule de ses propres lignes.
+-- (Les écritures se font UNIQUEMENT via les fonctions SECURITY DEFINER ci-dessous.)
+create policy "read own ledger"    on public.wallet_ledger for select using (user_id = auth.uid());
+create policy "read own reveals"   on public.reveals       for select using (user_id = auth.uid());
+create policy "read own purchases" on public.purchases     for select using (user_id = auth.uid());
+
+-- ─────────────────────────────────────────────────────────────
+-- Logique de troc — côté serveur, atomique
+-- ─────────────────────────────────────────────────────────────
+
+-- Développer une photo : vérifie le solde, débite 1, récompense les personnes
+-- présentes sur la photo (réciprocité), renvoie le chemin Storage du HD.
+create or replace function public.develop_photo(p_photo_id uuid)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid   uuid := auth.uid();
+  v_bal   int;
+  v_path  text;
+  v_event uuid;
+begin
+  if v_uid is null then raise exception 'not authenticated'; end if;
+
+  select storage_path, event_id into v_path, v_event
+  from public.photos where id = p_photo_id;
+  if v_path is null then raise exception 'photo not found'; end if;
+
+  -- doit être membre de l'event
+  if not exists (select 1 from public.event_members
+                 where event_id = v_event and user_id = v_uid) then
+    raise exception 'not a member of this event';
+  end if;
+
+  -- déjà développée ? on renvoie sans re-débiter (idempotence)
+  if exists (select 1 from public.reveals where user_id = v_uid and photo_id = p_photo_id) then
+    return v_path;
+  end if;
+
+  select balance into v_bal from public.wallet_balance where user_id = v_uid;
+  if coalesce(v_bal, 0) < 1 then raise exception 'not enough reveals'; end if;
+
+  insert into public.reveals(user_id, photo_id) values (v_uid, p_photo_id);
+  insert into public.wallet_ledger(user_id, delta, reason, ref_id)
+    values (v_uid, -1, 'reveal', p_photo_id);
+
+  -- réciprocité : +1 aux personnes (consenties) présentes sur la photo, sauf soi.
+  -- (Les plafonds anti-abus sont à appliquer ici — voir docs/troc-anti-abus.md.)
+  insert into public.wallet_ledger(user_id, delta, reason, ref_id)
+    select pf.user_id, 1, 'reciprocity', p_photo_id
+    from public.photo_faces pf
+    where pf.photo_id = p_photo_id and pf.user_id is not null
+      and pf.user_id <> v_uid and pf.consented;
+
+  return v_path;
+end;
+$$;
+
+-- Créditer une contribution (partage, etc.) — à appeler depuis une edge function
+-- qui applique les plafonds et vérifie la réalité de la contribution.
+create or replace function public.grant_reveals(p_user uuid, p_amount int, p_reason text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_amount <= 0 then return; end if;
+  insert into public.wallet_ledger(user_id, delta, reason) values (p_user, p_amount, p_reason);
+end;
+$$;
+
+-- Bienvenue : +1 à la création du profil.
+create or replace function public.handle_new_profile()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.wallet_ledger(user_id, delta, reason) values (new.id, 1, 'welcome');
+  return new;
+end;
+$$;
+
+drop trigger if exists on_profile_created on public.profiles;
+create trigger on_profile_created after insert on public.profiles
+  for each row execute function public.handle_new_profile();

@@ -1,4 +1,4 @@
-<title>PhotosPartagees — Dossier &amp; Business Plan</title>
+<title>Poze — Dossier &amp; Business Plan</title>
 <style>
   :root{
     --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -29,9 +29,9 @@
 
   /* Cover */
   .brand{display:flex;align-items:center;gap:12px;margin-bottom:40px}
-  .logo{width:34px;height:34px;border-radius:11px;background:var(--grad);position:relative;flex:none;box-shadow:0 4px 12px rgba(91,120,239,.5)}
-  .logo::after{content:"";position:absolute;left:50%;top:36%;transform:translateX(-50%);width:11px;height:11px;border-radius:50%;background:#fff}
-  .logo::before{content:"";position:absolute;left:50%;bottom:5px;transform:translateX(-50%);width:19px;height:11px;border-radius:9px 9px 0 0;background:#fff}
+  .logo{width:34px;height:34px;border-radius:50%;background:var(--grad);position:relative;flex:none;box-shadow:0 4px 12px rgba(91,120,239,.5)}
+  .logo::after{content:"";position:absolute;inset:6px;border-radius:50%;border:3px solid #fff}
+  .logo::before{content:"";position:absolute;left:50%;top:50%;width:7px;height:7px;transform:translate(-50%,-50%);border-radius:50%;background:#fff}
   .brand b{font-weight:800;letter-spacing:-.02em}
   .cover .kicker{text-transform:uppercase;letter-spacing:.16em;font-size:12px;font-weight:700;color:var(--a2)}
   .cover h1{font-size:clamp(32px,6vw,46px);line-height:1.05;letter-spacing:-.03em;font-weight:850;margin:.3em 0;text-wrap:balance}
@@ -100,7 +100,7 @@
 
 <div class="wrap">
 
-  <div class="brand"><span class="logo" aria-hidden="true"></span><b>PhotosPartagees</b></div>
+  <div class="brand"><span class="logo" aria-hidden="true"></span><b>Poze</b></div>
 
   <div class="cover">
     <div class="kicker">Dossier &amp; Business Plan · Édition 2026</div>
@@ -136,7 +136,7 @@
 
   <section id="s1">
     <div class="chap"><span class="n">01</span><h2>Résumé exécutif</h2></div>
-    <p class="lead">Aux events, des inconnus et des photographes prennent des centaines de photos où tu apparais — et tu ne les récupères <strong>jamais</strong>. PhotosPartagees résout ça : tu scannes ton visage une fois, l'app retrouve toutes tes photos, partout, pour toujours.</p>
+    <p class="lead">Aux events, des inconnus et des photographes prennent des centaines de photos où tu apparais — et tu ne les récupères <strong>jamais</strong>. Poze résout ça : tu scannes ton visage une fois, l'app retrouve toutes tes photos, partout, pour toujours.</p>
     <p>Le modèle est simple et sain : <strong>retrouver ses photos est gratuit</strong> (ça alimente la viralité), <strong>les garder en HD est payant</strong> (le revenu conso), et <strong>les organisateurs / marques paient</strong> pour offrir l'expérience à leur public (le revenu récurrent). La reconnaissance se fait <strong>sur le téléphone</strong> : on ne voit jamais le visage de personne — ce qui transforme le plus gros risque du secteur en argument de vente.</p>
     <div class="split">
       <div class="mini"><div class="big">2 robinets</div><div class="l">B2B (organisateurs) + conso (packs, HD, tirages)</div></div>
@@ -199,34 +199,38 @@
     <h3>D'où vient l'argent</h3>
     <div class="flow">
       <span class="chip">Organisateur / marque</span><span class="ar">→ €</span>
-      <span class="chip">finance l'expérience + les cadeaux</span>
+      <span class="chip">finance l'expérience (le socle)</span>
     </div>
     <div class="flow">
-      <span class="chip">Utilisateur qui veut ses photos</span><span class="ar">→ €</span>
-      <span class="chip pay">achète des points / packs</span><span class="ar">→</span>
-      <span class="chip">télécharge en HD, tirages</span>
+      <span class="chip">Le troc (gratuit)</span><span class="ar">→</span>
+      <span class="chip">contribue → développe ses photos</span>
+    </div>
+    <div class="flow">
+      <span class="chip">Qui ne veut pas contribuer</span><span class="ar">→ €</span>
+      <span class="chip pay">raccourci payant (pellicule)</span>
     </div>
 
-    <h3>La mécanique de points (validée, sans piège)</h3>
+    <h3>La mécanique de troc (contribuer pour développer)</h3>
     <div class="twrap"><table>
-      <thead><tr><th>Action</th><th class="num">Points</th><th>Rôle</th></tr></thead>
+      <thead><tr><th>Action</th><th class="num">Révélations</th><th>Rôle</th></tr></thead>
       <tbody>
-        <tr><td>Acheter un pack (sur le <strong>web</strong>)</td><td class="num">100 = 4,99 €</td><td>Le vrai revenu (hors taxe Apple)</td></tr>
-        <tr><td>Télécharger 1 photo HD</td><td class="num">−5</td><td>Le sink : ce qu'on consomme</td></tr>
-        <tr><td>Quelqu'un télécharge une photo où tu es</td><td class="num">+2</td><td>Récompense — <strong>uniquement si téléchargée</strong></td></tr>
-        <tr><td>Cadeaux (points → lots)</td><td class="num">—</td><td>Financés par une <strong>marque sponsor</strong></td></tr>
+        <tr><td>Bienvenue</td><td class="num">+1</td><td>Amorçage</td></tr>
+        <tr><td>Développer une photo (négatif → HD)</td><td class="num">−1</td><td>Le sink : ce qu'on consomme</td></tr>
+        <tr><td>Contribuer (partager, inviter un actif)</td><td class="num">+2</td><td>Le troc : on gagne en aidant</td></tr>
+        <tr><td>Quelqu'un développe une photo où tu es</td><td class="num">+1</td><td>Réciprocité — valeur réelle</td></tr>
+        <tr><td>Raccourci payant (pellicule)</td><td class="num">4,99–19,99 €</td><td>Le vrai revenu conso (vente web)</td></tr>
       </tbody>
     </table></div>
-    <div class="callout money"><b>Deux garde-fous.</b> 1) On ne donne des points que quand une photo est <b>réellement téléchargée</b> → aucun coût sans revenu, aucune triche. 2) On <b>plafonne</b> les gains → l'utilisateur occasionnel s'en sort gratuitement (croissance), le gros consommateur doit acheter (chiffre d'affaires).</div>
-    <div class="callout warn"><b>La taxe des stores.</b> Vendre les packs <b>dans l'app iOS</b> déclenche l'achat in-app d'Apple (15–30 %). On vend donc les packs <b>sur le web</b> → on ne perd que ~3 % de frais de paiement. C'est tout l'intérêt d'avoir une PWA.</div>
+    <div class="callout money"><b>Deux garde-fous.</b> 1) On ne récompense que la <b>valeur réelle</b> (une photo réellement développée par un tiers) → aucun coût sans valeur, anti-farming. 2) Le <b>troc</b> reste gratuit (croissance, viralité), le <b>raccourci payant</b> + le <b>B2B</b> font le chiffre d'affaires. Détails : voir la spec anti-abus.</div>
+    <div class="callout warn"><b>La taxe des stores.</b> Vendre le raccourci <b>dans l'app iOS</b> déclenche l'achat in-app d'Apple (15–30 %). On vend donc <b>sur le web</b> → on ne perd que ~3 % de frais de paiement. C'est tout l'intérêt d'avoir une PWA.</div>
 
     <h3>Les revenus, par ordre de solidité</h3>
     <ul class="clean">
       <li><span class="m">1.</span><strong>B2B / sponsoring event</strong> — récurrent, gros budgets, le socle.</li>
-      <li><span class="m">2.</span><strong>Conso : packs &amp; téléchargements HD</strong> — petit ticket × gros volume.</li>
+      <li><span class="m">2.</span><strong>Conso : raccourci payant (pellicules) &amp; développements HD</strong> — petit ticket × gros volume.</li>
       <li><span class="m">3.</span><strong>Tirages, albums, goodies</strong> — grosse marge, achat émotionnel.</li>
       <li><span class="m">4.</span><strong>Premium</strong> (stockage, HD illimité, albums privés).</li>
-      <li><span class="m">5.</span><strong>Le float des points</strong> — points prépayés = trésorerie d'avance + marge sur les points jamais dépensés (modèle Starbucks).</li>
+      <li><span class="m">5.</span><strong>Le float des révélations</strong> — pellicules prépayées = trésorerie d'avance + marge sur les révélations jamais utilisées (modèle Starbucks).</li>
     </ul>
     <p style="font-size:14.5px"><a href="https://claude.ai/code/artifact/79117147-1b85-4b2b-83b2-a6bbc0bbbdde">↗ Ouvrir le simulateur d'économie interactif</a> pour jouer avec les hypothèses.</p>
   </section>
@@ -267,7 +271,7 @@
     <p>Pour un premier lancement, trois fonctions portent tout :</p>
     <div class="split">
       <div class="mini"><div class="big">🔔 Revenir</div><div class="l"><b>La notif magique</b> « nouvelles photos de toi » — la raison de rouvrir l'app.</div></div>
-      <div class="mini"><div class="big">💰 Payer</div><div class="l"><b>La photo floutée</b> : tu vois que c'est toi, tu paies pour le HD net.</div></div>
+      <div class="mini"><div class="big">🎞️ Développer</div><div class="l"><b>Le négatif flouté</b> : tu vois que c'est toi, tu le développes (troc ou raccourci payant).</div></div>
       <div class="mini"><div class="big">🚀 Grandir</div><div class="l"><b>Le récap partageable</b> « ton festival en 12 photos » → pub gratuite.</div></div>
     </div>
     <h3>Ensuite</h3>
@@ -306,7 +310,7 @@
     <div class="twrap"><table>
       <thead><tr><th>Phase</th><th>Objectif</th><th>Preuve de réussite</th></tr></thead>
       <tbody>
-        <tr><td><b>0–3 mois</b><br>Amorçage</td><td>3 events pilotes (web app existante), mécanique de points, points de vente web</td><td>Taux de partage mesuré, 1er « waouh »</td></tr>
+        <tr><td><b>0–3 mois</b><br>Amorçage</td><td>3 events pilotes (web app existante), mécanique de troc, raccourci payant web</td><td>Taux de partage mesuré, 1er « waouh »</td></tr>
         <tr><td><b>3–9 mois</b><br>Traction</td><td>10 lieux récurrents, notif magique, photo floutée, sponsor pilote</td><td>Revenu B2B récurrent + 1ers achats conso</td></tr>
         <tr><td><b>9–18 mois</b><br>Expansion</td><td>Nouvelle ville / vertical, intégration billetterie, premium</td><td>Boucle virale &gt; 1, croissance auto-financée</td></tr>
         <tr><td><b>18 mois +</b><br>Réseau</td><td>Devenir la couche photo de référence des events</td><td>Valeur = commission × volume ; cible de rachat</td></tr>
@@ -336,7 +340,7 @@
         <tr><td>Légal / biométrie</td><td>On-device, opt-in, consentement, effacement, avocat dès le jour 1</td></tr>
         <tr><td>Marché encombré</td><td>Wedge de niche dominé + le réseau d'events comme barrière</td></tr>
         <tr><td>Rétention en pics</td><td>La notif magique comme raison de revenir</td></tr>
-        <tr><td>Économie de points déséquilibrée</td><td>Points seulement si téléchargement + plafond de gain</td></tr>
+        <tr><td>Troc déséquilibré / farming</td><td>Récompense seulement sur valeur réelle + plafonds (spec anti-abus)</td></tr>
         <tr><td>Taxe des stores</td><td>Vente des packs sur le web</td></tr>
       </tbody>
     </table></div>
@@ -355,7 +359,7 @@
   </section>
 
   <footer>
-    <b>PhotosPartagees — Dossier &amp; Business Plan, édition 2026.</b> Document de travail à visée stratégique. Les projections sont illustratives et doivent être calibrées sur des données réelles. Le traitement de données biométriques nécessite un cadrage juridique (RGPD) préalable à tout lancement commercial. Complété par le simulateur d'économie interactif.
+    <b>Poze — Dossier &amp; Business Plan, édition 2026.</b> Document de travail à visée stratégique. Les projections sont illustratives et doivent être calibrées sur des données réelles. Le traitement de données biométriques nécessite un cadrage juridique (RGPD) préalable à tout lancement commercial. Complété par le simulateur d'économie interactif.
   </footer>
 
 </div>
