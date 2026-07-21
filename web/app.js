@@ -4,11 +4,11 @@ const FACEAPI_ESM = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face
 const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
 let faceapi = null;
 
-// ---- Constantes économie ----
-const WELCOME_POINTS = 20;
-const UNLOCK_COST = 5;
-const SHARE_REWARD = 5;
-const EARN_ON_DOWNLOAD = 2;
+// ---- Économie « troc » : on ne paie pas, on contribue pour développer ----
+const WELCOME_POINTS = 1;     // révélation offerte à l'arrivée
+const UNLOCK_COST = 1;        // développer un négatif = 1 révélation
+const SHARE_REWARD = 2;       // contribuer (partager / inviter) = +2
+const EARN_ON_DOWNLOAD = 1;   // quelqu'un développe une photo de toi = +1
 
 // ---- Events de démo ----
 const EVENTS = [
@@ -43,7 +43,7 @@ const el = {};
  'refInput','refAvatar','refBtn','refStatus','meAvatar',
  'eventList','evTitle','evMeta','photosInput','loadBtn','evProgress','evBar','evProgressTxt','evEmpty','matchHead','matchCount','recapBtn','grid',
  'unlockSheet','unlockImg','unlockTitle','unlockDesc','unlockConfirm','unlockDownload','unlockClose',
- 'walletSheet','walletBal','simEarn','history','walletClose',
+ 'walletSheet','walletBal','contribBtn','simEarn','history','walletClose',
  'recapSheet','recapTitle','recapGrid','recapShare','recapClose',
  'menuBtn','menuSheet','threshold','threshVal','sbStatus','wipeBtn','menuClose','toast'
 ].forEach(id => el[id] = document.getElementById(id));
@@ -117,7 +117,8 @@ function wire(){
   el.recapClose.addEventListener('click', () => close('recapSheet'));
   el.recapShare.addEventListener('click', shareRecap);
   el.unlockClose.addEventListener('click', () => close('unlockSheet'));
-  el.simEarn.addEventListener('click', () => addPoints(EARN_ON_DOWNLOAD, 'Quelqu’un a téléchargé ta photo'));
+  el.contribBtn.addEventListener('click', () => addPoints(SHARE_REWARD, 'Contribution : partage de l’event'));
+  el.simEarn.addEventListener('click', () => addPoints(EARN_ON_DOWNLOAD, 'Quelqu’un a développé ta photo'));
   el.wipeBtn.addEventListener('click', wipe);
   el.threshold.addEventListener('input', e => {
     store.data.threshold = +e.target.value; store.save();
@@ -150,7 +151,7 @@ async function onReference(file){
   el.meAvatar.style.backgroundImage = `url(${thumb})`;
   el.walletPill.hidden = false;
   renderPoints();
-  toast(`Visage enregistré · +${WELCOME_POINTS} points offerts`);
+  toast(`Visage enregistré · +${WELCOME_POINTS} révélation offerte`);
   window.setTimeout(() => showScreen('home'), 700);
 }
 
@@ -232,7 +233,7 @@ function renderGrid(){
       <img src="${m.thumb}" alt="">
       ${unlocked
         ? '<span class="done">✓</span>'
-        : `<div class="lock"><span class="ic">🔒</span><span class="cost">${UNLOCK_COST} pts</span></div>`}
+        : `<div class="lock"><span class="ic">🎞️</span><span class="cost">Développer</span></div>`}
     </div>`;
   }).join('');
   el.grid.querySelectorAll('.tile').forEach(t => t.addEventListener('click', () => openUnlock(t.dataset.id)));
@@ -242,10 +243,10 @@ function openUnlock(id){
   const m = state.matches.find(x => x.id === id); if (!m) return;
   el.unlockImg.src = m.url;
   const unlocked = isUnlocked(id);
-  el.unlockTitle.textContent = unlocked ? 'Photo débloquée' : 'Débloquer en HD';
-  el.unlockDesc.textContent = unlocked ? 'Elle est à toi — télécharge-la en pleine qualité.' : `Coûte ${UNLOCK_COST} points. Tu as ${store.data.points} points.`;
+  el.unlockTitle.textContent = unlocked ? 'Photo développée' : 'Développer la photo';
+  el.unlockDesc.textContent = unlocked ? 'Elle est à toi — télécharge-la en pleine qualité.' : `Développer coûte ${UNLOCK_COST} révélation. Tu en as ${store.data.points}.`;
   el.unlockConfirm.hidden = unlocked;
-  el.unlockConfirm.textContent = `🔓 Débloquer (${UNLOCK_COST} pts)`;
+  el.unlockConfirm.textContent = `🎞️ Développer (${UNLOCK_COST} révélation)`;
   el.unlockDownload.hidden = !unlocked;
   el.unlockConfirm.onclick = () => doUnlock(m);
   el.unlockDownload.onclick = () => download(m);
@@ -254,15 +255,15 @@ function openUnlock(id){
 
 function doUnlock(m){
   if (store.data.points < UNLOCK_COST){
-    toast('Pas assez de points — achète un pack.');
+    toast('Plus de révélation — contribue ou prends le raccourci.');
     close('unlockSheet'); openWallet(); return;
   }
   store.data.points -= UNLOCK_COST;
   store.data.unlocked.push(m.id);
-  store.data.history.unshift({ t:`Déblocage HD`, n:-UNLOCK_COST });
+  store.data.history.unshift({ t:`Développement`, n:-UNLOCK_COST });
   store.save(); renderPoints(); renderGrid();
   openUnlock(m.id); // rebascule en mode "télécharger"
-  toast('Débloquée ! 🎉');
+  toast('Développée ! 🎉');
 }
 
 function download(m){
@@ -280,13 +281,13 @@ function addPoints(n, label){
   store.data.points += n;
   store.data.history.unshift({ t:label, n });
   store.save(); renderPoints(); renderHistory();
-  toast(`+${n} points`);
+  toast(`+${n} révélation(s)`);
 }
 function buyPack(pts, price){
   store.data.points += pts;
-  store.data.history.unshift({ t:`Pack acheté (${price})`, n:pts });
+  store.data.history.unshift({ t:`Raccourci (${price})`, n:pts });
   store.save(); renderPoints(); renderHistory();
-  toast(`+${pts} points ajoutés (démo)`);
+  toast(`+${pts} révélations (démo)`);
 }
 function openWallet(){ renderHistory(); open('walletSheet'); }
 function renderHistory(){

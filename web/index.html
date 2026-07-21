@@ -18,7 +18,7 @@
 <!-- Barre du haut -->
 <header class="topbar">
   <div class="brand"><span class="logo"></span><b>Poze</b></div>
-  <button id="walletPill" class="pill" hidden>💎 <span id="pointsBal">0</span></button>
+  <button id="walletPill" class="pill" hidden>🔄 <span id="pointsBal">0</span></button>
 </header>
 
 <!-- Bandeau de chargement du modèle -->
@@ -64,7 +64,7 @@
 
     <div class="tip card">
       <b>💡 Comment ça marche</b>
-      <p>Ouvre un event, charge ses photos, on floute automatiquement celles où tu es. Débloque en HD celles que tu veux garder.</p>
+      <p>Ouvre un event, charge ses photos, on floute celles où tu es. Tu les <b>développes</b> en contribuant — pas en payant.</p>
     </div>
   </section>
 
@@ -113,23 +113,28 @@
   </div>
 </div>
 
-<!-- Feuille : portefeuille / acheter des points -->
+<!-- Feuille : le troc / révélations -->
 <div id="walletSheet" class="backdrop" hidden>
   <div class="sheet">
     <div class="grab"></div>
-    <h3>Mon portefeuille</h3>
-    <div class="balance">💎 <b id="walletBal">0</b> <span>points</span></div>
-    <div class="packs">
-      <button class="pack" data-pack="100" data-price="4,99 €"><b>100 pts</b><span>4,99 €</span></button>
-      <button class="pack" data-pack="250" data-price="9,99 €"><b>250 pts</b><span>9,99 €</span></button>
-      <button class="pack" data-pack="600" data-price="19,99 €"><b>600 pts</b><span>19,99 €</span></button>
-    </div>
-    <p class="micro">Achat simulé (démo). En vrai : paiement sur le web pour éviter la commission des stores.</p>
+    <h3>Mon troc 🔄</h3>
+    <div class="balance">🔄 <b id="walletBal">0</b> <span>révélations</span></div>
+
     <div class="earn card">
-      <b>🎁 Gagne des points</b>
-      <p>Tu gagnes des points quand quelqu'un télécharge une photo où tu es.</p>
-      <button id="simEarn" class="link">Simuler : +2 (quelqu'un a téléchargé ta photo)</button>
+      <b>🤝 Le troc — gagne des révélations</b>
+      <p>Ici on n'achète pas : tu <b>développes</b> tes photos en contribuant à la communauté.</p>
+      <button id="contribBtn" class="btn btn-primary" style="margin-top:4px">📤 Partager l'event (+2)</button>
+      <button id="simEarn" class="link" style="display:block;margin-top:12px">Simuler : +1 (quelqu'un a développé une photo de toi)</button>
     </div>
+
+    <h4>Pas envie de contribuer ? Le raccourci</h4>
+    <div class="packs">
+      <button class="pack" data-pack="10" data-price="4,99 €"><b>10</b><span>4,99 €</span></button>
+      <button class="pack" data-pack="30" data-price="9,99 €"><b>30</b><span>9,99 €</span></button>
+      <button class="pack" data-pack="80" data-price="19,99 €"><b>80</b><span>19,99 €</span></button>
+    </div>
+    <p class="micro">Achat simulé (démo). Le troc reste gratuit ; payer, c'est juste le raccourci.</p>
+
     <h4 class="hist-title">Historique</h4>
     <ul id="history" class="history"></ul>
     <button id="walletClose" class="btn btn-plain">Fermer</button>
