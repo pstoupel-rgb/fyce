@@ -20,7 +20,7 @@ const EVENTS = [
 // ---- Persistance locale ----
 const KEY = 'pp_v1';
 const store = {
-  data: { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[] },
+  data: { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null },
   load(){ try{ Object.assign(this.data, JSON.parse(localStorage.getItem(KEY)||'{}')); }catch(_){} },
   save(){ localStorage.setItem(KEY, JSON.stringify(this.data)); },
 };
@@ -34,9 +34,12 @@ const state = {
   urls:[],              // objectURLs à révoquer
   friendMatches:[],     // { id, file, url, thumb, who:[noms] }
   friendUrls:[],
+  selectMode:false,
+  selected:new Set(),
 };
 
 const FRIEND_COLORS = ['#ff4d94','#5b78ef','#f7b733','#0ba360','#9d5cff','#ff7a59','#3ec6ff'];
+const INVITE_WELCOME = 5;   // bonus de bienvenue si tu arrives via un lien d'invitation
 const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 const cfg = window.SUPABASE_CONFIG || {};
@@ -53,7 +56,9 @@ const el = {};
  'menuBtn','menuSheet','threshold','threshVal','sbStatus','wipeBtn','menuClose','toast',
  'friendsCard','friendsRow','friendPhotoInput','importFriendsBtn','friendsPhotosInput','manualShareBtn','manualInput',
  'fProgress','fBar','fProgressTxt','fEmpty','fHead','fCount','friendsGrid',
- 'shareSheet','shImg','shWho','shBtns','shClose'
+ 'shareSheet','shImg','shWho','shBtns','shClose',
+ 'inviteBtn','inviteSheet','inviteLink','inviteWa','inviteMail','inviteShare','inviteClose',
+ 'fSelect','selShare'
 ].forEach(id => el[id] = document.getElementById(id));
 
 // ---------- Navigation ----------
@@ -76,6 +81,9 @@ function toast(msg){
 async function init(){
   registerSW();
   store.load();
+  ensureRefCode();
+  const ref = new URLSearchParams(location.search).get('ref');
+  if (ref && !store.data.started && !store.data.invitedBy){ store.data.invitedBy = ref; store.save(); }
   el.threshold.value = store.data.threshold;
   el.threshVal.textContent = (+store.data.threshold).toFixed(2);
   renderPoints();
@@ -133,6 +141,22 @@ function wire(){
   el.friendsPhotosInput.addEventListener('change', e => onFriendPhotos([...e.target.files]));
   el.manualInput.addEventListener('change', e => onManualPhotos([...e.target.files]));
   el.shClose.addEventListener('click', () => el.shareSheet.hidden = true);
+  el.fSelect.addEventListener('click', () => {
+    state.selectMode = !state.selectMode; state.selected.clear();
+    el.fSelect.textContent = state.selectMode ? 'Annuler' : 'Sélectionner';
+    el.selShare.hidden = true; renderFriendsGrid();
+  });
+  el.selShare.addEventListener('click', shareSelection);
+  el.inviteBtn.addEventListener('click', openInvite);
+  el.inviteClose.addEventListener('click', () => el.inviteSheet.hidden = true);
+  el.inviteWa.addEventListener('click', () => window.open('https://wa.me/?text=' + encodeURIComponent(inviteMsg()), '_blank'));
+  el.inviteMail.addEventListener('click', () => { window.location.href = 'mailto:?subject=' + encodeURIComponent('Rejoins-moi sur Poze 📸') + '&body=' + encodeURIComponent(inviteMsg()); });
+  el.inviteShare.addEventListener('click', async () => {
+    try {
+      if (navigator.share) await navigator.share({ title:'Poze', text:inviteMsg(), url:refLink() });
+      else { await navigator.clipboard?.writeText(refLink()); toast('Lien copié'); }
+    } catch (_) {}
+  });
   el.threshold.addEventListener('input', e => {
     store.data.threshold = +e.target.value; store.save();
     el.threshVal.textContent = (+e.target.value).toFixed(2);
@@ -156,7 +180,12 @@ async function onReference(file){
   state.refDescriptor = det.descriptor;
   store.data.face = Array.from(det.descriptor);
   store.data.faceThumb = thumb;
-  if (!store.data.started){ store.data.started = true; store.data.points = WELCOME_POINTS; store.data.history.unshift({t:'Bienvenue 🎉', n:WELCOME_POINTS}); }
+  if (!store.data.started){
+    store.data.started = true;
+    const bonus = store.data.invitedBy ? INVITE_WELCOME : WELCOME_POINTS;
+    store.data.points = bonus;
+    store.data.history.unshift({ t: store.data.invitedBy ? 'Bienvenue (invité) 🎁' : 'Bienvenue 🎉', n: bonus });
+  }
   store.save();
 
   el.refAvatar.style.backgroundImage = `url(${thumb})`;
@@ -164,7 +193,7 @@ async function onReference(file){
   el.meAvatar.style.backgroundImage = `url(${thumb})`;
   el.walletPill.hidden = false;
   renderPoints();
-  toast(`Visage enregistré · +${WELCOME_POINTS} révélation offerte`);
+  toast(`Visage enregistré · +${store.data.points} révélation(s)`);
   window.setTimeout(() => showScreen('home'), 700);
 }
 
@@ -332,7 +361,8 @@ async function shareRecap(){
 function wipe(){
   if (!confirm('Supprimer ton empreinte de visage et toutes tes données locales ?')) return;
   localStorage.removeItem(KEY);
-  store.data = { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[] };
+  store.data = { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null };
+  ensureRefCode();
   state.refDescriptor = null; clearMatches(); clearFriendMatches();
   el.friendsGrid.innerHTML = ''; el.fHead.hidden = true;
   el.refAvatar.classList.remove('ok'); el.refAvatar.style.backgroundImage='';
@@ -443,9 +473,35 @@ async function analyzeFriends(file, people, threshold){
 }
 
 function renderFriendsGrid(){
-  el.friendsGrid.innerHTML = state.friendMatches.map(m =>
-    `<div class="tile" data-id="${m.id}"><img src="${m.thumb}" alt=""><div class="whos">${m.who.map(personChip).join('')}</div></div>`).join('');
-  el.friendsGrid.querySelectorAll('.tile').forEach(t => t.addEventListener('click', () => openShareFriend(t.dataset.id)));
+  el.friendsGrid.innerHTML = state.friendMatches.map(m => {
+    const sel = state.selected.has(m.id);
+    return `<div class="tile ${state.selectMode && sel ? 'sel' : ''}" data-id="${m.id}"><img src="${m.thumb}" alt="">
+      ${state.selectMode ? `<span class="pick">${sel ? '✓' : ''}</span>` : ''}
+      <div class="whos">${m.who.map(personChip).join('')}</div></div>`;
+  }).join('');
+  el.friendsGrid.querySelectorAll('.tile').forEach(t => t.addEventListener('click', () => {
+    if (state.selectMode) togglePick(t.dataset.id); else openShareFriend(t.dataset.id);
+  }));
+}
+
+function togglePick(id){
+  if (state.selected.has(id)) state.selected.delete(id); else state.selected.add(id);
+  renderFriendsGrid();
+  el.selShare.hidden = state.selected.size === 0;
+  el.selShare.textContent = `📤 Partager la sélection (${state.selected.size})`;
+}
+
+async function shareSelection(){
+  const files = state.friendMatches.filter(m => state.selected.has(m.id)).map(m => m.file);
+  if (!files.length) return;
+  try {
+    if (navigator.canShare && navigator.canShare({ files })){
+      await navigator.share({ files, title:'Poze', text:'Nos photos 📸' });
+    } else {
+      files.forEach(f => { const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name || 'photo.jpg'; a.click(); });
+      toast('Partage non supporté — photos téléchargées.');
+    }
+  } catch (_) {}
 }
 
 function openShareFriend(id){
@@ -504,6 +560,14 @@ async function sharePhoto(m, who){
   } catch (_) {}
   el.shareSheet.hidden = true;
 }
+
+// ---------- Invitation (boucle virale) ----------
+function ensureRefCode(){
+  if (!store.data.refCode){ store.data.refCode = Math.random().toString(36).slice(2, 8).toUpperCase(); store.save(); }
+}
+function refLink(){ return `${location.origin}${location.pathname}?ref=${store.data.refCode}`; }
+function inviteMsg(){ return `Rejoins-moi sur Poze 📸 — retrouve tes photos de soirée. Avec mon lien tu reçois ${INVITE_WELCOME} révélations offertes : ${refLink()}`; }
+function openInvite(){ ensureRefCode(); el.inviteLink.textContent = refLink(); el.inviteSheet.hidden = false; }
 
 // ---------- Utils ----------
 function loadImage(file){

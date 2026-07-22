@@ -124,6 +124,7 @@
       <input id="manualInput" type="file" accept="image/*" multiple hidden>
       🖼️ Envoyer des photos à un pote (sans reconnaissance)
     </label>
+    <button class="btn btn-bordered" id="inviteBtn" type="button">➕ Inviter un pote (pas encore sur Poze)</button>
 
     <div id="fProgress" class="progress-box" hidden>
       <div class="progress"><i id="fBar"></i></div>
@@ -136,7 +137,8 @@
       <p>Ajoute des amis (via leur photo) puis importe tes photos.</p>
     </div>
 
-    <div id="fHead" class="match-head" hidden><span id="fCount" class="hint"></span></div>
+    <div id="fHead" class="match-head" hidden><span id="fCount" class="hint"></span><button id="fSelect" class="link">Sélectionner</button></div>
+    <button id="selShare" class="btn btn-primary" hidden>📤 Partager la sélection (0)</button>
     <div id="friendsGrid" class="grid"></div>
   </section>
 
@@ -230,6 +232,21 @@
     <p id="shWho" class="hint" style="text-align:center"></p>
     <div id="shBtns"></div>
     <button id="shClose" class="btn btn-plain">Fermer</button>
+  </div>
+</div>
+
+<!-- Feuille : inviter un pote -->
+<div id="inviteSheet" class="backdrop" hidden>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h3>Inviter un pote 🎁</h3>
+    <p class="hint" style="text-align:center">Quand il s'inscrit avec ton lien : <b>tu gagnes 3 révélations</b> et <b>il en reçoit 5</b>.</p>
+    <div class="card" id="inviteLink" style="margin:12px 0;word-break:break-all;font-size:13px"></div>
+    <button class="btn btn-primary" id="inviteWa">📲 Inviter par WhatsApp</button>
+    <button class="btn btn-bordered" id="inviteMail">✉️ Inviter par mail</button>
+    <button class="btn btn-bordered" id="inviteShare">🔗 Partager le lien</button>
+    <p class="micro">Réservé aux adultes (18+). Pour un enfant, ne l'invite pas : partage les photos avec ses parents.</p>
+    <button class="btn btn-plain" id="inviteClose">Fermer</button>
   </div>
 </div>
 
