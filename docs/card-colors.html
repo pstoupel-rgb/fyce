@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Poze — Card color options</title>
+<style>
+  *{box-sizing:border-box;margin:0}
+  body{background:#0a0a14;color:#f5f5fb;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:32px 22px 50px;position:relative;overflow-x:hidden}
+  body::before{content:"";position:fixed;inset:-30% -20%;z-index:-1;filter:blur(20px);
+    background:radial-gradient(38% 30% at 20% 10%,rgba(124,92,255,.45),transparent 60%),
+      radial-gradient(34% 28% at 82% 8%,rgba(34,211,238,.35),transparent 60%),
+      radial-gradient(40% 36% at 65% 92%,rgba(255,93,162,.30),transparent 62%)}
+  h1{font-size:22px;font-weight:800;text-align:center;letter-spacing:-.02em}
+  .sub{color:#9a9aa6;text-align:center;font-size:13px;margin:4px 0 28px}
+  .row{display:flex;gap:22px;justify-content:center;flex-wrap:wrap;align-items:flex-start}
+  .col{width:262px}
+  .colcap{margin-bottom:12px}
+  .colcap .n{font-weight:800;font-size:15px}
+  .colcap .d{color:#9a9aa6;font-size:12px;margin-top:2px;line-height:1.4}
+  .stack{display:flex;flex-direction:column;gap:12px}
+  .card{border-radius:18px;padding:16px;min-height:104px;position:relative;display:flex;flex-direction:column;justify-content:flex-end;
+    color:#fff;box-shadow:0 14px 34px rgba(0,0,0,.45);overflow:hidden}
+  .badge{position:absolute;top:12px;right:12px;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;
+    background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(6px)}
+  .when{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.9}
+  .name{font-size:18px;font-weight:850;letter-spacing:-.02em;margin-top:2px}
+  .place{font-size:12px;opacity:.9}
+
+  /* ============ A · Verre dépoli (glass + accent dot) ============ */
+  .A .card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);backdrop-filter:saturate(160%) blur(14px)}
+  .A .card .dot{position:absolute;top:16px;left:16px;width:10px;height:10px;border-radius:50%}
+  .A .name{padding-left:0}
+  .A .a1 .dot{background:#2fdd9b;box-shadow:0 0 12px #2fdd9b}
+  .A .a2 .dot{background:#7c5cff;box-shadow:0 0 12px #7c5cff}
+  .A .a3 .dot{background:#22d3ee;box-shadow:0 0 12px #22d3ee}
+
+  /* ============ B · Aurora tonale (famille violet/cyan) ============ */
+  .B .b1{background:linear-gradient(135deg,#4f46e5,#7c5cff)}
+  .B .b2{background:linear-gradient(135deg,#6d28d9,#a855f7)}
+  .B .b3{background:linear-gradient(135deg,#0e7490,#22d3ee)}
+
+  /* ============ C · Jewel mats (tons profonds désaturés) ============ */
+  .C .c1{background:linear-gradient(135deg,#2b3a67,#3f5c8a)}
+  .C .c2{background:linear-gradient(135deg,#4a2f5e,#6d4b7a)}
+  .C .c3{background:linear-gradient(135deg,#1f4b4a,#2f6b62)}
+
+  /* ============ D · Noir + liseré lumineux ============ */
+  .D .card{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.1);
+    backdrop-filter:blur(10px)}
+  .D .card::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:3px}
+  .D .card{padding-left:22px}
+  .D .d1::before{background:#2fdd9b;box-shadow:0 0 14px #2fdd9b}
+  .D .d2::before{background:#7c5cff;box-shadow:0 0 14px #7c5cff}
+  .D .d3::before{background:#22d3ee;box-shadow:0 0 14px #22d3ee}
+</style>
+</head>
+<body>
+  <h1>Poze — 4 card color options</h1>
+  <div class="sub">The event / group cards, restyled for the Aurora glass look.</div>
+
+  <div class="row">
+
+    <div class="col A">
+      <div class="colcap"><div class="n">A · Verre dépoli</div><div class="d">Cartes en verre + petit point coloré par catégorie. Le plus sobre &amp; cohérent.</div></div>
+      <div class="stack">
+        <div class="card a1"><span class="dot"></span><span class="badge">🤝 Open</span><span class="when">On your phone</span><span class="name">Your shared photos</span></div>
+        <div class="card a2"><span class="dot"></span><span class="badge">🪩 Open</span><span class="when">Last Saturday</span><span class="name">Le Duplex</span><span class="place">Paris · Club</span></div>
+        <div class="card a3"><span class="dot"></span><span class="badge">🎪 Open</span><span class="when">2 weeks ago</span><span class="name">Sunset Festival</span><span class="place">Marseille · Beach</span></div>
+      </div>
+    </div>
+
+    <div class="col B">
+      <div class="colcap"><div class="n">B · Aurora tonale</div><div class="d">Tout dans la famille violet/cyan. Cohérent avec le thème, pas d'arc-en-ciel.</div></div>
+      <div class="stack">
+        <div class="card b1"><span class="badge">🤝 Open</span><span class="when">On your phone</span><span class="name">Your shared photos</span></div>
+        <div class="card b2"><span class="badge">🪩 Open</span><span class="when">Last Saturday</span><span class="name">Le Duplex</span><span class="place">Paris · Club</span></div>
+        <div class="card b3"><span class="badge">🎪 Open</span><span class="when">2 weeks ago</span><span class="name">Sunset Festival</span><span class="place">Marseille · Beach</span></div>
+      </div>
+    </div>
+
+    <div class="col C">
+      <div class="colcap"><div class="n">C · Jewel mats</div><div class="d">Tons profonds désaturés (bleu nuit, prune, sapin). Élégant, feutré.</div></div>
+      <div class="stack">
+        <div class="card c1"><span class="badge">🤝 Open</span><span class="when">On your phone</span><span class="name">Your shared photos</span></div>
+        <div class="card c2"><span class="badge">🪩 Open</span><span class="when">Last Saturday</span><span class="name">Le Duplex</span><span class="place">Paris · Club</span></div>
+        <div class="card c3"><span class="badge">🎪 Open</span><span class="when">2 weeks ago</span><span class="name">Sunset Festival</span><span class="place">Marseille · Beach</span></div>
+      </div>
+    </div>
+
+    <div class="col D">
+      <div class="colcap"><div class="n">D · Noir + liseré lumineux</div><div class="d">Cartes verre quasi noires, fin liseré qui « glow » par catégorie. Minimal, chic.</div></div>
+      <div class="stack">
+        <div class="card d1"><span class="badge">🤝 Open</span><span class="when">On your phone</span><span class="name">Your shared photos</span></div>
+        <div class="card d2"><span class="badge">🪩 Open</span><span class="when">Last Saturday</span><span class="name">Le Duplex</span><span class="place">Paris · Club</span></div>
+        <div class="card d3"><span class="badge">🎪 Open</span><span class="when">2 weeks ago</span><span class="name">Sunset Festival</span><span class="place">Marseille · Beach</span></div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
