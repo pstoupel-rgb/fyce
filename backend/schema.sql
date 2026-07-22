@@ -29,6 +29,8 @@ create table if not exists public.events (
   name         text not null,
   place        text,
   starts_at    timestamptz,
+  join_code    text unique,        -- code du QR / lien d'accès à l'event
+  cover_path   text,
   organizer_id uuid references public.profiles(id) on delete set null,
   created_at   timestamptz not null default now()
 );
@@ -185,6 +187,12 @@ begin
     where pf.photo_id = p_photo_id and pf.user_id is not null
       and pf.user_id <> v_uid and pf.consented;
 
+  -- récompense l'UPLOADER quand un tiers développe sa photo (le moteur du supply).
+  insert into public.wallet_ledger(user_id, delta, reason, ref_id)
+    select p.uploader_id, 1, 'upload_reward', p_photo_id
+    from public.photos p
+    where p.id = p_photo_id and p.uploader_id is not null and p.uploader_id <> v_uid;
+
   return v_path;
 end;
 $$;
@@ -215,3 +223,70 @@ $$;
 drop trigger if exists on_profile_created on public.profiles;
 create trigger on_profile_created after insert on public.profiles
   for each row execute function public.handle_new_profile();
+
+-- ─────────────────────────────────────────────────────────────
+-- Loop d'event : jointure par code, notifications, parrainage
+-- ─────────────────────────────────────────────────────────────
+
+-- Rejoindre un event via son code (QR / lien). Ajoute le membre + notif.
+create or replace function public.join_event(p_code text)
+returns uuid
+language plpgsql security definer set search_path = public
+as $$
+declare v_uid uuid := auth.uid(); v_event uuid;
+begin
+  if v_uid is null then raise exception 'not authenticated'; end if;
+  select id into v_event from public.events where join_code = p_code;
+  if v_event is null then raise exception 'event not found'; end if;
+  insert into public.event_members(event_id, user_id) values (v_event, v_uid)
+    on conflict do nothing;
+  return v_event;
+end;
+$$;
+
+-- Notifications (la « notif magique »).
+create table if not exists public.notifications (
+  id         bigint generated always as identity primary key,
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  kind       text not null,                 -- 'new_photos' | 'tagged' | 'invite_joined' …
+  event_id   uuid references public.events(id) on delete cascade,
+  photo_id   uuid references public.photos(id) on delete cascade,
+  body       text,
+  seen_at    timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists notifications_user_idx on public.notifications(user_id, seen_at);
+alter table public.notifications enable row level security;
+create policy "read own notifications" on public.notifications for select using (user_id = auth.uid());
+create policy "update own notifications" on public.notifications for update using (user_id = auth.uid());
+
+-- Parrainage (le loop d'invitation).
+create table if not exists public.referrals (
+  id          bigint generated always as identity primary key,
+  inviter_id  uuid references public.profiles(id) on delete set null,
+  invited_id  uuid references public.profiles(id) on delete cascade,
+  code        text,
+  credited    boolean not null default false,
+  created_at  timestamptz not null default now(),
+  unique (invited_id)
+);
+alter table public.referrals enable row level security;
+create policy "read own referrals" on public.referrals for select
+  using (inviter_id = auth.uid() or invited_id = auth.uid());
+
+-- Crédite le parrain (+3) et l'invité (+5) — à appeler quand l'invité devient actif.
+create or replace function public.credit_referral(p_inviter uuid, p_invited uuid, p_code text)
+returns void
+language plpgsql security definer set search_path = public
+as $$
+begin
+  if p_inviter is null or p_invited is null or p_inviter = p_invited then return; end if;
+  insert into public.referrals(inviter_id, invited_id, code, credited)
+    values (p_inviter, p_invited, p_code, true)
+    on conflict (invited_id) do nothing;
+  if found then
+    insert into public.wallet_ledger(user_id, delta, reason) values (p_inviter, 3, 'referral');
+    insert into public.wallet_ledger(user_id, delta, reason) values (p_invited, 5, 'referral_bonus');
+  end if;
+end;
+$$;

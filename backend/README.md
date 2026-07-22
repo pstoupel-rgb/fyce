@@ -1,55 +1,60 @@
 # Poze — Backend (Supabase)
 
-Fondation backend pour passer du prototype local au **multi-utilisateur réel** :
-comptes, events, photos, et l'économie de **troc** (révélations).
+Backend multi-utilisateur : comptes, events partagés, upload, troc (révélations),
+notifications, parrainage. C'est ce qui transforme le prototype local en vrai produit.
 
-> ⚠️ **État : fondation.** Le schéma SQL et la logique serveur ci-dessous sont
-> réels et corrects, mais **non branchés/testés** contre une base live (à faire
-> dans ton projet Supabase). L'app web actuelle tourne encore en **local**
-> (localStorage) ; ce dossier est l'étape d'intégration suivante.
+> **État : code complet, à brancher.** Le schéma (`schema.sql`) et le client
+> (`web/backend.js`) sont réels et prêts, mais **non testés en live** ici : il faut
+> ton projet Supabase. Tant que `web/config.js` n'est pas rempli, l'app reste en
+> **mode local** (localStorage) — rien ne casse.
 
-## Mise en place
+## Mise en place (≈ 15 min)
 
 1. Crée un projet sur [supabase.com](https://supabase.com).
-2. SQL Editor → colle **`backend/schema.sql`** → Run.
-3. Crée un bucket Storage `event-photos` (privé).
-4. Active l'auth (email/OTP ou OAuth).
-5. Récupère `Project URL` + clé `anon` → à mettre dans `web/config.js`.
+2. **SQL Editor** → colle **`backend/schema.sql`** → **Run**.
+3. **Storage** → crée un bucket **privé** nommé **`event-photos`**.
+4. **Authentication → Providers** → active **Anonymous sign-ins** (pour démarrer sans friction).
+   *(Pour la prod : email OTP / OAuth à la place.)*
+5. **Project Settings → API** → copie `Project URL` + clé `anon`.
+6. Renseigne **`web/config.js`** :
+   ```js
+   window.SUPABASE_CONFIG = {
+     url: "https://<ref>.supabase.co",
+     anonKey: "<clé anon>",
+     bucket: "event-photos",
+   };
+   ```
+7. Recharge l'app → elle passe en **mode backend**.
 
-## Modèle de données
+## Ce que fait le client (`web/backend.js`)
 
-| Table | Rôle |
+| Méthode | Rôle |
 |---|---|
-| `profiles` | Comptes (1 par utilisateur) |
-| `face_prints` | Empreinte de visage — **optionnel & sensible** (préférer l'on-device) |
-| `events`, `event_members` | Events et leurs participants |
-| `photos` | Photos d'un event (chemin Storage) |
-| `photo_faces` | Visages reconnus rattachés (avec **consentement**) à un utilisateur |
-| `reveals` | Développements (photo passée en HD) |
-| `wallet_ledger` | **Le troc** : registre append-only des `+/−` ; solde = somme |
-| `purchases` | Raccourci payant (crédité après paiement confirmé) |
+| `signIn()` / `ensureProfile(name)` | Auth (anonyme) + profil |
+| `walletBalance()` | Solde de révélations (vue `wallet_balance`) |
+| `listEvents()` / `joinEvent(code)` / `createEvent(...)` | Events + jointure par QR/lien |
+| `uploadPhotos(eventId, files)` | Upload Storage + lignes `photos` (hand-pick) |
+| `eventPhotos(eventId)` | Les photos d'un event |
+| `tagFace(photoId, userId)` | Rattache un visage reconnu (matching **on-device**) + consentement |
+| `developPhoto(photoId)` | RPC atomique : débite 1, récompense, renvoie l'**URL signée HD** |
+| `notifications()` / `markSeen(id)` | La « notif magique » |
 
-Le **solde** se lit via la vue `wallet_balance`.
+## Sécurité — le principe
 
-## Sécurité — le principe clé
-
-**Toute la logique de gain/dépense est côté serveur**, jamais côté client :
-
-- `develop_photo(photo_id)` → vérifie l'appartenance à l'event et le solde,
-  **débite 1** de façon atomique, applique la **réciprocité** (+1 aux personnes
-  présentes et consentantes), et renvoie le chemin du HD. Idempotent.
-- `grant_reveals(user, amount, reason)` → à appeler depuis une **edge function**
-  qui applique les **plafonds anti-abus** (voir `docs/troc-anti-abus.md`).
-- Trigger `welcome` → +1 à la création du profil.
-
-Les tables `wallet_ledger` / `reveals` / `purchases` sont en **lecture seule**
-via RLS ; on n'y écrit que par ces fonctions `SECURITY DEFINER`.
+Toute la logique de gain/dépense est **côté serveur** (`SECURITY DEFINER`), jamais
+côté client :
+- `develop_photo` débite 1 révélation, crédite la **réciprocité** (+1 aux personnes
+  présentes) **et l'uploader** (+1) — le moteur du supply — puis renvoie le HD.
+- `join_event`, `credit_referral`, trigger `welcome` : idem serveur.
+- Les tables `wallet_ledger` / `reveals` / `purchases` sont **lecture seule** via RLS.
 
 ## Reste à faire pour la prod
 
-- [ ] Brancher l'app web sur Supabase (auth + lecture events/photos + appel RPC `develop_photo`).
-- [ ] **Edge functions** : crédit des contributions (partage/réciprocité) avec plafonds ; webhook paiement (Stripe) pour créditer `purchases`.
-- [ ] Upload des photos d'event par l'organisateur (rôle + policy dédiés).
-- [ ] Génération d'URL signées pour le HD après `develop_photo`.
-- [ ] Appliquer les règles de `docs/troc-anti-abus.md` (caps, dégressif, anti-self-troc).
-- [ ] Cadrage RGPD (biométrie) avant mise en ligne.
+- [ ] **Brancher l'app** : remplacer le mode local par les appels `Backend.*`
+      (events depuis `listEvents`, développer via `developPhoto`, etc.).
+- [ ] **Edge functions** : plafonds anti-abus (voir `docs/troc-anti-abus.md`),
+      notif push, webhook paiement (Stripe) pour créditer `purchases`.
+- [ ] **Auth prod** : email/OAuth au lieu d'anonyme.
+- [ ] **Reconnaissance** : garder le matching **on-device**, n'envoyer que les
+      `photo_faces` consentis (jamais l'empreinte brute).
+- [ ] **RGPD / mineurs** : cadrage juridique avant lancement.

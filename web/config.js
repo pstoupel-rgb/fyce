@@ -6,5 +6,5 @@
 window.SUPABASE_CONFIG = {
   url: "",          // ex. "https://abcdxyz.supabase.co"
   anonKey: "",      // ta clé anon (publique)
-  bucket: "shared-photos",
+  bucket: "event-photos",
 };
