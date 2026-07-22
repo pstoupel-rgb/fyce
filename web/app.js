@@ -37,7 +37,11 @@ const state = {
   selectMode:false,
   selected:new Set(),
   faceTarget:null,
+  backend:false,        // passe à true si Supabase est configuré (voir maybeInitBackend)
+  BE:null,
 };
+
+let eventsList = EVENTS.slice();   // events affichés : démo par défaut, backend si dispo
 
 const FRIEND_COLORS = ['#ff4d94','#5b78ef','#f7b733','#0ba360','#9d5cff','#ff7a59','#3ec6ff'];
 const INVITE_WELCOME = 5;   // bonus de bienvenue si tu arrives via un lien d'invitation
@@ -55,6 +59,7 @@ const el = {};
  'walletSheet','walletBal','contribBtn','simEarn','history','walletClose',
  'recapSheet','recapTitle','recapGrid','recapShare','recapClose',
  'menuBtn','menuSheet','threshold','threshVal','sbStatus','wipeBtn','menuClose','toast',
+ 'joinBtn',
  'friendsCard','friendsRow','friendPhotoInput','importFriendsBtn','friendsPhotosInput','manualShareBtn','manualInput',
  'fProgress','fBar','fProgressTxt','fEmpty','fHead','fCount','friendsGrid',
  'shareSheet','shImg','shWho','shBtns','shClose',
@@ -92,6 +97,7 @@ async function init(){
   renderEvents();
   updateSupabaseStatus();
   wire();
+  maybeInitBackend();   // se branche sur Supabase si configuré (sinon : mode local)
 
   if (store.data.face){
     state.refDescriptor = new Float32Array(store.data.face);
@@ -138,6 +144,7 @@ function wire(){
   el.contribBtn.addEventListener('click', () => addPoints(SHARE_REWARD, 'Contribution: shared the event'));
   el.simEarn.addEventListener('click', () => addPoints(EARN_ON_DOWNLOAD, 'Someone developed your photo'));
   el.wipeBtn.addEventListener('click', wipe);
+  el.joinBtn.addEventListener('click', joinEventFlow);
   el.friendsCard.addEventListener('click', () => { renderFriendsRow(); showScreen('friends'); });
   el.friendPhotoInput.addEventListener('change', e => addFriend(e.target.files[0]));
   el.friendsPhotosInput.addEventListener('change', e => onFriendPhotos([...e.target.files]));
@@ -203,7 +210,7 @@ async function onReference(file){
 
 // ---------- Events ----------
 function renderEvents(){
-  el.eventList.innerHTML = EVENTS.map(ev => `
+  el.eventList.innerHTML = eventsList.map(ev => `
     <button class="event-card" data-ev="${ev.id}">
       <span class="cat-dot" style="background:${ev.dot};box-shadow:0 0 10px ${ev.dot}"></span>
       <span class="ev-badge">${ev.emoji} Open</span>
@@ -216,7 +223,7 @@ function renderEvents(){
 }
 
 function openEvent(id){
-  state.currentEvent = EVENTS.find(e => e.id === id);
+  state.currentEvent = eventsList.find(e => e.id === id);
   clearMatches();
   el.evTitle.textContent = state.currentEvent.name;
   el.evMeta.textContent = `${state.currentEvent.place} · ${state.currentEvent.when}`;
@@ -228,6 +235,8 @@ function openEvent(id){
 
 // ---------- Scan des photos de l'event ----------
 async function onPhotos(files){
+  // Event backend : les photos choisies sont UPLOADÉES (pas de simulation locale).
+  if (state.backend && state.currentEvent && state.currentEvent.backend) return uploadToEvent(files);
   if (!state.refDescriptor){ toast('Scan your face first.'); return; }
   if (!state.modelsReady){ toast('Recognition still loading…'); return; }
   if (!files.length) return;
@@ -380,6 +389,58 @@ function wipe(){
 
 function updateSupabaseStatus(){
   el.sbStatus.textContent = supabaseReady ? 'Configured ✓' : 'Not configured';
+}
+
+// ---------- Backend (Supabase) — additif, gardé par la config ----------
+function maybeInitBackend(){
+  const c = window.SUPABASE_CONFIG || {};
+  if (!(c.url && c.anonKey && !String(c.url).includes('YOUR-') && !String(c.anonKey).includes('YOUR-'))) return;
+  (async () => {
+    try {
+      const mod = await import('./backend.js');   // chargé seulement si configuré
+      state.BE = mod.Backend; state.backend = true;
+      await state.BE.signIn();
+      await state.BE.ensureProfile('Poze user');
+      store.data.points = await state.BE.walletBalance();
+      renderPoints();
+      el.joinBtn.hidden = false;
+      await loadBackendEvents();
+    } catch (_) { state.backend = false; state.BE = null; }
+  })();
+}
+
+async function loadBackendEvents(){
+  try {
+    const evs = await state.BE.listEvents();
+    if (evs.length){
+      eventsList = evs.map(e => ({
+        id:e.id, name:e.name, place:e.place || '', emoji:'🎟️', dot:'#7c5cff', backend:true,
+        when: e.starts_at ? new Date(e.starts_at).toLocaleDateString('en-GB', { day:'numeric', month:'short' }) : '',
+      }));
+      renderEvents();
+    }
+  } catch (_) {}
+}
+
+async function joinEventFlow(){
+  const code = (prompt('Event code (from the QR / link)?') || '').trim();
+  if (!code) return;
+  try { await state.BE.joinEvent(code); await loadBackendEvents(); toast('Joined the event 🎉'); }
+  catch (_) { toast('Event not found.'); }
+}
+
+async function uploadToEvent(files){
+  if (!files.length) return;
+  el.grid.innerHTML = ''; el.evEmpty.hidden = true; el.matchHead.hidden = true;
+  el.evProgress.hidden = false;
+  try {
+    await state.BE.uploadPhotos(state.currentEvent.id, files, (done, total) => {
+      el.evBar.style.width = `${done/total*100}%`;
+      el.evProgressTxt.textContent = `Uploading ${done}/${total}…`;
+    });
+    toast('Photos added to the event 🎉');
+  } catch (_) { toast('Upload failed.'); }
+  el.evProgress.hidden = true;
 }
 
 // ---------- With friends ----------
