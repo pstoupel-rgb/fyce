@@ -84,10 +84,11 @@ body::before{
 .me .iconbtn{margin-left:auto}
 .sec-title{font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0 0 12px}
 .event-list{display:flex;flex-direction:column;gap:12px;margin-bottom:22px}
-.event-card{border:none;text-align:left;width:100%;border-radius:20px;overflow:hidden;cursor:pointer;color:#fff;
-  position:relative;padding:20px;min-height:132px;display:flex;flex-direction:column;justify-content:flex-end;box-shadow:var(--shadow)}
-.event-card::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.35));pointer-events:none}
+.event-card{border:1px solid var(--line);text-align:left;width:100%;border-radius:20px;overflow:hidden;cursor:pointer;color:#fff;
+  position:relative;padding:20px;min-height:132px;display:flex;flex-direction:column;justify-content:flex-end;box-shadow:var(--shadow);
+  background:var(--card);backdrop-filter:var(--glass);-webkit-backdrop-filter:var(--glass)}
 .event-card>*{position:relative;z-index:1}
+.event-card .cat-dot{position:absolute;top:16px;left:20px;width:10px;height:10px;border-radius:50%}
 .event-card .ev-when{font-size:12px;font-weight:700;opacity:.92;text-transform:uppercase;letter-spacing:.05em}
 .event-card .ev-name{font-size:22px;font-weight:850;letter-spacing:-.02em;margin-top:2px}
 .event-card .ev-place{font-size:13px;opacity:.92;margin-top:2px}

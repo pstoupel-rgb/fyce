@@ -12,9 +12,9 @@ const EARN_ON_DOWNLOAD = 1;   // quelqu'un développe une photo de toi = +1
 
 // ---- Events de démo ----
 const EVENTS = [
-  { id:'duplex', name:'Le Duplex', place:'Paris · Club', when:'Last Saturday', emoji:'🪩', grad:'linear-gradient(135deg,#5b78ef,#9d5cff)' },
-  { id:'sunset', name:'Sunset Festival', place:'Marseille · Beach', when:'2 weeks ago', emoji:'🎪', grad:'linear-gradient(135deg,#ff7a59,#ff4d94)' },
-  { id:'colorrun', name:'Color Run', place:'Lyon · Park', when:'Last month', emoji:'🏃', grad:'linear-gradient(135deg,#12a074,#3ec6ff)' },
+  { id:'duplex', name:'Le Duplex', place:'Paris · Club', when:'Last Saturday', emoji:'🪩', dot:'#7c5cff' },
+  { id:'sunset', name:'Sunset Festival', place:'Marseille · Beach', when:'2 weeks ago', emoji:'🎪', dot:'#ff5da2' },
+  { id:'colorrun', name:'Color Run', place:'Lyon · Park', when:'Last month', emoji:'🏃', dot:'#22d3ee' },
 ];
 
 // ---- Persistance locale ----
@@ -200,7 +200,8 @@ async function onReference(file){
 // ---------- Events ----------
 function renderEvents(){
   el.eventList.innerHTML = EVENTS.map(ev => `
-    <button class="event-card" data-ev="${ev.id}" style="background:${ev.grad}">
+    <button class="event-card" data-ev="${ev.id}">
+      <span class="cat-dot" style="background:${ev.dot};box-shadow:0 0 10px ${ev.dot}"></span>
       <span class="ev-badge">${ev.emoji} Open</span>
       <span class="ev-when">${ev.when}</span>
       <span class="ev-name">${ev.name}</span>
