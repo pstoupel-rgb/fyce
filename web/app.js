@@ -5,16 +5,16 @@ const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
 let faceapi = null;
 
 // ---- Économie « troc » : on ne paie pas, on contribue pour développer ----
-const WELCOME_POINTS = 1;     // révélation offerte à l'arrivée
-const UNLOCK_COST = 1;        // développer un négatif = 1 révélation
+const WELCOME_POINTS = 1;     // reveal offerte à l'arrivée
+const UNLOCK_COST = 1;        // développer un négatif = 1 reveal
 const SHARE_REWARD = 2;       // contribuer (partager / inviter) = +2
 const EARN_ON_DOWNLOAD = 1;   // quelqu'un développe une photo de toi = +1
 
 // ---- Events de démo ----
 const EVENTS = [
-  { id:'duplex', name:'Le Duplex', place:'Paris · Club', when:'Samedi dernier', emoji:'🪩', grad:'linear-gradient(135deg,#5b78ef,#9d5cff)' },
-  { id:'sunset', name:'Sunset Festival', place:'Marseille · Plage', when:'Il y a 2 semaines', emoji:'🎪', grad:'linear-gradient(135deg,#ff7a59,#ff4d94)' },
-  { id:'colorrun', name:'Color Run', place:'Lyon · Parc', when:'Le mois dernier', emoji:'🏃', grad:'linear-gradient(135deg,#12a074,#3ec6ff)' },
+  { id:'duplex', name:'Le Duplex', place:'Paris · Club', when:'Last Saturday', emoji:'🪩', grad:'linear-gradient(135deg,#5b78ef,#9d5cff)' },
+  { id:'sunset', name:'Sunset Festival', place:'Marseille · Beach', when:'2 weeks ago', emoji:'🎪', grad:'linear-gradient(135deg,#ff7a59,#ff4d94)' },
+  { id:'colorrun', name:'Color Run', place:'Lyon · Park', when:'Last month', emoji:'🏃', grad:'linear-gradient(135deg,#12a074,#3ec6ff)' },
 ];
 
 // ---- Persistance locale ----
@@ -115,9 +115,9 @@ async function init(){
     state.modelsReady = true;
     el.modelBanner.hidden = true;
     el.refBtn.setAttribute('aria-disabled','false');
-    if (!store.data.face) el.refStatus.textContent = 'Prêt. Scanne ton visage pour commencer.';
+    if (!store.data.face) el.refStatus.textContent = 'Ready. Scan your face to start.';
   } catch(_){
-    el.modelBanner.textContent = 'Reconnaissance indisponible (vérifie ta connexion).';
+    el.modelBanner.textContent = 'Recognition unavailable (check your connection).';
     el.modelBanner.classList.add('err');
   }
 }
@@ -133,8 +133,8 @@ function wire(){
   el.recapClose.addEventListener('click', () => close('recapSheet'));
   el.recapShare.addEventListener('click', shareRecap);
   el.unlockClose.addEventListener('click', () => close('unlockSheet'));
-  el.contribBtn.addEventListener('click', () => addPoints(SHARE_REWARD, 'Contribution : partage de l’event'));
-  el.simEarn.addEventListener('click', () => addPoints(EARN_ON_DOWNLOAD, 'Quelqu’un a développé ta photo'));
+  el.contribBtn.addEventListener('click', () => addPoints(SHARE_REWARD, 'Contribution: shared the event'));
+  el.simEarn.addEventListener('click', () => addPoints(EARN_ON_DOWNLOAD, 'Someone developed your photo'));
   el.wipeBtn.addEventListener('click', wipe);
   el.friendsCard.addEventListener('click', () => { renderFriendsRow(); showScreen('friends'); });
   el.friendPhotoInput.addEventListener('change', e => addFriend(e.target.files[0]));
@@ -143,18 +143,18 @@ function wire(){
   el.shClose.addEventListener('click', () => el.shareSheet.hidden = true);
   el.fSelect.addEventListener('click', () => {
     state.selectMode = !state.selectMode; state.selected.clear();
-    el.fSelect.textContent = state.selectMode ? 'Annuler' : 'Sélectionner';
+    el.fSelect.textContent = state.selectMode ? 'Cancel' : 'Select';
     el.selShare.hidden = true; renderFriendsGrid();
   });
   el.selShare.addEventListener('click', shareSelection);
   el.inviteBtn.addEventListener('click', openInvite);
   el.inviteClose.addEventListener('click', () => el.inviteSheet.hidden = true);
   el.inviteWa.addEventListener('click', () => window.open('https://wa.me/?text=' + encodeURIComponent(inviteMsg()), '_blank'));
-  el.inviteMail.addEventListener('click', () => { window.location.href = 'mailto:?subject=' + encodeURIComponent('Rejoins-moi sur Poze 📸') + '&body=' + encodeURIComponent(inviteMsg()); });
+  el.inviteMail.addEventListener('click', () => { window.location.href = 'mailto:?subject=' + encodeURIComponent('Join me on Poze 📸') + '&body=' + encodeURIComponent(inviteMsg()); });
   el.inviteShare.addEventListener('click', async () => {
     try {
       if (navigator.share) await navigator.share({ title:'Poze', text:inviteMsg(), url:refLink() });
-      else { await navigator.clipboard?.writeText(refLink()); toast('Lien copié'); }
+      else { await navigator.clipboard?.writeText(refLink()); toast('Link copied'); }
     } catch (_) {}
   });
   el.threshold.addEventListener('input', e => {
@@ -168,14 +168,14 @@ function wire(){
 // ---------- Visage de référence ----------
 async function onReference(file){
   if (!file) return;
-  if (!state.modelsReady){ toast('Reconnaissance en cours de chargement…'); return; }
-  el.refStatus.textContent = 'Analyse du visage…';
+  if (!state.modelsReady){ toast('Recognition still loading…'); return; }
+  el.refStatus.textContent = 'Analyzing face…';
   const img = await loadImage(file);
   const thumb = toCanvas(img, 240).toDataURL('image/jpeg', 0.8);
 
   const det = await faceapi.detectSingleFace(toCanvas(img, 512)).withFaceLandmarks().withFaceDescriptor();
   URL.revokeObjectURL(img.src);
-  if (!det){ el.refStatus.textContent = 'Aucun visage détecté. Essaie une autre photo.'; return; }
+  if (!det){ el.refStatus.textContent = 'No face detected. Try another photo.'; return; }
 
   state.refDescriptor = det.descriptor;
   store.data.face = Array.from(det.descriptor);
@@ -184,7 +184,7 @@ async function onReference(file){
     store.data.started = true;
     const bonus = store.data.invitedBy ? INVITE_WELCOME : WELCOME_POINTS;
     store.data.points = bonus;
-    store.data.history.unshift({ t: store.data.invitedBy ? 'Bienvenue (invité) 🎁' : 'Bienvenue 🎉', n: bonus });
+    store.data.history.unshift({ t: store.data.invitedBy ? 'Welcome (invited) 🎁' : 'Welcome 🎉', n: bonus });
   }
   store.save();
 
@@ -193,7 +193,7 @@ async function onReference(file){
   el.meAvatar.style.backgroundImage = `url(${thumb})`;
   el.walletPill.hidden = false;
   renderPoints();
-  toast(`Visage enregistré · +${store.data.points} révélation(s)`);
+  toast(`Face saved · +${store.data.points} reveal(s)`);
   window.setTimeout(() => showScreen('home'), 700);
 }
 
@@ -201,7 +201,7 @@ async function onReference(file){
 function renderEvents(){
   el.eventList.innerHTML = EVENTS.map(ev => `
     <button class="event-card" data-ev="${ev.id}" style="background:${ev.grad}">
-      <span class="ev-badge">${ev.emoji} Ouvrir</span>
+      <span class="ev-badge">${ev.emoji} Open</span>
       <span class="ev-when">${ev.when}</span>
       <span class="ev-name">${ev.name}</span>
       <span class="ev-place">${ev.place}</span>
@@ -223,8 +223,8 @@ function openEvent(id){
 
 // ---------- Scan des photos de l'event ----------
 async function onPhotos(files){
-  if (!state.refDescriptor){ toast('Scanne d’abord ton visage.'); return; }
-  if (!state.modelsReady){ toast('Reconnaissance en cours de chargement…'); return; }
+  if (!state.refDescriptor){ toast('Scan your face first.'); return; }
+  if (!state.modelsReady){ toast('Recognition still loading…'); return; }
   if (!files.length) return;
 
   clearMatches();
@@ -245,7 +245,7 @@ async function onPhotos(files){
   if (!state.matches.length){ el.evEmpty.hidden = false; }
   else {
     el.matchHead.hidden = false;
-    el.matchCount.textContent = `${state.matches.length} photo(s) où tu es`;
+    el.matchCount.textContent = `${state.matches.length} photo(s) with you`;
   }
 }
 
@@ -275,7 +275,7 @@ function renderGrid(){
       <img src="${m.thumb}" alt="">
       ${unlocked
         ? '<span class="done">✓</span>'
-        : `<div class="lock"><span class="ic">🎞️</span><span class="cost">Développer</span></div>`}
+        : `<div class="lock"><span class="ic">🎞️</span><span class="cost">Develop</span></div>`}
     </div>`;
   }).join('');
   el.grid.querySelectorAll('.tile').forEach(t => t.addEventListener('click', () => openUnlock(t.dataset.id)));
@@ -285,10 +285,10 @@ function openUnlock(id){
   const m = state.matches.find(x => x.id === id); if (!m) return;
   el.unlockImg.src = m.url;
   const unlocked = isUnlocked(id);
-  el.unlockTitle.textContent = unlocked ? 'Photo développée' : 'Développer la photo';
-  el.unlockDesc.textContent = unlocked ? 'Elle est à toi — télécharge-la en pleine qualité.' : `Développer coûte ${UNLOCK_COST} révélation. Tu en as ${store.data.points}.`;
+  el.unlockTitle.textContent = unlocked ? 'Photo developed' : 'Develop la photo';
+  el.unlockDesc.textContent = unlocked ? 'Yours! Download it in full quality.' : `Developing costs ${UNLOCK_COST} reveal. You have ${store.data.points}.`;
   el.unlockConfirm.hidden = unlocked;
-  el.unlockConfirm.textContent = `🎞️ Développer (${UNLOCK_COST} révélation)`;
+  el.unlockConfirm.textContent = `🎞️ Develop (${UNLOCK_COST} reveal)`;
   el.unlockDownload.hidden = !unlocked;
   el.unlockConfirm.onclick = () => doUnlock(m);
   el.unlockDownload.onclick = () => download(m);
@@ -297,15 +297,15 @@ function openUnlock(id){
 
 function doUnlock(m){
   if (store.data.points < UNLOCK_COST){
-    toast('Plus de révélation — contribue ou prends le raccourci.');
+    toast('No reveals left — contribute or take the shortcut.');
     close('unlockSheet'); openWallet(); return;
   }
   store.data.points -= UNLOCK_COST;
   store.data.unlocked.push(m.id);
-  store.data.history.unshift({ t:`Développement`, n:-UNLOCK_COST });
+  store.data.history.unshift({ t:`Develop`, n:-UNLOCK_COST });
   store.save(); renderPoints(); renderGrid();
   openUnlock(m.id); // rebascule en mode "télécharger"
-  toast('Développée ! 🎉');
+  toast('Developed! 🎉');
 }
 
 function download(m){
@@ -323,43 +323,43 @@ function addPoints(n, label){
   store.data.points += n;
   store.data.history.unshift({ t:label, n });
   store.save(); renderPoints(); renderHistory();
-  toast(`+${n} révélation(s)`);
+  toast(`+${n} reveal(s)`);
 }
 function buyPack(pts, price){
   store.data.points += pts;
-  store.data.history.unshift({ t:`Raccourci (${price})`, n:pts });
+  store.data.history.unshift({ t:`Shortcut (${price})`, n:pts });
   store.save(); renderPoints(); renderHistory();
-  toast(`+${pts} révélations (démo)`);
+  toast(`+${pts} reveals (demo)`);
 }
 function openWallet(){ renderHistory(); open('walletSheet'); }
 function renderHistory(){
   const h = store.data.history.slice(0, 12);
   el.history.innerHTML = h.length
     ? h.map(x => `<li><span>${x.t}</span><span class="amt ${x.n>=0?'plus':'minus'}">${x.n>=0?'+':''}${x.n}</span></li>`).join('')
-    : '<li class="empty">Aucune activité pour l’instant.</li>';
+    : '<li class="empty">No activity yet.</li>';
 }
 
 // ---------- Récap ----------
 function openRecap(){
   const shots = state.matches.filter(m => isUnlocked(m.id));
   const pool = shots.length ? shots : state.matches;
-  el.recapTitle.textContent = state.currentEvent ? state.currentEvent.name : 'Ta soirée';
+  el.recapTitle.textContent = state.currentEvent ? state.currentEvent.name : 'Your night';
   el.recapGrid.innerHTML = pool.slice(0,9)
     .map(m => `<img src="${m.thumb}" style="${isUnlocked(m.id)?'':'filter:blur(6px)'}">`).join('');
   open('recapSheet');
 }
 async function shareRecap(){
-  const text = `J'étais à ${state.currentEvent?.name||'la soirée'} 📸 — retrouve tes photos sur Poze`;
+  const text = `I was at ${state.currentEvent?.name||'the night'} 📸 — find your photos on Poze`;
   try{
     if (navigator.share){ await navigator.share({ title:'Poze', text }); }
     else { await navigator.clipboard?.writeText(text); toast('Texte de partage copié'); }
-    addPoints(SHARE_REWARD, 'Partage du récap');
+    addPoints(SHARE_REWARD, 'Recap share');
   }catch(_){}
 }
 
 // ---------- Vie privée ----------
 function wipe(){
-  if (!confirm('Supprimer ton empreinte de visage et toutes tes données locales ?')) return;
+  if (!confirm('Delete your faceprint and all local data?')) return;
   localStorage.removeItem(KEY);
   store.data = { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null };
   ensureRefCode();
@@ -368,25 +368,25 @@ function wipe(){
   el.refAvatar.classList.remove('ok'); el.refAvatar.style.backgroundImage='';
   el.meAvatar.style.backgroundImage=''; el.walletPill.hidden = true;
   close('menuSheet'); renderPoints();
-  el.refStatus.textContent = 'Tout est supprimé. Tu peux repartir de zéro.';
+  el.refStatus.textContent = 'Everything deleted. You can start fresh.';
   showScreen('onboarding');
-  toast('Données supprimées');
+  toast('Data deleted');
 }
 
 function updateSupabaseStatus(){
-  el.sbStatus.textContent = supabaseReady ? 'Configuré ✓' : 'Non configuré';
+  el.sbStatus.textContent = supabaseReady ? 'Configured ✓' : 'Not configured';
 }
 
-// ---------- Entre potes ----------
+// ---------- With friends ----------
 function knownPeople(){
   const list = [];
-  if (state.refDescriptor) list.push({ name:'Toi', desc: state.refDescriptor });
+  if (state.refDescriptor) list.push({ name:'You', desc: state.refDescriptor });
   for (const f of store.data.friends) list.push({ name:f.name, desc:new Float32Array(f.descriptor) });
   return list;
 }
 
 function personAvatar(name){
-  if (name === 'Toi') return { thumb: store.data.faceThumb, color:'#12a074' };
+  if (name === 'You') return { thumb: store.data.faceThumb, color:'#12a074' };
   const f = store.data.friends.find(x => x.name === name);
   return { thumb: f && f.thumb, color: (f && f.color) || '#5b78ef' };
 }
@@ -399,35 +399,35 @@ function personChip(name){
 }
 
 function renderFriendsRow(){
-  const you = `<div class="fr"><div class="av" style="${store.data.faceThumb ? `background-image:url(${store.data.faceThumb})` : 'background:#12a074'}">${store.data.faceThumb ? '' : 'T'}</div><div class="nm">Toi</div></div>`;
+  const you = `<div class="fr"><div class="av" style="${store.data.faceThumb ? `background-image:url(${store.data.faceThumb})` : 'background:#12a074'}">${store.data.faceThumb ? '' : 'T'}</div><div class="nm">You</div></div>`;
   const fr = store.data.friends.map(f =>
     `<div class="fr"><div class="av" style="background-image:url(${f.thumb})"></div><div class="nm">${escapeHtml(f.name)}</div></div>`).join('');
-  const add = `<div class="fr" id="addFriend"><div class="av add">＋</div><div class="nm">Ajouter</div></div>`;
+  const add = `<div class="fr" id="addFriend"><div class="av add">＋</div><div class="nm">Add</div></div>`;
   el.friendsRow.innerHTML = you + fr + add;
   document.getElementById('addFriend').addEventListener('click', () => el.friendPhotoInput.click());
 }
 
 async function addFriend(file){
   if (!file) return;
-  if (!state.modelsReady){ toast('Reconnaissance en cours de chargement…'); return; }
+  if (!state.modelsReady){ toast('Recognition still loading…'); return; }
   const img = await loadImage(file);
   const thumb = toCanvas(img, 160).toDataURL('image/jpeg', 0.8);
   const det = await faceapi.detectSingleFace(toCanvas(img, 512)).withFaceLandmarks().withFaceDescriptor();
   URL.revokeObjectURL(img.src);
-  if (!det){ toast('Aucun visage détecté sur cette photo.'); return; }
-  const name = (prompt('Prénom de ton pote ?') || '').trim() || `Pote ${store.data.friends.length + 1}`;
+  if (!det){ toast('No face detected in this photo.'); return; }
+  const name = (prompt("Friend's first name?") || '').trim() || `Friend ${store.data.friends.length + 1}`;
   const color = FRIEND_COLORS[store.data.friends.length % FRIEND_COLORS.length];
   store.data.friends.push({ id:'f' + store.data.friends.length + '-' + name, name, descriptor:Array.from(det.descriptor), thumb, color });
   store.save();
   renderFriendsRow();
-  toast(`${name} ajouté 👌`);
+  toast(`${name} added 👌`);
 }
 
 function clearFriendMatches(){ state.friendUrls.forEach(u => URL.revokeObjectURL(u)); state.friendUrls = []; state.friendMatches = []; }
 
 async function onFriendPhotos(files){
-  if (!state.refDescriptor){ toast('Scanne d’abord ton visage.'); return; }
-  if (!state.modelsReady){ toast('Reconnaissance en cours de chargement…'); return; }
+  if (!state.refDescriptor){ toast('Scan your face first.'); return; }
+  if (!state.modelsReady){ toast('Recognition still loading…'); return; }
   if (!files.length) return;
 
   clearFriendMatches();
@@ -437,7 +437,7 @@ async function onFriendPhotos(files){
 
   for (let i = 0; i < files.length; i++){
     el.fBar.style.width = `${(i + 1) / files.length * 100}%`;
-    el.fProgressTxt.textContent = `Analyse ${i + 1}/${files.length} — ${state.friendMatches.length} trouvée(s)`;
+    el.fProgressTxt.textContent = `Analyzing ${i + 1}/${files.length} — ${state.friendMatches.length} found`;
     try {
       const m = await analyzeFriends(files[i], people, th);
       if (m){ state.friendMatches.push(m); renderFriendsGrid(); }
@@ -446,7 +446,7 @@ async function onFriendPhotos(files){
   }
   el.fProgress.hidden = true;
   if (!state.friendMatches.length){ el.fEmpty.hidden = false; }
-  else { el.fHead.hidden = false; el.fCount.textContent = `${state.friendMatches.length} photo(s) de vous`; }
+  else { el.fHead.hidden = false; el.fCount.textContent = `${state.friendMatches.length} photo(s) of you`; }
 }
 
 async function analyzeFriends(file, people, threshold){
@@ -465,7 +465,7 @@ async function analyzeFriends(file, people, threshold){
     if (best <= threshold && bestName) present.add(bestName);
   }
   // On garde les photos où TOI es présent (photos de toi & tes amis).
-  if (!present.has('Toi')){ URL.revokeObjectURL(img.src); return null; }
+  if (!present.has('You')){ URL.revokeObjectURL(img.src); return null; }
 
   const thumb = toCanvas(img, 300).toDataURL('image/jpeg', 0.72);
   const url = img.src; state.friendUrls.push(url);
@@ -488,7 +488,7 @@ function togglePick(id){
   if (state.selected.has(id)) state.selected.delete(id); else state.selected.add(id);
   renderFriendsGrid();
   el.selShare.hidden = state.selected.size === 0;
-  el.selShare.textContent = `📤 Partager la sélection (${state.selected.size})`;
+  el.selShare.textContent = `📤 Share selection (${state.selected.size})`;
 }
 
 async function shareSelection(){
@@ -496,10 +496,10 @@ async function shareSelection(){
   if (!files.length) return;
   try {
     if (navigator.canShare && navigator.canShare({ files })){
-      await navigator.share({ files, title:'Poze', text:'Nos photos 📸' });
+      await navigator.share({ files, title:'Poze', text:'Our photos 📸' });
     } else {
       files.forEach(f => { const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name || 'photo.jpg'; a.click(); });
-      toast('Partage non supporté — photos téléchargées.');
+      toast('Sharing not supported — photos downloaded.');
     }
   } catch (_) {}
 }
@@ -507,21 +507,21 @@ async function shareSelection(){
 function openShareFriend(id){
   const m = state.friendMatches.find(x => x.id === id); if (!m) return;
   el.shImg.src = m.url;
-  const others = m.who.filter(w => w !== 'Toi');
-  el.shWho.textContent = m.who.length ? `Sur cette photo : ${m.who.join(', ')}` : 'Choisis à qui l’envoyer';
+  const others = m.who.filter(w => w !== 'You');
+  el.shWho.textContent = m.who.length ? `In this photo: ${m.who.join(', ')}` : 'Choose who to send to';
 
   let html = '';
   // 1) Destinataires détectés sur la photo
-  others.forEach(o => html += `<button class="btn btn-primary" data-who="${escapeHtml(o)}">📤 Partager à ${escapeHtml(o)}</button>`);
-  if (others.length > 1) html += `<button class="btn btn-primary" data-who="__group">👥 Partager au groupe</button>`;
+  others.forEach(o => html += `<button class="btn btn-primary" data-who="${escapeHtml(o)}">📤 Share with ${escapeHtml(o)}</button>`);
+  if (others.length > 1) html += `<button class="btn btn-primary" data-who="__group">👥 Share with group</button>`;
 
   // 2) N'importe quel autre pote (utile pour les photos de leurs enfants)
   const rest = store.data.friends.map(f => f.name).filter(n => !others.includes(n));
   if (rest.length){
-    html += `<p class="hint" style="text-align:center;margin:12px 0 4px">${others.length ? 'Ou envoyer à un autre pote' : 'Envoyer à un pote'}</p>`;
+    html += `<p class="hint" style="text-align:center;margin:12px 0 4px">${others.length ? 'Or send to another friend' : 'Send to a friend'}</p>`;
     rest.forEach(n => html += `<button class="btn btn-bordered" data-who="${escapeHtml(n)}">📤 ${escapeHtml(n)}</button>`);
   }
-  if (!others.length && !rest.length) html += `<button class="btn btn-primary" data-who="__self">📤 Partager la photo</button>`;
+  if (!others.length && !rest.length) html += `<button class="btn btn-primary" data-who="__self">📤 Share the photo</button>`;
 
   el.shBtns.innerHTML = html;
   el.shBtns.querySelectorAll('button').forEach(b => b.addEventListener('click', () => sharePhoto(m, b.dataset.who)));
@@ -544,18 +544,18 @@ async function onManualPhotos(files){
   el.fHead.hidden = false;
   el.fCount.textContent = `${state.friendMatches.length} photo(s)`;
   renderFriendsGrid();
-  toast('Tape une photo puis choisis le pote à qui l’envoyer');
+  toast('Tap a photo then choose the friend to send it to');
 }
 
 async function sharePhoto(m, who){
-  const hint = (who && who !== '__group' && who !== '__self') ? `Une photo de nous, ${who} 📸` : 'Une photo de nous 📸';
+  const hint = (who && who !== '__group' && who !== '__self') ? `A photo of us, ${who} 📸` : 'A photo of us 📸';
   try {
     if (navigator.canShare && navigator.canShare({ files:[m.file] })){
       await navigator.share({ files:[m.file], title:'Poze', text: hint });
     } else {
       const a = document.createElement('a'); a.href = m.url; a.download = m.file.name || 'photo.jpg';
       document.body.appendChild(a); a.click(); a.remove();
-      toast('Partage non supporté — photo téléchargée.');
+      toast('Sharing not supported — photo downloaded.');
     }
   } catch (_) {}
   el.shareSheet.hidden = true;
@@ -566,7 +566,7 @@ function ensureRefCode(){
   if (!store.data.refCode){ store.data.refCode = Math.random().toString(36).slice(2, 8).toUpperCase(); store.save(); }
 }
 function refLink(){ return `${location.origin}${location.pathname}?ref=${store.data.refCode}`; }
-function inviteMsg(){ return `Rejoins-moi sur Poze 📸 — retrouve tes photos de soirée. Avec mon lien tu reçois ${INVITE_WELCOME} révélations offertes : ${refLink()}`; }
+function inviteMsg(){ return `Join me on Poze 📸 — find your party photos. With my link you get ${INVITE_WELCOME} free reveals: ${refLink()}`; }
 function openInvite(){ ensureRefCode(); el.inviteLink.textContent = refLink(); el.inviteSheet.hidden = false; }
 
 // ---------- Utils ----------
@@ -582,7 +582,7 @@ function toCanvas(img, maxSide){
 }
 function setProgress(done, total){
   el.evBar.style.width = `${done/total*100}%`;
-  el.evProgressTxt.textContent = `Analyse ${done}/${total} — ${state.matches.length} trouvée(s)`;
+  el.evProgressTxt.textContent = `Analyzing ${done}/${total} — ${state.matches.length} found`;
 }
 const raf = () => new Promise(r => requestAnimationFrame(() => r()));
 function registerSW(){ if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js').catch(()=>{}); }

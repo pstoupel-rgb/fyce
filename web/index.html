@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -22,29 +22,29 @@
 </header>
 
 <!-- Bandeau de chargement du modèle -->
-<div id="modelBanner" class="banner">Chargement de la reconnaissance…</div>
+<div id="modelBanner" class="banner">Loading recognition…</div>
 
 <main class="app">
 
   <!-- ÉCRAN : Onboarding / visage -->
   <section class="screen" data-screen="onboarding">
     <div class="hero">
-      <div class="hero-badge">🔒 Reconnaissance sur ton téléphone</div>
-      <h1>Retrouve les photos où <span class="g">tu es</span>.</h1>
-      <p class="sub">Scanne ton visage une fois. On retrouve tes photos aux soirées et events — et ton visage ne quitte jamais ton téléphone.</p>
+      <div class="hero-badge">🔒 Recognition on your phone</div>
+      <h1>Find the photos <span class="g">you're in</span>.</h1>
+      <p class="sub">Scan your face once. We find your photos at parties and events — and your face never leaves your phone.</p>
     </div>
     <div class="ref">
       <div id="refAvatar" class="avatar"><span>＋</span></div>
       <label class="btn btn-primary" id="refBtn" aria-disabled="true">
         <input id="refInput" type="file" accept="image/*" hidden>
-        📸 Scanner mon visage
+        📸 Scan my face
       </label>
-      <p id="refStatus" class="hint">On prépare la reconnaissance…</p>
+      <p id="refStatus" class="hint">Getting recognition ready…</p>
     </div>
     <ul class="trust">
-      <li>✅ Analyse 100 % sur l'appareil</li>
-      <li>✅ Aucun visage envoyé sur un serveur</li>
-      <li>✅ Suppression en un tap à tout moment</li>
+      <li>✅ 100% on-device analysis</li>
+      <li>✅ No face ever sent to a server</li>
+      <li>✅ Delete anytime in one tap</li>
     </ul>
   </section>
 
@@ -53,19 +53,19 @@
     <div class="me">
       <div id="meAvatar" class="avatar sm"></div>
       <div>
-        <div class="me-hi">Salut 👋</div>
-        <div class="me-sub">Voici tes events</div>
+        <div class="me-hi">Hi 👋</div>
+        <div class="me-sub">Your events</div>
       </div>
       <button id="menuBtn" class="iconbtn" aria-label="Menu">⋯</button>
     </div>
 
-    <h2 class="sec-title">Entre potes</h2>
+    <h2 class="sec-title">With friends</h2>
     <div class="event-list">
       <button class="event-card" id="friendsCard" type="button" style="background:linear-gradient(135deg,#0ba360,#3cba92)">
-        <span class="ev-badge">🤝 Ouvrir</span>
-        <span class="ev-when">Sur ton téléphone</span>
-        <span class="ev-name">Vos photos, partagées</span>
-        <span class="ev-place">Retrouve les photos de toi &amp; tes amis, et envoie-les-leur</span>
+        <span class="ev-badge">🤝 Open</span>
+        <span class="ev-when">On your phone</span>
+        <span class="ev-name">Your shared photos</span>
+        <span class="ev-place">Find photos of you &amp; your friends, and send them over</span>
       </button>
     </div>
 
@@ -73,8 +73,8 @@
     <div id="eventList" class="event-list"></div>
 
     <div class="tip card">
-      <b>💡 Comment ça marche</b>
-      <p>Ouvre un event, charge ses photos, on floute celles où tu es. Tu les <b>développes</b> en contribuant — pas en payant.</p>
+      <b>💡 How it works</b>
+      <p>Open an event, load its photos, we blur the ones you're in. You <b>develop</b> them by contributing — not by paying.</p>
     </div>
   </section>
 
@@ -86,9 +86,9 @@
 
     <label class="btn btn-primary" id="loadBtn">
       <input id="photosInput" type="file" accept="image/*" multiple hidden>
-      ⬇︎ Charger les photos de l'event
+      ⬇︎ Load event photos
     </label>
-    <p class="micro">Simule les photos que l'organisateur mettrait en ligne. Tout est analysé sur ton appareil.</p>
+    <p class="micro">Simulates the photos the organizer would upload. Everything is analyzed on your device.</p>
 
     <div id="evProgress" class="progress-box" hidden>
       <div class="progress"><i id="evBar"></i></div>
@@ -97,34 +97,34 @@
 
     <div id="evEmpty" class="placeholder" hidden>
       <div class="ph-icon">🔍</div>
-      <h3>Aucune photo de toi ici</h3>
-      <p>Change les photos ou ajuste la sensibilité dans le menu.</p>
+      <h3>No photos of you here</h3>
+      <p>Try other photos or adjust sensitivity in the menu.</p>
     </div>
 
     <div id="matchHead" class="match-head" hidden>
       <span id="matchCount" class="hint"></span>
-      <button id="recapBtn" class="link">Voir le récap →</button>
+      <button id="recapBtn" class="link">See recap →</button>
     </div>
     <div id="grid" class="grid"></div>
   </section>
 
-  <!-- ÉCRAN : Entre potes -->
+  <!-- ÉCRAN : With friends -->
   <section class="screen" data-screen="friends" hidden>
-    <button class="back" data-nav="home">‹ Accueil</button>
-    <h2 class="sec-title">Entre potes 🤝</h2>
+    <button class="back" data-nav="home">‹ Home</button>
+    <h2 class="sec-title">With friends 🤝</h2>
     <div id="friendsRow" class="friends-row"></div>
 
     <input id="friendPhotoInput" type="file" accept="image/*" hidden>
     <label class="btn btn-primary" id="importFriendsBtn">
       <input id="friendsPhotosInput" type="file" accept="image/*" multiple hidden>
-      📥 Importer mes photos
+      📥 Import my photos
     </label>
-    <p class="micro">Analyse 100 % sur ton appareil. Rien ne quitte ton téléphone.</p>
+    <p class="micro">100% on-device analysis. Nothing leaves your phone.</p>
     <label class="btn btn-bordered" id="manualShareBtn">
       <input id="manualInput" type="file" accept="image/*" multiple hidden>
-      🖼️ Envoyer des photos à un pote (sans reconnaissance)
+      🖼️ Send photos to a friend (no recognition)
     </label>
-    <button class="btn btn-bordered" id="inviteBtn" type="button">➕ Inviter un pote (pas encore sur Poze)</button>
+    <button class="btn btn-bordered" id="inviteBtn" type="button">➕ Invite a friend (not on Poze yet)</button>
 
     <div id="fProgress" class="progress-box" hidden>
       <div class="progress"><i id="fBar"></i></div>
@@ -133,12 +133,12 @@
 
     <div id="fEmpty" class="placeholder" hidden>
       <div class="ph-icon">🤝</div>
-      <h3>Aucune photo de vous</h3>
-      <p>Ajoute des amis (via leur photo) puis importe tes photos.</p>
+      <h3>No photos of you</h3>
+      <p>Add friends (via their photo) then import your photos.</p>
     </div>
 
-    <div id="fHead" class="match-head" hidden><span id="fCount" class="hint"></span><button id="fSelect" class="link">Sélectionner</button></div>
-    <button id="selShare" class="btn btn-primary" hidden>📤 Partager la sélection (0)</button>
+    <div id="fHead" class="match-head" hidden><span id="fCount" class="hint"></span><button id="fSelect" class="link">Select</button></div>
+    <button id="selShare" class="btn btn-primary" hidden>📤 Share selection (0)</button>
     <div id="friendsGrid" class="grid"></div>
   </section>
 
@@ -149,39 +149,39 @@
   <div class="sheet">
     <div class="grab"></div>
     <div class="preview"><img id="unlockImg" alt=""></div>
-    <h3 id="unlockTitle">Débloquer en HD</h3>
+    <h3 id="unlockTitle">Develop the photo</h3>
     <p id="unlockDesc" class="hint" style="text-align:center"></p>
     <button id="unlockConfirm" class="btn btn-primary"></button>
-    <button id="unlockDownload" class="btn btn-bordered" hidden>⬇︎ Télécharger le HD</button>
-    <button id="unlockClose" class="btn btn-plain">Fermer</button>
+    <button id="unlockDownload" class="btn btn-bordered" hidden>⬇︎ Download HD</button>
+    <button id="unlockClose" class="btn btn-plain">Close</button>
   </div>
 </div>
 
-<!-- Feuille : le troc / révélations -->
+<!-- Feuille : le troc / reveals -->
 <div id="walletSheet" class="backdrop" hidden>
   <div class="sheet">
     <div class="grab"></div>
-    <h3>Mon troc 🔄</h3>
-    <div class="balance">🔄 <b id="walletBal">0</b> <span>révélations</span></div>
+    <h3>My trade 🔄</h3>
+    <div class="balance">🔄 <b id="walletBal">0</b> <span>reveals</span></div>
 
     <div class="earn card">
-      <b>🤝 Le troc — gagne des révélations</b>
-      <p>Ici on n'achète pas : tu <b>développes</b> tes photos en contribuant à la communauté.</p>
-      <button id="contribBtn" class="btn btn-primary" style="margin-top:4px">📤 Partager l'event (+2)</button>
-      <button id="simEarn" class="link" style="display:block;margin-top:12px">Simuler : +1 (quelqu'un a développé une photo de toi)</button>
+      <b>🤝 Trade — earn reveals</b>
+      <p>No buying here: you <b>develop</b> your photos by contributing to the community.</p>
+      <button id="contribBtn" class="btn btn-primary" style="margin-top:4px">📤 Share the event (+2)</button>
+      <button id="simEarn" class="link" style="display:block;margin-top:12px">Simulate: +1 (someone developed a photo of you)</button>
     </div>
 
-    <h4>Pas envie de contribuer ? Le raccourci</h4>
+    <h4>Don't want to contribute? Shortcut</h4>
     <div class="packs">
       <button class="pack" data-pack="10" data-price="4,99 €"><b>10</b><span>4,99 €</span></button>
       <button class="pack" data-pack="30" data-price="9,99 €"><b>30</b><span>9,99 €</span></button>
       <button class="pack" data-pack="80" data-price="19,99 €"><b>80</b><span>19,99 €</span></button>
     </div>
-    <p class="micro">Achat simulé (démo). Le troc reste gratuit ; payer, c'est juste le raccourci.</p>
+    <p class="micro">Simulated purchase (demo). Trade stays free; paying is just the shortcut.</p>
 
-    <h4 class="hist-title">Historique</h4>
+    <h4 class="hist-title">History</h4>
     <ul id="history" class="history"></ul>
-    <button id="walletClose" class="btn btn-plain">Fermer</button>
+    <button id="walletClose" class="btn btn-plain">Close</button>
   </div>
 </div>
 
@@ -191,11 +191,11 @@
     <div class="grab"></div>
     <div class="recap-cover">
       <div class="recap-emoji">✨</div>
-      <div id="recapTitle" class="recap-title">Ta soirée</div>
+      <div id="recapTitle" class="recap-title">Your night</div>
     </div>
     <div id="recapGrid" class="recap-grid"></div>
-    <button id="recapShare" class="btn btn-primary">📤 Partager mon récap (+5 pts)</button>
-    <button id="recapClose" class="btn btn-plain">Fermer</button>
+    <button id="recapShare" class="btn btn-primary">📤 Share my recap (+2)</button>
+    <button id="recapClose" class="btn btn-plain">Close</button>
   </div>
 </div>
 
@@ -206,20 +206,20 @@
     <h3>Menu</h3>
     <div class="group">
       <div class="item">
-        <span>Sensibilité</span>
+        <span>Sensitivity</span>
         <input id="threshold" type="range" min="0.4" max="0.7" step="0.01" value="0.55">
         <span id="threshVal" class="mono">0.55</span>
       </div>
     </div>
-    <p class="foot">Plus la valeur est basse, plus le matching est strict.</p>
+    <p class="foot">The lower the value, the stricter the matching.</p>
     <div class="group">
-      <div class="item"><span>Supabase (upload réel)</span><span id="sbStatus" class="hint"></span></div>
+      <div class="item"><span>Supabase (real upload)</span><span id="sbStatus" class="hint"></span></div>
     </div>
     <div class="group danger">
-      <button id="wipeBtn" class="item item-btn">🗑️ Supprimer mon visage &amp; mes données</button>
+      <button id="wipeBtn" class="item item-btn">🗑️ Delete my face &amp; data</button>
     </div>
-    <p class="foot">« Coffre-fort du visage » : efface ton empreinte et tout l'historique local, immédiatement.</p>
-    <button id="menuClose" class="btn btn-plain">Fermer</button>
+    <p class="foot">'Face vault': erases your faceprint and all local history, immediately.</p>
+    <button id="menuClose" class="btn btn-plain">Close</button>
   </div>
 </div>
 
@@ -228,10 +228,10 @@
   <div class="sheet">
     <div class="grab"></div>
     <div class="preview"><img id="shImg" alt=""></div>
-    <h3>Partager cette photo</h3>
+    <h3>Share this photo</h3>
     <p id="shWho" class="hint" style="text-align:center"></p>
     <div id="shBtns"></div>
-    <button id="shClose" class="btn btn-plain">Fermer</button>
+    <button id="shClose" class="btn btn-plain">Close</button>
   </div>
 </div>
 
@@ -239,14 +239,14 @@
 <div id="inviteSheet" class="backdrop" hidden>
   <div class="sheet">
     <div class="grab"></div>
-    <h3>Inviter un pote 🎁</h3>
-    <p class="hint" style="text-align:center">Quand il s'inscrit avec ton lien : <b>tu gagnes 3 révélations</b> et <b>il en reçoit 5</b>.</p>
+    <h3>Invite a friend 🎁</h3>
+    <p class="hint" style="text-align:center">When they sign up with your link: <b>you get 3 reveals</b> and <b>they get 5</b>.</p>
     <div class="card" id="inviteLink" style="margin:12px 0;word-break:break-all;font-size:13px"></div>
-    <button class="btn btn-primary" id="inviteWa">📲 Inviter par WhatsApp</button>
-    <button class="btn btn-bordered" id="inviteMail">✉️ Inviter par mail</button>
-    <button class="btn btn-bordered" id="inviteShare">🔗 Partager le lien</button>
-    <p class="micro">Réservé aux adultes (18+). Pour un enfant, ne l'invite pas : partage les photos avec ses parents.</p>
-    <button class="btn btn-plain" id="inviteClose">Fermer</button>
+    <button class="btn btn-primary" id="inviteWa">📲 Invite via WhatsApp</button>
+    <button class="btn btn-bordered" id="inviteMail">✉️ Invite via email</button>
+    <button class="btn btn-bordered" id="inviteShare">🔗 Share the link</button>
+    <p class="micro">Adults only (18+). For a child, don't invite them: share the photos with their parents.</p>
+    <button class="btn btn-plain" id="inviteClose">Close</button>
   </div>
 </div>
 

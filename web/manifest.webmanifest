@@ -1,7 +1,7 @@
 {
   "name": "Poze",
   "short_name": "Poze",
-  "description": "Retrouve les photos où tu es, aux soirées et events. Reconnaissance sur ton téléphone.",
+  "description": "Find the photos you're in, at parties and events. Recognition on your phone.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
