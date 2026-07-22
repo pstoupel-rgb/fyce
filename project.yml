@@ -25,6 +25,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.photospartagees.app
         INFOPLIST_FILE: PhotosPartagees/App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: PhotosPartagees/App/PhotosPartagees.entitlements
         TARGETED_DEVICE_FAMILY: "1,2"
     # Pour utiliser le SDK officiel Supabase à la place de l'implémentation REST :
     # dependencies:

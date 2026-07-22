@@ -28,6 +28,10 @@
 	<string>$(SUPABASE_ANON_KEY)</string>
 	<key>SUPABASE_BUCKET</key>
 	<string>$(SUPABASE_BUCKET)</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

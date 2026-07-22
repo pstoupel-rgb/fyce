@@ -290,3 +290,17 @@ begin
   end if;
 end;
 $$;
+
+-- ─────────────────────────────────────────────────────────────
+-- Tokens d'appareil (push iOS/Android) — la « notif magique »
+-- ─────────────────────────────────────────────────────────────
+create table if not exists public.device_tokens (
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  token      text not null,
+  platform   text not null default 'ios',
+  updated_at timestamptz not null default now(),
+  primary key (user_id, token)
+);
+alter table public.device_tokens enable row level security;
+create policy "own device tokens" on public.device_tokens for all
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
