@@ -20,7 +20,7 @@ const EVENTS = [
 // ---- Persistance locale ----
 const KEY = 'pp_v1';
 const store = {
-  data: { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false },
+  data: { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[] },
   load(){ try{ Object.assign(this.data, JSON.parse(localStorage.getItem(KEY)||'{}')); }catch(_){} },
   save(){ localStorage.setItem(KEY, JSON.stringify(this.data)); },
 };
@@ -32,7 +32,12 @@ const state = {
   currentEvent:null,
   matches:[],           // { id, file, url, thumb, distance }
   urls:[],              // objectURLs à révoquer
+  friendMatches:[],     // { id, file, url, thumb, who:[noms] }
+  friendUrls:[],
 };
+
+const FRIEND_COLORS = ['#ff4d94','#5b78ef','#f7b733','#0ba360','#9d5cff','#ff7a59','#3ec6ff'];
+const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 const cfg = window.SUPABASE_CONFIG || {};
 const supabaseReady = !!(cfg.url && cfg.anonKey && !String(cfg.url).includes('YOUR-') && !String(cfg.anonKey).includes('YOUR-'));
@@ -45,7 +50,10 @@ const el = {};
  'unlockSheet','unlockImg','unlockTitle','unlockDesc','unlockConfirm','unlockDownload','unlockClose',
  'walletSheet','walletBal','contribBtn','simEarn','history','walletClose',
  'recapSheet','recapTitle','recapGrid','recapShare','recapClose',
- 'menuBtn','menuSheet','threshold','threshVal','sbStatus','wipeBtn','menuClose','toast'
+ 'menuBtn','menuSheet','threshold','threshVal','sbStatus','wipeBtn','menuClose','toast',
+ 'friendsCard','friendsRow','friendPhotoInput','importFriendsBtn','friendsPhotosInput',
+ 'fProgress','fBar','fProgressTxt','fEmpty','fHead','fCount','friendsGrid',
+ 'shareSheet','shImg','shWho','shBtns','shClose'
 ].forEach(id => el[id] = document.getElementById(id));
 
 // ---------- Navigation ----------
@@ -120,6 +128,10 @@ function wire(){
   el.contribBtn.addEventListener('click', () => addPoints(SHARE_REWARD, 'Contribution : partage de l’event'));
   el.simEarn.addEventListener('click', () => addPoints(EARN_ON_DOWNLOAD, 'Quelqu’un a développé ta photo'));
   el.wipeBtn.addEventListener('click', wipe);
+  el.friendsCard.addEventListener('click', () => { renderFriendsRow(); showScreen('friends'); });
+  el.friendPhotoInput.addEventListener('change', e => addFriend(e.target.files[0]));
+  el.friendsPhotosInput.addEventListener('change', e => onFriendPhotos([...e.target.files]));
+  el.shClose.addEventListener('click', () => el.shareSheet.hidden = true);
   el.threshold.addEventListener('input', e => {
     store.data.threshold = +e.target.value; store.save();
     el.threshVal.textContent = (+e.target.value).toFixed(2);
@@ -319,8 +331,9 @@ async function shareRecap(){
 function wipe(){
   if (!confirm('Supprimer ton empreinte de visage et toutes tes données locales ?')) return;
   localStorage.removeItem(KEY);
-  store.data = { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false };
-  state.refDescriptor = null; clearMatches();
+  store.data = { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[] };
+  state.refDescriptor = null; clearMatches(); clearFriendMatches();
+  el.friendsGrid.innerHTML = ''; el.fHead.hidden = true;
   el.refAvatar.classList.remove('ok'); el.refAvatar.style.backgroundImage='';
   el.meAvatar.style.backgroundImage=''; el.walletPill.hidden = true;
   close('menuSheet'); renderPoints();
@@ -331,6 +344,138 @@ function wipe(){
 
 function updateSupabaseStatus(){
   el.sbStatus.textContent = supabaseReady ? 'Configuré ✓' : 'Non configuré';
+}
+
+// ---------- Entre potes ----------
+function knownPeople(){
+  const list = [];
+  if (state.refDescriptor) list.push({ name:'Toi', desc: state.refDescriptor });
+  for (const f of store.data.friends) list.push({ name:f.name, desc:new Float32Array(f.descriptor) });
+  return list;
+}
+
+function personAvatar(name){
+  if (name === 'Toi') return { thumb: store.data.faceThumb, color:'#12a074' };
+  const f = store.data.friends.find(x => x.name === name);
+  return { thumb: f && f.thumb, color: (f && f.color) || '#5b78ef' };
+}
+
+function personChip(name){
+  const a = personAvatar(name);
+  return a.thumb
+    ? `<span class="m" style="background-image:url(${a.thumb})"></span>`
+    : `<span class="m" style="background:${a.color}">${escapeHtml(name[0])}</span>`;
+}
+
+function renderFriendsRow(){
+  const you = `<div class="fr"><div class="av" style="${store.data.faceThumb ? `background-image:url(${store.data.faceThumb})` : 'background:#12a074'}">${store.data.faceThumb ? '' : 'T'}</div><div class="nm">Toi</div></div>`;
+  const fr = store.data.friends.map(f =>
+    `<div class="fr"><div class="av" style="background-image:url(${f.thumb})"></div><div class="nm">${escapeHtml(f.name)}</div></div>`).join('');
+  const add = `<div class="fr" id="addFriend"><div class="av add">＋</div><div class="nm">Ajouter</div></div>`;
+  el.friendsRow.innerHTML = you + fr + add;
+  document.getElementById('addFriend').addEventListener('click', () => el.friendPhotoInput.click());
+}
+
+async function addFriend(file){
+  if (!file) return;
+  if (!state.modelsReady){ toast('Reconnaissance en cours de chargement…'); return; }
+  const img = await loadImage(file);
+  const thumb = toCanvas(img, 160).toDataURL('image/jpeg', 0.8);
+  const det = await faceapi.detectSingleFace(toCanvas(img, 512)).withFaceLandmarks().withFaceDescriptor();
+  URL.revokeObjectURL(img.src);
+  if (!det){ toast('Aucun visage détecté sur cette photo.'); return; }
+  const name = (prompt('Prénom de ton pote ?') || '').trim() || `Pote ${store.data.friends.length + 1}`;
+  const color = FRIEND_COLORS[store.data.friends.length % FRIEND_COLORS.length];
+  store.data.friends.push({ id:'f' + store.data.friends.length + '-' + name, name, descriptor:Array.from(det.descriptor), thumb, color });
+  store.save();
+  renderFriendsRow();
+  toast(`${name} ajouté 👌`);
+}
+
+function clearFriendMatches(){ state.friendUrls.forEach(u => URL.revokeObjectURL(u)); state.friendUrls = []; state.friendMatches = []; }
+
+async function onFriendPhotos(files){
+  if (!state.refDescriptor){ toast('Scanne d’abord ton visage.'); return; }
+  if (!state.modelsReady){ toast('Reconnaissance en cours de chargement…'); return; }
+  if (!files.length) return;
+
+  clearFriendMatches();
+  el.friendsGrid.innerHTML = ''; el.fEmpty.hidden = true; el.fHead.hidden = true; el.fProgress.hidden = false;
+  const people = knownPeople();
+  const th = +store.data.threshold;
+
+  for (let i = 0; i < files.length; i++){
+    el.fBar.style.width = `${(i + 1) / files.length * 100}%`;
+    el.fProgressTxt.textContent = `Analyse ${i + 1}/${files.length} — ${state.friendMatches.length} trouvée(s)`;
+    try {
+      const m = await analyzeFriends(files[i], people, th);
+      if (m){ state.friendMatches.push(m); renderFriendsGrid(); }
+    } catch (_) {}
+    await raf();
+  }
+  el.fProgress.hidden = true;
+  if (!state.friendMatches.length){ el.fEmpty.hidden = false; }
+  else { el.fHead.hidden = false; el.fCount.textContent = `${state.friendMatches.length} photo(s) de vous`; }
+}
+
+async function analyzeFriends(file, people, threshold){
+  const img = await loadImage(file);
+  const canvas = toCanvas(img, 640);
+  const results = await faceapi.detectAllFaces(canvas).withFaceLandmarks().withFaceDescriptors();
+  if (!results.length){ URL.revokeObjectURL(img.src); return null; }
+
+  const present = new Set();
+  for (const r of results){
+    let best = Infinity, bestName = null;
+    for (const p of people){
+      const d = faceapi.euclideanDistance(p.desc, r.descriptor);
+      if (d < best){ best = d; bestName = p.name; }
+    }
+    if (best <= threshold && bestName) present.add(bestName);
+  }
+  // On garde les photos où TOI es présent (photos de toi & tes amis).
+  if (!present.has('Toi')){ URL.revokeObjectURL(img.src); return null; }
+
+  const thumb = toCanvas(img, 300).toDataURL('image/jpeg', 0.72);
+  const url = img.src; state.friendUrls.push(url);
+  return { id:`${file.name}-${file.size}-${file.lastModified}`, file, url, thumb, who:[...present] };
+}
+
+function renderFriendsGrid(){
+  el.friendsGrid.innerHTML = state.friendMatches.map(m =>
+    `<div class="tile" data-id="${m.id}"><img src="${m.thumb}" alt=""><div class="whos">${m.who.map(personChip).join('')}</div></div>`).join('');
+  el.friendsGrid.querySelectorAll('.tile').forEach(t => t.addEventListener('click', () => openShareFriend(t.dataset.id)));
+}
+
+function openShareFriend(id){
+  const m = state.friendMatches.find(x => x.id === id); if (!m) return;
+  el.shImg.src = m.url;
+  el.shWho.textContent = `Sur cette photo : ${m.who.join(', ')}`;
+  const others = m.who.filter(w => w !== 'Toi');
+  let html = '';
+  if (others.length){
+    html = others.map(o => `<button class="btn btn-primary" data-who="${escapeHtml(o)}">📤 Partager à ${escapeHtml(o)}</button>`).join('');
+    if (others.length > 1) html += `<button class="btn btn-bordered" data-who="__group">👥 Partager au groupe</button>`;
+  } else {
+    html = `<button class="btn btn-primary" data-who="__self">📤 Partager la photo</button>`;
+  }
+  el.shBtns.innerHTML = html;
+  el.shBtns.querySelectorAll('button').forEach(b => b.addEventListener('click', () => sharePhoto(m, b.dataset.who)));
+  el.shareSheet.hidden = false;
+}
+
+async function sharePhoto(m, who){
+  const hint = (who && who !== '__group' && who !== '__self') ? `Une photo de nous, ${who} 📸` : 'Une photo de nous 📸';
+  try {
+    if (navigator.canShare && navigator.canShare({ files:[m.file] })){
+      await navigator.share({ files:[m.file], title:'Poze', text: hint });
+    } else {
+      const a = document.createElement('a'); a.href = m.url; a.download = m.file.name || 'photo.jpg';
+      document.body.appendChild(a); a.click(); a.remove();
+      toast('Partage non supporté — photo téléchargée.');
+    }
+  } catch (_) {}
+  el.shareSheet.hidden = true;
 }
 
 // ---------- Utils ----------
@@ -352,6 +497,6 @@ const raf = () => new Promise(r => requestAnimationFrame(() => r()));
 function registerSW(){ if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js').catch(()=>{}); }
 
 // Exposé pour tests/déboguage
-window.__pp = { store, state, showScreen, renderGrid, renderPoints, openUnlock };
+window.__pp = { store, state, showScreen, renderGrid, renderPoints, openUnlock, renderFriendsRow, renderFriendsGrid, openShareFriend };
 
 init();

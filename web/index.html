@@ -59,6 +59,16 @@
       <button id="menuBtn" class="iconbtn" aria-label="Menu">⋯</button>
     </div>
 
+    <h2 class="sec-title">Entre potes</h2>
+    <div class="event-list">
+      <button class="event-card" id="friendsCard" type="button" style="background:linear-gradient(135deg,#0ba360,#3cba92)">
+        <span class="ev-badge">🤝 Ouvrir</span>
+        <span class="ev-when">Sur ton téléphone</span>
+        <span class="ev-name">Vos photos, partagées</span>
+        <span class="ev-place">Retrouve les photos de toi &amp; tes amis, et envoie-les-leur</span>
+      </button>
+    </div>
+
     <h2 class="sec-title">Events</h2>
     <div id="eventList" class="event-list"></div>
 
@@ -96,6 +106,34 @@
       <button id="recapBtn" class="link">Voir le récap →</button>
     </div>
     <div id="grid" class="grid"></div>
+  </section>
+
+  <!-- ÉCRAN : Entre potes -->
+  <section class="screen" data-screen="friends" hidden>
+    <button class="back" data-nav="home">‹ Accueil</button>
+    <h2 class="sec-title">Entre potes 🤝</h2>
+    <div id="friendsRow" class="friends-row"></div>
+
+    <input id="friendPhotoInput" type="file" accept="image/*" hidden>
+    <label class="btn btn-primary" id="importFriendsBtn">
+      <input id="friendsPhotosInput" type="file" accept="image/*" multiple hidden>
+      📥 Importer mes photos
+    </label>
+    <p class="micro">Analyse 100 % sur ton appareil. Rien ne quitte ton téléphone.</p>
+
+    <div id="fProgress" class="progress-box" hidden>
+      <div class="progress"><i id="fBar"></i></div>
+      <p id="fProgressTxt" class="hint"></p>
+    </div>
+
+    <div id="fEmpty" class="placeholder" hidden>
+      <div class="ph-icon">🤝</div>
+      <h3>Aucune photo de vous</h3>
+      <p>Ajoute des amis (via leur photo) puis importe tes photos.</p>
+    </div>
+
+    <div id="fHead" class="match-head" hidden><span id="fCount" class="hint"></span></div>
+    <div id="friendsGrid" class="grid"></div>
   </section>
 
 </main>
@@ -176,6 +214,18 @@
     </div>
     <p class="foot">« Coffre-fort du visage » : efface ton empreinte et tout l'historique local, immédiatement.</p>
     <button id="menuClose" class="btn btn-plain">Fermer</button>
+  </div>
+</div>
+
+<!-- Feuille : partage entre potes -->
+<div id="shareSheet" class="backdrop" hidden>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="preview"><img id="shImg" alt=""></div>
+    <h3>Partager cette photo</h3>
+    <p id="shWho" class="hint" style="text-align:center"></p>
+    <div id="shBtns"></div>
+    <button id="shClose" class="btn btn-plain">Fermer</button>
   </div>
 </div>
 
