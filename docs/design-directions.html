@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Poze — Design directions</title>
+<style>
+  *{box-sizing:border-box;margin:0}
+  body{background:#0e0e12;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding:34px 22px 50px;color:#fff}
+  h1{font-size:22px;font-weight:800;text-align:center;letter-spacing:-.02em}
+  .sub{color:#9a9aa6;text-align:center;font-size:13px;margin:4px 0 30px}
+  .row{display:flex;gap:26px;justify-content:center;flex-wrap:wrap;align-items:flex-start}
+  .col{width:300px}
+  .cap{margin-top:12px}
+  .cap .n{font-weight:800;font-size:15px}
+  .cap .d{color:#9a9aa6;font-size:12.5px;margin-top:2px;line-height:1.4}
+  .phone{width:300px;height:600px;border-radius:40px;border:10px solid #000;overflow:hidden;position:relative;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+  .scr{position:absolute;inset:0;display:flex;flex-direction:column}
+  .bar{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px}
+  .body{flex:1;padding:16px 20px;display:flex;flex-direction:column}
+  .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase}
+  .btn{margin-top:auto;padding:15px;border-radius:14px;text-align:center;font-weight:700;font-size:15px}
+  .ev{border-radius:16px;padding:16px;margin-top:16px;min-height:96px;display:flex;flex-direction:column;justify-content:flex-end}
+  .pill{font-size:12px;font-weight:700;padding:5px 11px;border-radius:999px}
+
+  /* ---------- D1 : Noir & Champagne ---------- */
+  .d1 .scr{background:#0b0b0d;color:#f3ead6}
+  .d1 .brand{font-family:Georgia,'Times New Roman',serif;font-weight:700;letter-spacing:.04em;font-size:19px;color:#e9d8a6}
+  .d1 .dot{width:22px;height:22px;border-radius:50%;border:1px solid #c9a24b;position:relative}
+  .d1 .dot::after{content:"";position:absolute;inset:5px;border-radius:50%;background:#c9a24b}
+  .d1 .eyebrow{color:#b08d43}
+  .d1 h2{font-family:Georgia,serif;font-size:33px;line-height:1.05;font-weight:400;margin:12px 0 10px;color:#f6efdd}
+  .d1 h2 em{font-style:italic;color:#e9d8a6}
+  .d1 .p{color:#a29a86;font-size:13px;line-height:1.5}
+  .d1 .ev{background:linear-gradient(160deg,#17130c,#231a0e);border:1px solid #3a2f1a}
+  .d1 .ev .pill{background:#c9a24b;color:#1a1206}
+  .d1 .ev .t{font-family:Georgia,serif;font-size:19px;margin-top:8px}
+  .d1 .ev .s{font-size:12px;color:#8f8069}
+  .d1 .btn{background:linear-gradient(90deg,#d8b45e,#efd9a0);color:#1a1206;letter-spacing:.02em}
+
+  /* ---------- D2 : Editorial (blanc) ---------- */
+  .d2 .scr{background:#fbfbf9;color:#111}
+  .d2 .bar{border-bottom:1px solid #eaeae4;padding-bottom:12px}
+  .d2 .brand{font-weight:800;letter-spacing:-.02em;font-size:18px}
+  .d2 .dot{width:9px;height:9px;background:#111;border-radius:50%}
+  .d2 .eyebrow{color:#111;border-top:2px solid #111;padding-top:8px;display:inline-block;margin-top:6px}
+  .d2 h2{font-family:'Times New Roman',Georgia,serif;font-size:40px;line-height:.98;font-weight:600;margin:10px 0 12px;letter-spacing:-.01em}
+  .d2 .p{color:#666;font-size:13px;line-height:1.55;max-width:22ch}
+  .d2 .ev{background:#fff;border:1px solid #e6e6df;color:#111}
+  .d2 .ev .pill{background:#111;color:#fff}
+  .d2 .ev .t{font-family:'Times New Roman',serif;font-size:20px;margin-top:8px;font-weight:600}
+  .d2 .ev .s{font-size:12px;color:#888}
+  .d2 .btn{background:#111;color:#fff;border-radius:0}
+
+  /* ---------- D3 : Aurora glass ---------- */
+  .d3 .scr{background:#0a0a14;color:#fff;position:relative;overflow:hidden}
+  .d3 .aurora{position:absolute;inset:-40% -20%;background:
+      radial-gradient(40% 30% at 25% 20%,#7c5cff,transparent 60%),
+      radial-gradient(35% 30% at 80% 15%,#22d3ee,transparent 60%),
+      radial-gradient(40% 35% at 60% 85%,#ff5da2,transparent 60%);filter:blur(30px);opacity:.9}
+  .d3 .bar,.d3 .body{position:relative;z-index:1}
+  .d3 .brand{font-weight:800;font-size:18px}
+  .d3 .dot{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);position:relative;backdrop-filter:blur(6px)}
+  .d3 .dot::after{content:"";position:absolute;inset:7px;border-radius:50%;background:#fff}
+  .d3 .eyebrow{color:#c9b8ff}
+  .d3 h2{font-size:33px;line-height:1.06;font-weight:800;letter-spacing:-.03em;margin:12px 0 10px}
+  .d3 .p{color:#c7c7d6;font-size:13px;line-height:1.5}
+  .d3 .ev{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  .d3 .ev .pill{background:rgba(255,255,255,.2);color:#fff;backdrop-filter:blur(6px)}
+  .d3 .ev .t{font-size:19px;font-weight:800;margin-top:8px}
+  .d3 .ev .s{font-size:12px;color:#d7d7e6}
+  .d3 .btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);color:#fff;backdrop-filter:blur(10px)}
+
+  /* ---------- D4 : Argentique / Film ---------- */
+  .d4 .scr{background:#141210;color:#ece6dd}
+  .d4 .brand{font-weight:800;letter-spacing:.02em;font-size:18px;color:#ece6dd}
+  .d4 .dot{width:24px;height:16px;border-radius:3px;background:#e8503a;position:relative}
+  .d4 .dot::before,.d4 .dot::after{content:"";position:absolute;top:3px;bottom:3px;width:3px;background:#141210}
+  .d4 .dot::before{left:4px}.d4 .dot::after{right:4px}
+  .d4 .eyebrow{color:#c0603f}
+  .d4 h2{font-size:32px;line-height:1.06;font-weight:800;letter-spacing:-.02em;margin:12px 0 10px;color:#f2ece1}
+  .d4 .p{color:#a49a8c;font-size:13px;line-height:1.5}
+  .d4 .ev{background:#1d1a16;border:1px dashed #4a4239;position:relative}
+  .d4 .ev::before{content:"";position:absolute;top:0;bottom:0;left:8px;width:6px;background:repeating-linear-gradient(#e8503a 0 6px,transparent 6px 12px);border-radius:3px;opacity:.5}
+  .d4 .ev .pill{background:#e8503a;color:#150f0c}
+  .d4 .ev .t{font-size:19px;font-weight:800;margin-top:8px}
+  .d4 .ev .s{font-size:12px;color:#8f8577}
+  .d4 .btn{background:#e8503a;color:#150f0c}
+</style>
+</head>
+<body>
+  <h1>Poze — 4 design directions</h1>
+  <div class="sub">Same screen, four premium looks. Pick one (or mix).</div>
+
+  <div class="row">
+
+    <div class="col d1">
+      <div class="phone"><div class="scr">
+        <div class="bar"><span class="brand">Poze</span><span class="dot"></span></div>
+        <div class="body">
+          <div class="eyebrow">On-device · private</div>
+          <h2>Find the photos <em>you're in.</em></h2>
+          <div class="p">Scan your face once. Your photos from every night, found — never leaves your phone.</div>
+          <div class="ev"><span class="pill">Tonight</span><span class="t">Le Duplex</span><span class="s">Paris · Club</span></div>
+          <div class="btn">Scan my face</div>
+        </div>
+      </div></div>
+      <div class="cap"><div class="n">1 · Noir &amp; Champagne</div><div class="d">Fond noir, or champagne, serif. Vibe club exclusif / luxe nightlife.</div></div>
+    </div>
+
+    <div class="col d2">
+      <div class="phone"><div class="scr">
+        <div class="bar"><span class="brand">Poze</span><span class="dot"></span></div>
+        <div class="body">
+          <div class="eyebrow">On-device · private</div>
+          <h2>Find the photos you're in.</h2>
+          <div class="p">Scan your face once. Your photos from every night, found — never leaves your phone.</div>
+          <div class="ev"><span class="pill">Tonight</span><span class="t">Le Duplex</span><span class="s">Paris · Club</span></div>
+          <div class="btn">Scan my face</div>
+        </div>
+      </div></div>
+      <div class="cap"><div class="n">2 · Éditorial</div><div class="d">Blanc, grand titre serif, filets fins. Épuré, chic magazine/mode.</div></div>
+    </div>
+
+    <div class="col d3">
+      <div class="phone"><div class="scr"><div class="aurora"></div>
+        <div class="bar"><span class="brand">Poze</span><span class="dot"></span></div>
+        <div class="body">
+          <div class="eyebrow">On-device · private</div>
+          <h2>Find the photos you're in.</h2>
+          <div class="p">Scan your face once. Your photos from every night, found — never leaves your phone.</div>
+          <div class="ev"><span class="pill">Tonight</span><span class="t">Le Duplex</span><span class="s">Paris · Club</span></div>
+          <div class="btn">Scan my face</div>
+        </div>
+      </div></div>
+      <div class="cap"><div class="n">3 · Aurora glass</div><div class="d">Verre dépoli sur dégradé lumineux flou. Moderne, premium façon Apple.</div></div>
+    </div>
+
+    <div class="col d4">
+      <div class="phone"><div class="scr">
+        <div class="bar"><span class="brand">Poze</span><span class="dot"></span></div>
+        <div class="body">
+          <div class="eyebrow">On-device · private</div>
+          <h2>Find the photos you're in.</h2>
+          <div class="p">Scan your face once. Your photos from every night, found — never leaves your phone.</div>
+          <div class="ev"><span class="pill">Tonight</span><span class="t">Le Duplex</span><span class="s">Paris · Club</span></div>
+          <div class="btn">Scan my face</div>
+        </div>
+      </div></div>
+      <div class="cap"><div class="n">4 · Argentique / Film</div><div class="d">Duotone chaud, motif pellicule rouge. Colle au concept « développer ».</div></div>
+    </div>
+
+  </div>
+</body>
+</html>
