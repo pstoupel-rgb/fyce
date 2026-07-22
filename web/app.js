@@ -36,6 +36,7 @@ const state = {
   friendUrls:[],
   selectMode:false,
   selected:new Set(),
+  faceTarget:null,
 };
 
 const FRIEND_COLORS = ['#ff4d94','#5b78ef','#f7b733','#0ba360','#9d5cff','#ff7a59','#3ec6ff'];
@@ -58,7 +59,8 @@ const el = {};
  'fProgress','fBar','fProgressTxt','fEmpty','fHead','fCount','friendsGrid',
  'shareSheet','shImg','shWho','shBtns','shClose',
  'inviteBtn','inviteSheet','inviteLink','inviteWa','inviteMail','inviteShare','inviteClose',
- 'fSelect','selShare'
+ 'fSelect','selShare',
+ 'faceSheet','facePhoto','faceActions','faceShareAll','faceClose'
 ].forEach(id => el[id] = document.getElementById(id));
 
 // ---------- Navigation ----------
@@ -147,6 +149,8 @@ function wire(){
     el.selShare.hidden = true; renderFriendsGrid();
   });
   el.selShare.addEventListener('click', shareSelection);
+  el.faceClose.addEventListener('click', () => el.faceSheet.hidden = true);
+  el.faceShareAll.addEventListener('click', () => { el.faceSheet.hidden = true; openShareFriend(state.faceTarget); });
   el.inviteBtn.addEventListener('click', openInvite);
   el.inviteClose.addEventListener('click', () => el.inviteSheet.hidden = true);
   el.inviteWa.addEventListener('click', () => window.open('https://wa.me/?text=' + encodeURIComponent(inviteMsg()), '_blank'));
@@ -456,21 +460,25 @@ async function analyzeFriends(file, people, threshold){
   const results = await faceapi.detectAllFaces(canvas).withFaceLandmarks().withFaceDescriptors();
   if (!results.length){ URL.revokeObjectURL(img.src); return null; }
 
+  const cw = canvas.width, ch = canvas.height;
   const present = new Set();
-  for (const r of results){
+  const faces = results.map(r => {
     let best = Infinity, bestName = null;
     for (const p of people){
       const d = faceapi.euclideanDistance(p.desc, r.descriptor);
       if (d < best){ best = d; bestName = p.name; }
     }
-    if (best <= threshold && bestName) present.add(bestName);
-  }
+    const name = (best <= threshold) ? bestName : null;
+    if (name) present.add(name);
+    const box = r.detection.box;                // position normalisée (0-1)
+    return { x:box.x/cw, y:box.y/ch, w:box.width/cw, h:box.height/ch, name };
+  });
   // On garde les photos où TOI es présent (photos de toi & tes amis).
   if (!present.has('You')){ URL.revokeObjectURL(img.src); return null; }
 
   const thumb = toCanvas(img, 300).toDataURL('image/jpeg', 0.72);
   const url = img.src; state.friendUrls.push(url);
-  return { id:`${file.name}-${file.size}-${file.lastModified}`, file, url, thumb, who:[...present] };
+  return { id:`${file.name}-${file.size}-${file.lastModified}`, file, url, thumb, who:[...present], faces, blurred:new Set() };
 }
 
 function renderFriendsGrid(){
@@ -481,7 +489,7 @@ function renderFriendsGrid(){
       <div class="whos">${m.who.map(personChip).join('')}</div></div>`;
   }).join('');
   el.friendsGrid.querySelectorAll('.tile').forEach(t => t.addEventListener('click', () => {
-    if (state.selectMode) togglePick(t.dataset.id); else openShareFriend(t.dataset.id);
+    if (state.selectMode) togglePick(t.dataset.id); else openFaceTag(t.dataset.id);
   }));
 }
 
@@ -493,8 +501,9 @@ function togglePick(id){
 }
 
 async function shareSelection(){
-  const files = state.friendMatches.filter(m => state.selected.has(m.id)).map(m => m.file);
-  if (!files.length) return;
+  const picked = state.friendMatches.filter(m => state.selected.has(m.id));
+  if (!picked.length) return;
+  const files = await Promise.all(picked.map(m => fileFor(m)));
   try {
     if (navigator.canShare && navigator.canShare({ files })){
       await navigator.share({ files, title:'Poze', text:'Our photos 📸' });
@@ -538,7 +547,7 @@ async function onManualPhotos(files){
       const img = await loadImage(file);
       const thumb = toCanvas(img, 300).toDataURL('image/jpeg', 0.72);
       state.friendUrls.push(img.src);
-      state.friendMatches.unshift({ id:`m-${file.name}-${file.size}-${file.lastModified}`, file, url:img.src, thumb, who:[] });
+      state.friendMatches.unshift({ id:`m-${file.name}-${file.size}-${file.lastModified}`, file, url:img.src, thumb, who:[], faces:[], blurred:new Set() });
     } catch (_) {}
     await raf();
   }
@@ -550,16 +559,81 @@ async function onManualPhotos(files){
 
 async function sharePhoto(m, who){
   const hint = (who && who !== '__group' && who !== '__self') ? `A photo of us, ${who} 📸` : 'A photo of us 📸';
+  const file = await fileFor(m);
   try {
-    if (navigator.canShare && navigator.canShare({ files:[m.file] })){
-      await navigator.share({ files:[m.file], title:'Poze', text: hint });
+    if (navigator.canShare && navigator.canShare({ files:[file] })){
+      await navigator.share({ files:[file], title:'Poze', text: hint });
     } else {
-      const a = document.createElement('a'); a.href = m.url; a.download = m.file.name || 'photo.jpg';
+      const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name || 'photo.jpg';
       document.body.appendChild(a); a.click(); a.remove();
       toast('Sharing not supported — photo downloaded.');
     }
   } catch (_) {}
-  el.shareSheet.hidden = true;
+  el.shareSheet.hidden = true; el.faceSheet.hidden = true;
+}
+
+// ---------- Identification par tap sur les visages ----------
+function getMatch(id){ return state.friendMatches.find(x => x.id === id); }
+function imgFromURL(url){ return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; }); }
+
+function openFaceTag(id){
+  const m = getMatch(id); if (!m) return;
+  state.faceTarget = id;
+  const boxes = (m.faces || []).map((f, i) => {
+    const blurred = m.blurred.has(i);
+    const cls = f.name ? 'known' : 'unknown';
+    return `<button class="facebox ${cls} ${blurred ? 'blur' : ''}" data-i="${i}"
+      style="left:${f.x*100}%;top:${f.y*100}%;width:${f.w*100}%;height:${f.h*100}%">
+      <span class="tag">${f.name ? escapeHtml(f.name) : '?'}</span></button>`;
+  }).join('');
+  el.facePhoto.innerHTML = `<div class="facewrap"><img src="${m.url}" alt="">${boxes}</div>`;
+  el.faceActions.innerHTML = (m.faces && m.faces.length)
+    ? '<p class="hint" style="text-align:center">Tap a face to share, invite or blur.</p>'
+    : '<p class="hint" style="text-align:center">No face detected — you can still share the whole photo.</p>';
+  el.facePhoto.querySelectorAll('.facebox').forEach(bx => bx.addEventListener('click', () => selectFace(id, +bx.dataset.i)));
+  el.faceSheet.hidden = false;
+}
+
+function selectFace(id, i){
+  const m = getMatch(id); if (!m) return;
+  const f = m.faces[i]; const blurred = m.blurred.has(i);
+  const isYou = f.name === 'You';
+  let html = '';
+  if (f.name && !isYou) html += `<button class="btn btn-primary" data-act="share">📤 Share with ${escapeHtml(f.name)}</button>`;
+  else if (!f.name) html += `<button class="btn btn-primary" data-act="invite">➕ Invite this person</button>`;
+  html += `<button class="btn btn-bordered" data-act="blur">${blurred ? '👁️ Unblur this face' : '🙈 Blur this face'}</button>`;
+  const note = isYou ? 'This is you.'
+    : (f.name ? `Recognized: ${escapeHtml(f.name)}`
+             : 'Unknown face — you can invite them or blur them (we never look up who they are).');
+  el.faceActions.innerHTML = `<p class="hint" style="text-align:center;margin:2px 0 8px">${note}</p>` + html;
+  el.faceActions.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+    const a = btn.dataset.act;
+    if (a === 'blur'){ if (blurred) m.blurred.delete(i); else m.blurred.add(i); openFaceTag(id); selectFace(id, i); }
+    else if (a === 'share'){ sharePhoto(m, f.name); }
+    else if (a === 'invite'){ el.faceSheet.hidden = true; openInvite(); }
+  }));
+}
+
+// Génère un fichier avec les visages floutés (si besoin), sinon renvoie l'original.
+async function fileFor(m){
+  if (!m.blurred || m.blurred.size === 0) return m.file;
+  try {
+    const img = await imgFromURL(m.url);
+    const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
+    for (const i of m.blurred){
+      const f = m.faces[i]; if (!f) continue;
+      const pad = f.w * w * 0.15;
+      ctx.save();
+      ctx.beginPath(); ctx.rect(f.x*w - pad, f.y*h - pad, f.w*w + 2*pad, f.h*h + 2*pad); ctx.clip();
+      ctx.filter = `blur(${Math.max(8, f.w*w*0.25)}px)`;
+      ctx.drawImage(img, 0, 0, w, h);
+      ctx.restore();
+    }
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9));
+    return new File([blob], (m.file.name || 'photo') + '-blurred.jpg', { type:'image/jpeg' });
+  } catch (_) { return m.file; }
 }
 
 // ---------- Invitation (boucle virale) ----------
