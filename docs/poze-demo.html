@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Poze — Démo</title>
+<style>
+  :root{
+    --paper:#f4f4f9;--paper2:#ececf4;--card:#fff;--ink:#15151f;--muted:#79798a;--line:#e6e6ef;
+    --a1:#5b78ef;--a2:#9d5cff;--grad:linear-gradient(135deg,#5b78ef,#9d5cff);
+    --money:#12a074;--danger:#e0384a;--shadow:0 10px 30px rgba(40,40,90,.09);
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --paper:#07070d;--paper2:#12121b;--card:#15151f;--ink:#f2f2f8;--muted:#9494a6;--line:#26262f;
+    --money:#2fdd9b;--danger:#ff6072;--shadow:0 12px 34px rgba(0,0,0,.55);
+  }}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0}
+  body{background:radial-gradient(1000px 420px at 50% -240px,rgba(122,100,255,.16),transparent 62%),var(--paper);
+    color:var(--ink);min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  [hidden]{display:none!important}
+  .wrap{max-width:420px;margin:0 auto;position:relative}
+  .ribbon{position:sticky;top:0;z-index:9;background:var(--grad);color:#fff;text-align:center;font-size:12px;font-weight:700;padding:5px;letter-spacing:.03em}
+  .topbar{position:sticky;top:26px;z-index:6;display:flex;align-items:center;justify-content:space-between;
+    padding:11px 16px;border-bottom:1px solid var(--line);background:var(--paper)}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:-.02em}
+  .logo{width:26px;height:26px;border-radius:50%;background:var(--grad);position:relative;flex:none;box-shadow:0 3px 8px rgba(91,120,239,.45)}
+  .logo::after{content:"";position:absolute;inset:5px;border-radius:50%;border:2.5px solid #fff}
+  .logo::before{content:"";position:absolute;left:50%;top:50%;width:5px;height:5px;transform:translate(-50%,-50%);border-radius:50%;background:#fff}
+  .pill{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 13px;font-weight:800;color:var(--ink);cursor:pointer;box-shadow:var(--shadow)}
+  .app{padding:18px 16px 40px}
+  .screen{animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .btn{display:block;width:100%;border:none;border-radius:14px;padding:15px;font-size:16px;font-weight:700;text-align:center;cursor:pointer;margin:8px 0}
+  .btn-primary{background:var(--grad);color:#fff;box-shadow:0 8px 20px rgba(91,120,239,.35)}
+  .btn-bordered{background:var(--paper2);color:var(--a1)}
+  .btn-plain{background:none;color:var(--a1)}
+  .link{background:none;border:none;color:var(--a1);font-weight:600;font-size:14px;cursor:pointer;padding:0}
+  .iconbtn{background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)}
+  .back{background:none;border:none;color:var(--a1);font-weight:600;font-size:15px;padding:0 0 10px;cursor:pointer}
+  .hint{color:var(--muted);font-size:13px}.micro{color:var(--muted);font-size:12px;margin:8px 2px 0;text-align:center}
+  .g{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  /* onboarding */
+  .hero{text-align:center;margin:8px 0 22px}
+  .hero-badge{display:inline-block;font-size:12px;font-weight:700;color:var(--a2);background:rgba(122,100,255,.12);padding:6px 12px;border-radius:999px}
+  .hero h1{font-size:32px;line-height:1.08;letter-spacing:-.03em;font-weight:850;margin:.35em 0 .25em}
+  .hero .sub{color:var(--muted);font-size:15px;max-width:34ch;margin:0 auto}
+  .ref{display:flex;flex-direction:column;align-items:center;gap:12px}
+  .avatar{width:116px;height:116px;border-radius:50%;background:var(--paper2);display:flex;align-items:center;justify-content:center;font-size:40px;color:var(--muted);background-size:cover;background-position:center;position:relative}
+  .avatar.sm{width:46px;height:46px;font-size:20px}
+  .avatar.ok::before{content:"";position:absolute;inset:-5px;border-radius:50%;background:var(--grad);z-index:-1}
+  .avatar.ok::after{content:"✓";position:absolute;right:2px;bottom:2px;width:30px;height:30px;border-radius:50%;background:var(--money);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 0 0 3px var(--paper)}
+  .ref .btn{width:auto;padding:14px 22px}
+  .trust{list-style:none;padding:0;margin:24px auto 0;max-width:280px;display:flex;flex-direction:column;gap:9px;color:var(--muted);font-size:14px}
+  /* home */
+  .me{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+  .me-hi{font-weight:800;font-size:17px}.me-sub{color:var(--muted);font-size:13px}.me .iconbtn{margin-left:auto}
+  .sec-title{font-size:14px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 12px}
+  .event-list{display:flex;flex-direction:column;gap:12px;margin-bottom:22px}
+  .event-card{border:none;text-align:left;width:100%;border-radius:18px;overflow:hidden;cursor:pointer;color:#fff;position:relative;padding:20px;min-height:120px;display:flex;flex-direction:column;justify-content:flex-end;box-shadow:var(--shadow)}
+  .ev-when{font-size:12px;font-weight:700;opacity:.9;text-transform:uppercase;letter-spacing:.05em}
+  .ev-name{font-size:21px;font-weight:850;letter-spacing:-.02em;margin-top:2px}
+  .ev-place{font-size:13px;opacity:.92;margin-top:2px}
+  .ev-badge{position:absolute;top:14px;right:14px;background:rgba(0,0,0,.28);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:700}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow)}
+  .tip b{font-size:15px}.tip p{margin:6px 0 0;color:var(--muted);font-size:14px}
+  /* event grid */
+  .match-head{display:flex;justify-content:space-between;align-items:center;margin:18px 0 10px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .tile{position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;cursor:pointer;background:var(--paper2);box-shadow:var(--shadow)}
+  .tile img{width:100%;height:100%;object-fit:cover;display:block;transition:filter .35s,transform .35s}
+  .tile.locked img{filter:blur(9px) brightness(.82);transform:scale(1.15)}
+  .tile .lock{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#fff}
+  .tile .lock .ic{font-size:20px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
+  .tile .lock .cost{font-size:12px;font-weight:800;background:rgba(0,0,0,.4);padding:3px 9px;border-radius:999px}
+  .tile .done{position:absolute;bottom:7px;right:7px;font-size:16px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
+  /* sheets */
+  .backdrop{position:absolute;inset:0;z-index:30;background:rgba(0,0,0,.45);display:flex;align-items:flex-end}
+  .sheet{background:var(--paper);width:100%;border-radius:22px 22px 0 0;padding:14px 18px 26px;max-height:90%;overflow:auto;animation:up .28s cubic-bezier(.2,.8,.2,1)}
+  @keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:2px auto 14px}
+  .sheet h3{margin:0 0 12px;font-size:19px;font-weight:800}.sheet h4{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:20px 0 8px}
+  .preview{border-radius:14px;overflow:hidden;margin-bottom:14px;background:var(--paper2)}
+  .preview img{width:100%;display:block;max-height:42vh;object-fit:cover}
+  .balance{font-size:32px;font-weight:850;text-align:center;margin:6px 0 18px}.balance span{font-size:15px;color:var(--muted);font-weight:600}
+  .packs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .pack{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:16px 8px;cursor:pointer;display:flex;flex-direction:column;gap:4px;box-shadow:var(--shadow)}
+  .pack b{font-size:17px}.pack span{font-size:13px;color:var(--muted)}
+  .earn{margin-top:8px}.earn b{font-size:14px}.earn p{margin:5px 0 10px;color:var(--muted);font-size:13.5px}
+  .history{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+  .history li{display:flex;justify-content:space-between;font-size:14px;padding:9px 0;border-bottom:1px solid var(--line)}
+  .history .amt{font-weight:800}.history .amt.plus{color:var(--money)}.history .amt.minus{color:var(--muted)}
+  .recap-cover{border-radius:16px;background:var(--grad);color:#fff;padding:26px 18px;text-align:center;margin-bottom:14px}
+  .recap-emoji{font-size:38px}.recap-title{font-size:22px;font-weight:850;margin-top:4px}
+  .recap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+  .recap-grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--paper);padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="ribbon">✨ DÉMO INTERACTIVE — clique pour explorer</div>
+  <header class="topbar">
+    <div class="brand"><span class="logo"></span><b>Poze</b></div>
+    <button class="pill" id="pill" hidden onclick="openSheet('wallet')">🔄 <span id="bal">0</span></button>
+  </header>
+
+  <main class="app">
+    <!-- Onboarding -->
+    <section class="screen" id="s-onboarding">
+      <div class="hero">
+        <div class="hero-badge">🔒 Reconnaissance sur ton téléphone</div>
+        <h1>Retrouve les photos où <span class="g">tu es</span>.</h1>
+        <p class="sub">Scanne ton visage une fois. On retrouve tes photos aux soirées — ton visage ne quitte jamais ton téléphone.</p>
+      </div>
+      <div class="ref">
+        <div class="avatar" id="refAv"><span>＋</span></div>
+        <button class="btn btn-primary" onclick="scanFace()">📸 Scanner mon visage</button>
+        <p class="hint" id="refStatus">Démo : un tap suffit pour simuler le scan.</p>
+      </div>
+      <ul class="trust"><li>✅ Analyse 100 % sur l'appareil</li><li>✅ Aucun visage envoyé sur un serveur</li><li>✅ Suppression en un tap</li></ul>
+    </section>
+
+    <!-- Home -->
+    <section class="screen" id="s-home" hidden>
+      <div class="me"><div class="avatar sm" id="meAv"></div><div><div class="me-hi">Salut 👋</div><div class="me-sub">Voici tes events</div></div><button class="iconbtn" onclick="openSheet('menu')">⋯</button></div>
+      <h2 class="sec-title">Events</h2>
+      <div class="event-list" id="eventList"></div>
+      <div class="tip card"><b>💡 Comment ça marche</b><p>Ouvre un event, on floute les photos où tu es. Tu les <b>développes</b> en contribuant — pas en payant.</p></div>
+    </section>
+
+    <!-- Event -->
+    <section class="screen" id="s-event" hidden>
+      <button class="back" onclick="go('home')">‹ Events</button>
+      <h2 class="sec-title" id="evTitle">Event</h2>
+      <div class="match-head"><span class="hint" id="matchCount"></span><button class="link" onclick="openSheet('recap')">Voir le récap →</button></div>
+      <div class="grid" id="grid"></div>
+    </section>
+  </main>
+
+  <!-- Develop sheet -->
+  <div class="backdrop" id="sheet-develop" hidden><div class="sheet">
+    <div class="grab"></div>
+    <div class="preview"><img id="dvImg" alt=""></div>
+    <h3 id="dvTitle">Développer la photo</h3>
+    <p class="hint" id="dvDesc" style="text-align:center"></p>
+    <button class="btn btn-primary" id="dvConfirm" onclick="developNow()">🎞️ Développer (1 révélation)</button>
+    <button class="btn btn-bordered" id="dvDownload" hidden onclick="toast('📥 Téléchargée (démo)')">⬇︎ Télécharger le HD</button>
+    <button class="btn btn-plain" onclick="closeSheets()">Fermer</button>
+  </div></div>
+
+  <!-- Wallet sheet -->
+  <div class="backdrop" id="sheet-wallet" hidden><div class="sheet">
+    <div class="grab"></div>
+    <h3>Mon troc 🔄</h3>
+    <div class="balance">🔄 <b id="wBal">0</b> <span>révélations</span></div>
+    <div class="earn card"><b>🤝 Le troc — gagne des révélations</b><p>Ici on n'achète pas : tu <b>développes</b> tes photos en contribuant.</p>
+      <button class="btn btn-primary" style="margin-top:4px" onclick="earn(2,'Contribution : partage')">📤 Partager l'event (+2)</button>
+      <button class="link" style="display:block;margin-top:12px" onclick="earn(1,'Réciprocité')">Simuler : +1 (quelqu'un a développé ta photo)</button>
+    </div>
+    <h4>Pas envie de contribuer ? Le raccourci</h4>
+    <div class="packs">
+      <button class="pack" onclick="earn(10,'Raccourci (4,99 €)')"><b>10</b><span>4,99 €</span></button>
+      <button class="pack" onclick="earn(30,'Raccourci (9,99 €)')"><b>30</b><span>9,99 €</span></button>
+      <button class="pack" onclick="earn(80,'Raccourci (19,99 €)')"><b>80</b><span>19,99 €</span></button>
+    </div>
+    <p class="micro">Démo. Le troc reste gratuit ; payer, c'est juste le raccourci.</p>
+    <h4>Historique</h4><ul class="history" id="hist"></ul>
+    <button class="btn btn-plain" onclick="closeSheets()">Fermer</button>
+  </div></div>
+
+  <!-- Recap sheet -->
+  <div class="backdrop" id="sheet-recap" hidden><div class="sheet">
+    <div class="grab"></div>
+    <div class="recap-cover"><div class="recap-emoji">✨</div><div class="recap-title" id="rcTitle">Ta soirée</div></div>
+    <div class="recap-grid" id="rcGrid"></div>
+    <button class="btn btn-primary" onclick="earn(2,'Partage du récap'); toast('Partagé (+2) 🎉')">📤 Partager mon récap (+2)</button>
+    <button class="btn btn-plain" onclick="closeSheets()">Fermer</button>
+  </div></div>
+
+  <!-- Menu sheet -->
+  <div class="backdrop" id="sheet-menu" hidden><div class="sheet">
+    <div class="grab"></div><h3>Menu</h3>
+    <div class="card" style="margin-bottom:10px"><b>🔒 Coffre-fort du visage</b><p class="hint" style="margin:6px 0 0">Supprime ton empreinte et tes données en un tap.</p></div>
+    <button class="btn btn-bordered" onclick="closeSheets();toast('Démo : données effacées')">🗑️ Supprimer mon visage</button>
+    <button class="btn btn-plain" onclick="closeSheets()">Fermer</button>
+  </div></div>
+
+  <div class="toast" id="toast" hidden></div>
+</div>
+
+<script>
+  // ---- Images d'exemple (SVG data-URI, aucune dépendance) ----
+  function shot(h1,h2){
+    const svg='<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300">'
+      +'<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+h1+'"/><stop offset="1" stop-color="'+h2+'"/></linearGradient></defs>'
+      +'<rect width="300" height="300" fill="url(#g)"/>'
+      +'<circle cx="150" cy="118" r="52" fill="#f3e9dd"/>'
+      +'<ellipse cx="150" cy="300" rx="118" ry="120" fill="#f3e9dd"/>'
+      +'<circle cx="55" cy="60" r="16" fill="#ffffff" opacity="0.28"/>'
+      +'<circle cx="245" cy="90" r="10" fill="#ffffff" opacity="0.35"/>'
+      +'<circle cx="250" cy="220" r="20" fill="#ffffff" opacity="0.2"/></svg>';
+    return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+  }
+  const PHOTOS=[
+    shot('#5b78ef','#9d5cff'), shot('#ff7a59','#ff4d94'), shot('#12a074','#3ec6ff'),
+    shot('#f7b733','#fc4a1a'), shot('#7f53ac','#647dee'), shot('#0ba360','#3cba92')
+  ];
+  const EVENTS=[
+    {id:'duplex',name:'Le Duplex',place:'Paris · Club',when:'Samedi dernier',emoji:'🪩',grad:'linear-gradient(135deg,#5b78ef,#9d5cff)'},
+    {id:'sunset',name:'Sunset Festival',place:'Marseille · Plage',when:'Il y a 2 semaines',emoji:'🎪',grad:'linear-gradient(135deg,#ff7a59,#ff4d94)'},
+    {id:'run',name:'Color Run',place:'Lyon · Parc',when:'Le mois dernier',emoji:'🏃',grad:'linear-gradient(135deg,#12a074,#3ec6ff)'}
+  ];
+
+  const st={reveals:1,unlocked:{},hist:[{t:'Bienvenue 🎉',n:1}],matches:[],ev:null,current:null};
+  const $=s=>document.querySelector(s);
+
+  function go(s){document.querySelectorAll('.screen').forEach(x=>x.hidden=true);$('#s-'+s).hidden=false;}
+  function openSheet(s){renderWallet();renderRecap();$('#sheet-'+s).hidden=false;}
+  function closeSheets(){document.querySelectorAll('.backdrop').forEach(x=>x.hidden=true);}
+  let toastT;function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,1900);}
+  function renderBal(){$('#bal').textContent=st.reveals;$('#wBal').textContent=st.reveals;}
+
+  function scanFace(){
+    $('#refStatus').textContent='Analyse du visage… ✓';
+    const av='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd9a0"/><stop offset="1" stop-color="#ff9d6c"/></linearGradient></defs><rect width="120" height="120" fill="url(#g)"/><circle cx="60" cy="48" r="24" fill="#f7ede1"/><ellipse cx="60" cy="128" rx="46" ry="46" fill="#f7ede1"/></svg>');
+    $('#refAv').style.backgroundImage='url("'+av+'")';$('#refAv').classList.add('ok');$('#refAv').innerHTML='';
+    $('#meAv').style.backgroundImage='url("'+av+'")';
+    $('#pill').hidden=false;renderBal();
+    setTimeout(()=>{toast('Visage enregistré · +1 révélation');go('home');},650);
+  }
+
+  function renderEvents(){
+    $('#eventList').innerHTML=EVENTS.map(e=>'<button class="event-card" style="background:'+e.grad+'" onclick="openEvent(\''+e.id+'\')"><span class="ev-badge">'+e.emoji+' Ouvrir</span><span class="ev-when">'+e.when+'</span><span class="ev-name">'+e.name+'</span><span class="ev-place">'+e.place+'</span></button>').join('');
+  }
+  function openEvent(id){
+    st.current=EVENTS.find(e=>e.id===id);
+    const n=id==='duplex'?5:(id==='sunset'?4:3);
+    st.matches=Array.from({length:n},(_,i)=>({id:id+'-'+i,src:PHOTOS[i%PHOTOS.length]}));
+    $('#evTitle').textContent=st.current.name;
+    $('#matchCount').textContent=n+' photo(s) où tu es';
+    renderGrid();go('event');
+  }
+  function renderGrid(){
+    $('#grid').innerHTML=st.matches.map(m=>{
+      const u=st.unlocked[m.id];
+      return '<div class="tile '+(u?'':'locked')+'" onclick="openDevelop(\''+m.id+'\')"><img src="'+m.src+'">'
+        +(u?'<span class="done">✓</span>':'<div class="lock"><span class="ic">🎞️</span><span class="cost">Développer</span></div>')+'</div>';
+    }).join('');
+  }
+
+  function openDevelop(id){
+    st.ev=id;const m=st.matches.find(x=>x.id===id);const u=st.unlocked[id];
+    $('#dvImg').src=m.src;
+    $('#dvTitle').textContent=u?'Photo développée':'Développer la photo';
+    $('#dvDesc').textContent=u?'Elle est à toi — télécharge-la en HD.':'Développer coûte 1 révélation. Tu en as '+st.reveals+'.';
+    $('#dvConfirm').hidden=u;$('#dvDownload').hidden=!u;
+    $('#sheet-develop').hidden=false;
+  }
+  function developNow(){
+    if(st.reveals<1){toast('Plus de révélation — contribue ou prends le raccourci');closeSheets();openSheet('wallet');return;}
+    st.reveals--;st.unlocked[st.ev]=true;st.hist.unshift({t:'Développement',n:-1});
+    renderBal();renderGrid();openDevelop(st.ev);toast('Développée ! 🎉');
+  }
+  function earn(n,label){st.reveals+=n;st.hist.unshift({t:label,n:n});renderBal();renderWallet();toast('+'+n+' révélation'+(n>1?'s':''));}
+
+  function renderWallet(){
+    $('#hist').innerHTML=st.hist.slice(0,10).map(x=>'<li><span>'+x.t+'</span><span class="amt '+(x.n>=0?'plus':'minus')+'">'+(x.n>=0?'+':'')+x.n+'</span></li>').join('');
+  }
+  function renderRecap(){
+    const dev=st.matches.filter(m=>st.unlocked[m.id]);const pool=dev.length?dev:st.matches;
+    $('#rcTitle').textContent=st.current?st.current.name:'Ta soirée';
+    $('#rcGrid').innerHTML=pool.slice(0,9).map(m=>'<img src="'+m.src+'" style="'+(st.unlocked[m.id]?'':'filter:blur(6px)')+'">').join('');
+  }
+
+  renderEvents();renderBal();
+</script>
+</body>
+</html>
