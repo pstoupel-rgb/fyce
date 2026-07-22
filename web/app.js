@@ -51,7 +51,7 @@ const el = {};
  'walletSheet','walletBal','contribBtn','simEarn','history','walletClose',
  'recapSheet','recapTitle','recapGrid','recapShare','recapClose',
  'menuBtn','menuSheet','threshold','threshVal','sbStatus','wipeBtn','menuClose','toast',
- 'friendsCard','friendsRow','friendPhotoInput','importFriendsBtn','friendsPhotosInput',
+ 'friendsCard','friendsRow','friendPhotoInput','importFriendsBtn','friendsPhotosInput','manualShareBtn','manualInput',
  'fProgress','fBar','fProgressTxt','fEmpty','fHead','fCount','friendsGrid',
  'shareSheet','shImg','shWho','shBtns','shClose'
 ].forEach(id => el[id] = document.getElementById(id));
@@ -131,6 +131,7 @@ function wire(){
   el.friendsCard.addEventListener('click', () => { renderFriendsRow(); showScreen('friends'); });
   el.friendPhotoInput.addEventListener('change', e => addFriend(e.target.files[0]));
   el.friendsPhotosInput.addEventListener('change', e => onFriendPhotos([...e.target.files]));
+  el.manualInput.addEventListener('change', e => onManualPhotos([...e.target.files]));
   el.shClose.addEventListener('click', () => el.shareSheet.hidden = true);
   el.threshold.addEventListener('input', e => {
     store.data.threshold = +e.target.value; store.save();
@@ -450,18 +451,44 @@ function renderFriendsGrid(){
 function openShareFriend(id){
   const m = state.friendMatches.find(x => x.id === id); if (!m) return;
   el.shImg.src = m.url;
-  el.shWho.textContent = `Sur cette photo : ${m.who.join(', ')}`;
   const others = m.who.filter(w => w !== 'Toi');
+  el.shWho.textContent = m.who.length ? `Sur cette photo : ${m.who.join(', ')}` : 'Choisis à qui l’envoyer';
+
   let html = '';
-  if (others.length){
-    html = others.map(o => `<button class="btn btn-primary" data-who="${escapeHtml(o)}">📤 Partager à ${escapeHtml(o)}</button>`).join('');
-    if (others.length > 1) html += `<button class="btn btn-bordered" data-who="__group">👥 Partager au groupe</button>`;
-  } else {
-    html = `<button class="btn btn-primary" data-who="__self">📤 Partager la photo</button>`;
+  // 1) Destinataires détectés sur la photo
+  others.forEach(o => html += `<button class="btn btn-primary" data-who="${escapeHtml(o)}">📤 Partager à ${escapeHtml(o)}</button>`);
+  if (others.length > 1) html += `<button class="btn btn-primary" data-who="__group">👥 Partager au groupe</button>`;
+
+  // 2) N'importe quel autre pote (utile pour les photos de leurs enfants)
+  const rest = store.data.friends.map(f => f.name).filter(n => !others.includes(n));
+  if (rest.length){
+    html += `<p class="hint" style="text-align:center;margin:12px 0 4px">${others.length ? 'Ou envoyer à un autre pote' : 'Envoyer à un pote'}</p>`;
+    rest.forEach(n => html += `<button class="btn btn-bordered" data-who="${escapeHtml(n)}">📤 ${escapeHtml(n)}</button>`);
   }
+  if (!others.length && !rest.length) html += `<button class="btn btn-primary" data-who="__self">📤 Partager la photo</button>`;
+
   el.shBtns.innerHTML = html;
   el.shBtns.querySelectorAll('button').forEach(b => b.addEventListener('click', () => sharePhoto(m, b.dataset.who)));
   el.shareSheet.hidden = false;
+}
+
+// Envoi manuel : pas de reconnaissance (ex. photos où seul l'enfant d'un ami apparaît).
+async function onManualPhotos(files){
+  if (!files.length) return;
+  el.fEmpty.hidden = true;
+  for (const file of files){
+    try {
+      const img = await loadImage(file);
+      const thumb = toCanvas(img, 300).toDataURL('image/jpeg', 0.72);
+      state.friendUrls.push(img.src);
+      state.friendMatches.unshift({ id:`m-${file.name}-${file.size}-${file.lastModified}`, file, url:img.src, thumb, who:[] });
+    } catch (_) {}
+    await raf();
+  }
+  el.fHead.hidden = false;
+  el.fCount.textContent = `${state.friendMatches.length} photo(s)`;
+  renderFriendsGrid();
+  toast('Tape une photo puis choisis le pote à qui l’envoyer');
 }
 
 async function sharePhoto(m, who){
