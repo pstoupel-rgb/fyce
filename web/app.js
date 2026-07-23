@@ -20,7 +20,7 @@ const EVENTS = [
 // ---- Persistance locale ----
 const KEY = 'pp_v1';
 const store = {
-  data: { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null },
+  data: { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null, badges:[] },
   load(){ try{ Object.assign(this.data, JSON.parse(localStorage.getItem(KEY)||'{}')); }catch(_){} },
   save(){ localStorage.setItem(KEY, JSON.stringify(this.data)); },
 };
@@ -57,7 +57,7 @@ const el = {};
  'eventList','evTitle','evMeta','photosInput','loadBtn','evProgress','evBar','evProgressTxt','evEmpty','matchHead','matchCount','recapBtn','grid',
  'unlockSheet','unlockImg','unlockTitle','unlockDesc','unlockConfirm','unlockDownload','unlockClose',
  'walletSheet','walletBal','contribBtn','simEarn','history','walletClose',
- 'recapSheet','recapTitle','recapGrid','recapShare','recapClose',
+ 'recapSheet','recapTitle','recapHero','recapGrid','recapShare','recapClose',
  'menuBtn','menuSheet','threshold','threshVal','sbStatus','wipeBtn','menuClose','toast',
  'joinBtn',
  'friendsCard','friendsRow','friendPhotoInput','importFriendsBtn','friendsPhotosInput','manualShareBtn','manualInput',
@@ -204,6 +204,7 @@ async function onReference(file){
   el.meAvatar.style.backgroundImage = `url(${thumb})`;
   el.walletPill.hidden = false;
   renderPoints();
+  confetti(); chime(); vibrate(30);
   toast(`Face saved · +${store.data.points} reveal(s)`);
   window.setTimeout(() => showScreen('home'), 700);
 }
@@ -318,7 +319,9 @@ function doUnlock(m){
   store.data.unlocked.push(m.id);
   store.data.history.unshift({ t:`Develop`, n:-UNLOCK_COST });
   store.save(); renderPoints(); renderGrid();
-  revealTile(m.id); confetti(); vibrate(30);   // le moment magique ✨
+  revealTile(m.id); confetti(); vibrate(30); chime('develop');   // le moment magique ✨
+  earnBadge('first_develop');
+  if (store.data.unlocked.length >= 5) earnBadge('five_photos');
   openUnlock(m.id); // rebascule en mode "télécharger"
   toast('Developed! 🎉');
 }
@@ -337,8 +340,54 @@ function download(m){
 
 // ---------- Portefeuille ----------
 function renderPoints(){
-  el.pointsBal.textContent = store.data.points;
-  el.walletBal.textContent = store.data.points;
+  animateCount(el.pointsBal, store.data.points);
+  animateCount(el.walletBal, store.data.points);
+}
+
+// ---------- Delight : compteur animé, son signature, badges ----------
+function animateCount(node, to, dur = 550){
+  if (!node) return;
+  const from = parseInt(node.textContent, 10) || 0;
+  if (from === to){ node.textContent = to; return; }
+  const t0 = performance.now();
+  (function step(t){
+    const p = Math.min(1, (t - t0) / dur);
+    node.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - p, 3)));
+    if (p < 1) requestAnimationFrame(step);
+  })(t0);
+}
+
+let audioCtx;
+function chime(kind = 'success'){
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
+    const notes = kind === 'develop' ? [659, 880, 1319] : [523, 784];
+    notes.forEach((f, i) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'sine'; o.frequency.value = f; o.connect(g); g.connect(audioCtx.destination);
+      const t = now + i * 0.09;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.10, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+      o.start(t); o.stop(t + 0.4);
+    });
+  } catch (_) {}
+}
+
+const BADGES = {
+  first_develop: '🏆 First reveal',
+  five_photos:   '🎉 5 photos developed',
+  first_share:   '📲 Storyteller',
+  first_friend:  '🤝 First friend added',
+};
+function earnBadge(key){
+  store.data.badges = store.data.badges || [];
+  if (store.data.badges.includes(key) || !BADGES[key]) return;
+  store.data.badges.push(key); store.save();
+  confetti(); vibrate(45); chime('develop');
+  toast(`Badge unlocked · ${BADGES[key]}`);
 }
 function addPoints(n, label){
   store.data.points += n;
@@ -365,9 +414,12 @@ function openRecap(){
   const shots = state.matches.filter(m => isUnlocked(m.id));
   const pool = shots.length ? shots : state.matches;
   el.recapTitle.textContent = state.currentEvent ? state.currentEvent.name : 'Your night';
+  const n = state.matches.length;
+  el.recapHero.innerHTML = `✨ You're in <b id="recapHeroNum">0</b> photo${n > 1 ? 's' : ''} tonight`;
   el.recapGrid.innerHTML = pool.slice(0,9)
     .map(m => `<img src="${m.thumb}" style="${isUnlocked(m.id)?'':'filter:blur(6px)'}">`).join('');
   open('recapSheet');
+  window.setTimeout(() => animateCount(document.getElementById('recapHeroNum'), n, 700), 120);
 }
 async function shareRecap(){
   const text = `I was at ${state.currentEvent?.name||'the night'} 📸 — find your photos on Poze`;
@@ -382,7 +434,7 @@ async function shareRecap(){
 function wipe(){
   if (!confirm('Delete your faceprint and all local data?')) return;
   localStorage.removeItem(KEY);
-  store.data = { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null };
+  store.data = { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null, badges:[] };
   ensureRefCode();
   state.refDescriptor = null; clearMatches(); clearFriendMatches();
   el.friendsGrid.innerHTML = ''; el.fHead.hidden = true;
@@ -494,6 +546,7 @@ async function addFriend(file){
   store.save();
   renderFriendsRow();
   toast(`${name} added 👌`);
+  earnBadge('first_friend');
 }
 
 function clearFriendMatches(){ state.friendUrls.forEach(u => URL.revokeObjectURL(u)); state.friendUrls = []; state.friendMatches = []; }
@@ -757,8 +810,9 @@ function drawCover(ctx, im, x, y, w, h){
   ctx.drawImage(im, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
 }
 async function buildStoryCanvas(){
-  const pool = (state.matches && state.matches.length ? state.matches : state.friendMatches) || [];
-  const shots = pool.slice(0, 4);
+  const base = (state.matches && state.matches.length ? state.matches : state.friendMatches) || [];
+  const unlocked = base.filter(m => store.data.unlocked.includes(m.id));
+  const shots = (unlocked.length ? unlocked : base).slice(0, 4);
   const W = 1080, H = 1920;
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const ctx = c.getContext('2d');
@@ -770,9 +824,15 @@ async function buildStoryCanvas(){
   }
   ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
   ctx.font = '800 62px -apple-system,"Segoe UI",Roboto,sans-serif'; ctx.fillText('Poze', W / 2, 150);
-  ctx.font = '850 96px -apple-system,"Segoe UI",Roboto,sans-serif'; ctx.fillText('My night', W / 2, 300);
+  ctx.font = '850 96px -apple-system,"Segoe UI",Roboto,sans-serif';
+  const tg = ctx.createLinearGradient(W * 0.25, 250, W * 0.75, 320);
+  tg.addColorStop(0, '#a78bfa'); tg.addColorStop(1, '#67e8f9');
+  ctx.fillStyle = tg; ctx.fillText('My night', W / 2, 300);
   const ev = state.currentEvent ? state.currentEvent.name : '';
-  if (ev){ ctx.font = '500 46px -apple-system,"Segoe UI",Roboto,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.82)'; ctx.fillText(ev, W / 2, 372); }
+  if (ev){
+    const line = state.currentEvent.place ? `${ev} · ${state.currentEvent.place}` : ev;
+    ctx.font = '500 44px -apple-system,"Segoe UI",Roboto,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.82)'; ctx.fillText(line, W / 2, 372);
+  }
   const imgs = await Promise.all(shots.map(m => imgFromURL(m.thumb).catch(() => null)));
   const gx = 90, gy = 470, gap = 40, cell = (W - gx * 2 - gap) / 2;
   imgs.forEach((im, i) => {
@@ -797,7 +857,8 @@ async function shareStory(){
       const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = 'poze-story.jpg'; a.click();
       toast('Story saved 📥');
     }
-    addPoints(SHARE_REWARD, 'Story share'); confetti();
+    addPoints(SHARE_REWARD, 'Story share'); confetti(); chime('develop');
+    earnBadge('first_share');
   } catch (_) { toast('Could not build the story.'); }
 }
 

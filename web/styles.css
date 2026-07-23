@@ -205,6 +205,17 @@ body::before{
 @keyframes pop{0%{transform:scale(.94)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
 @keyframes flash{from{opacity:.85}to{opacity:0}}
 #confettiCanvas{position:fixed;inset:0;pointer-events:none;z-index:80}
+.recap-hero{text-align:center;font-size:16px;color:var(--muted);margin:-2px 0 14px}
+.recap-hero b{color:var(--ink);font-size:24px;font-variant-numeric:tabular-nums;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+/* Onboarding cinématique : entrée en cascade */
+[data-screen="onboarding"] .hero-badge{animation:rise .55s .05s both}
+[data-screen="onboarding"] h1{animation:rise .6s .18s both}
+[data-screen="onboarding"] .sub{animation:rise .6s .30s both}
+[data-screen="onboarding"] .ref{animation:rise .6s .42s both}
+[data-screen="onboarding"] .trust{animation:rise .6s .55s both}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.avatar:not(.ok){animation:scanPulse 2.4s ease-in-out infinite}
+@keyframes scanPulse{0%,100%{box-shadow:0 0 0 0 rgba(124,92,255,.45)}50%{box-shadow:0 0 0 16px rgba(124,92,255,0)}}
 @media (prefers-reduced-motion:reduce){body::before{animation:none!important}.tile.reveal,.tile.reveal::after{animation:none!important}}
 
 /* Toast */
