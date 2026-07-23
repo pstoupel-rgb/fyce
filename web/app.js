@@ -139,7 +139,7 @@ function wire(){
   el.menuClose.addEventListener('click', () => close('menuSheet'));
   el.recapBtn.addEventListener('click', openRecap);
   el.recapClose.addEventListener('click', () => close('recapSheet'));
-  el.recapShare.addEventListener('click', shareRecap);
+  el.recapShare.addEventListener('click', shareStory);
   el.unlockClose.addEventListener('click', () => close('unlockSheet'));
   el.contribBtn.addEventListener('click', () => addPoints(SHARE_REWARD, 'Contribution: shared the event'));
   el.simEarn.addEventListener('click', () => addPoints(EARN_ON_DOWNLOAD, 'Someone developed your photo'));
@@ -318,9 +318,16 @@ function doUnlock(m){
   store.data.unlocked.push(m.id);
   store.data.history.unshift({ t:`Develop`, n:-UNLOCK_COST });
   store.save(); renderPoints(); renderGrid();
+  revealTile(m.id); confetti(); vibrate(30);   // le moment magique ✨
   openUnlock(m.id); // rebascule en mode "télécharger"
   toast('Developed! 🎉');
 }
+
+function revealTile(id){
+  const t = el.grid.querySelector(`.tile[data-id="${id}"]`);
+  if (t){ t.classList.add('reveal'); window.setTimeout(() => t.classList.remove('reveal'), 700); }
+}
+function vibrate(ms){ try { if (navigator.vibrate) navigator.vibrate(ms); } catch (_) {} }
 
 function download(m){
   const a = document.createElement('a');
@@ -705,6 +712,95 @@ function refLink(){ return `${location.origin}${location.pathname}?ref=${store.d
 function inviteMsg(){ return `Join me on Poze 📸 — find your party photos. With my link you get ${INVITE_WELCOME} free reveals: ${refLink()}`; }
 function openInvite(){ ensureRefCode(); el.inviteLink.textContent = refLink(); el.inviteSheet.hidden = false; }
 
+// ---------- Confettis ----------
+function confetti(){
+  let c = document.getElementById('confettiCanvas');
+  if (!c){ c = document.createElement('canvas'); c.id = 'confettiCanvas'; document.body.appendChild(c); }
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  c.width = innerWidth * dpr; c.height = innerHeight * dpr;
+  c.style.width = innerWidth + 'px'; c.style.height = innerHeight + 'px';
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const colors = ['#7c5cff', '#22d3ee', '#ff5da2', '#2fdd9b', '#ffffff'];
+  const parts = Array.from({ length: 90 }, (_, i) => ({
+    x: innerWidth / 2, y: innerHeight * 0.42,
+    vx: (Math.random() - 0.5) * 11, vy: Math.random() * -9 - 3,
+    s: 4 + Math.random() * 6, c: colors[i % colors.length], r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.5, life: 1,
+  }));
+  let start = null;
+  function frame(t){
+    if (!start) start = t;
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    let alive = false;
+    for (const p of parts){
+      p.vy += 0.28; p.x += p.vx; p.y += p.vy; p.r += p.vr; p.life -= 0.012;
+      if (p.life > 0 && p.y < innerHeight + 30){
+        alive = true;
+        ctx.save(); ctx.globalAlpha = Math.max(0, p.life); ctx.translate(p.x, p.y); ctx.rotate(p.r);
+        ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6); ctx.restore();
+      }
+    }
+    if (alive && t - start < 2600) requestAnimationFrame(frame);
+    else ctx.clearRect(0, 0, innerWidth, innerHeight);
+  }
+  requestAnimationFrame(frame);
+}
+
+// ---------- Story partageable (9:16) — le moteur viral ----------
+function roundRect(ctx, x, y, w, h, r){
+  ctx.beginPath(); ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+function drawCover(ctx, im, x, y, w, h){
+  const ir = im.width / im.height, tr = w / h; let dw, dh;
+  if (ir > tr){ dh = h; dw = h * ir; } else { dw = w; dh = w / ir; }
+  ctx.drawImage(im, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+}
+async function buildStoryCanvas(){
+  const pool = (state.matches && state.matches.length ? state.matches : state.friendMatches) || [];
+  const shots = pool.slice(0, 4);
+  const W = 1080, H = 1920;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, W, H);
+  for (const [x, y, col] of [[0.2, 0.14, 'rgba(124,92,255,.85)'], [0.85, 0.12, 'rgba(34,211,238,.7)'], [0.62, 0.9, 'rgba(255,93,162,.6)'], [0.1, 0.86, 'rgba(124,92,255,.5)']]){
+    const g = ctx.createRadialGradient(x * W, y * H, 0, x * W, y * H, W * 0.62);
+    g.addColorStop(0, col); g.addColorStop(1, 'rgba(10,10,20,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+  ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+  ctx.font = '800 62px -apple-system,"Segoe UI",Roboto,sans-serif'; ctx.fillText('Poze', W / 2, 150);
+  ctx.font = '850 96px -apple-system,"Segoe UI",Roboto,sans-serif'; ctx.fillText('My night', W / 2, 300);
+  const ev = state.currentEvent ? state.currentEvent.name : '';
+  if (ev){ ctx.font = '500 46px -apple-system,"Segoe UI",Roboto,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.82)'; ctx.fillText(ev, W / 2, 372); }
+  const imgs = await Promise.all(shots.map(m => imgFromURL(m.thumb).catch(() => null)));
+  const gx = 90, gy = 470, gap = 40, cell = (W - gx * 2 - gap) / 2;
+  imgs.forEach((im, i) => {
+    if (!im) return;
+    const x = gx + (i % 2) * (cell + gap), y = gy + Math.floor(i / 2) * (cell + gap);
+    ctx.save(); roundRect(ctx, x, y, cell, cell, 36); ctx.clip(); drawCover(ctx, im, x, y, cell, cell); ctx.restore();
+    ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,.16)'; roundRect(ctx, x, y, cell, cell, 36); ctx.stroke();
+  });
+  ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+  ctx.font = '700 48px -apple-system,"Segoe UI",Roboto,sans-serif'; ctx.fillText('Find your photos on Poze', W / 2, H - 180);
+  ctx.font = '500 40px -apple-system,"Segoe UI",Roboto,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.72)'; ctx.fillText('📸  poze.app', W / 2, H - 108);
+  return c;
+}
+async function shareStory(){
+  try {
+    const c = await buildStoryCanvas();
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92));
+    const file = new File([blob], 'poze-story.jpg', { type: 'image/jpeg' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })){
+      await navigator.share({ files: [file], title: 'Poze', text: 'My night 📸' });
+    } else {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = 'poze-story.jpg'; a.click();
+      toast('Story saved 📥');
+    }
+    addPoints(SHARE_REWARD, 'Story share'); confetti();
+  } catch (_) { toast('Could not build the story.'); }
+}
+
 // ---------- Utils ----------
 function loadImage(file){
   return new Promise((res, rej) => { const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=URL.createObjectURL(file); });
@@ -724,6 +820,6 @@ const raf = () => new Promise(r => requestAnimationFrame(() => r()));
 function registerSW(){ if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js').catch(()=>{}); }
 
 // Exposé pour tests/déboguage
-window.__pp = { store, state, showScreen, renderGrid, renderPoints, openUnlock, renderFriendsRow, renderFriendsGrid, openShareFriend };
+window.__pp = { store, state, showScreen, renderGrid, renderPoints, openUnlock, renderFriendsRow, renderFriendsGrid, openShareFriend, buildStoryCanvas, confetti };
 
 init();
