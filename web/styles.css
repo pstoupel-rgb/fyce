@@ -231,6 +231,22 @@ body::before{
 @keyframes scanPulse{0%,100%{box-shadow:0 0 0 0 rgba(124,92,255,.45)}50%{box-shadow:0 0 0 16px rgba(124,92,255,0)}}
 @media (prefers-reduced-motion:reduce){body::before{animation:none!important}.tile.reveal,.tile.reveal::after{animation:none!important}}
 
+/* Family digest */
+.digest-banner{background:linear-gradient(120deg,rgba(255,93,162,.22),rgba(124,92,255,.22));border:1px solid rgba(255,93,162,.4);
+  border-radius:16px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px}
+.digest-banner b{color:var(--ink)}
+.digest-item{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+.digest-item .r{font-weight:800;font-size:16px}
+.digest-item .meta{color:var(--muted);font-size:13px;margin-top:3px}
+.digest-item .row{display:flex;gap:8px;margin-top:12px}
+.digest-item .row .btn{margin:0;padding:11px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0}
+.chip-btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:8px 14px;font-weight:600;font-size:13px;cursor:pointer}
+.chip-btn[aria-pressed="true"]{background:var(--grad);color:#0a0a14;border-color:transparent}
+.digest-form input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:15px}
+.digest-form label{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);display:block;margin:14px 0 6px}
+.digest-due{margin-left:auto;font-size:11px;font-weight:800;background:var(--money);color:#062a1d;border-radius:999px;padding:3px 9px}
+
 /* Toast */
 .toast{position:fixed;left:50%;bottom:calc(28px + var(--safe-bot));transform:translateX(-50%);z-index:60;
   background:rgba(20,20,32,.9);border:1px solid var(--line);color:#fff;padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;

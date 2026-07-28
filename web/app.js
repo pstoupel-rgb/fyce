@@ -20,7 +20,7 @@ const EVENTS = [
 // ---- Persistance locale ----
 const KEY = 'pp_v1';
 const store = {
-  data: { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null, badges:[], streak:0, lastActive:null, sentTo:{} },
+  data: { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null, badges:[], streak:0, lastActive:null, sentTo:{}, digests:[] },
   load(){ try{ Object.assign(this.data, JSON.parse(localStorage.getItem(KEY)||'{}')); }catch(_){} },
   save(){ localStorage.setItem(KEY, JSON.stringify(this.data)); },
 };
@@ -38,6 +38,7 @@ const state = {
   selected:new Set(),
   faceTarget:null,
   storyStyle:'aurora',
+  sendingDigest:null,
   backend:false,        // passe à true si Supabase est configuré (voir maybeInitBackend)
   BE:null,
 };
@@ -60,6 +61,7 @@ const el = {};
  'walletSheet','walletBal','contribBtn','simEarn','history','walletClose',
  'recapSheet','recapTitle','recapHero','recapGrid','recapShare','recapClose','storyStyles',
  'streakChip','badgesBtn','badgesSheet','badgesStreak','badgesList','badgesClose',
+ 'digestBtn','digestBanner','digestSheet','digestList','digestForm','dgName','dgChannel','dgFaces','dgFreq','dgSave','digestNew','digestInput','digestClose',
  'menuBtn','menuSheet','threshold','threshVal','sbStatus','wipeBtn','menuClose','toast',
  'joinBtn',
  'friendsCard','friendsRow','friendPhotoInput','importFriendsBtn','friendsPhotosInput','manualShareBtn','manualInput',
@@ -102,6 +104,7 @@ async function init(){
   updateSupabaseStatus();
   updateStreak();
   wire();
+  renderDigestBanner();
   maybeInitBackend();   // se branche sur Supabase si configuré (sinon : mode local)
 
   if (store.data.face){
@@ -144,6 +147,14 @@ function wire(){
   el.menuClose.addEventListener('click', () => close('menuSheet'));
   el.badgesBtn.addEventListener('click', () => { close('menuSheet'); openBadges(); });
   el.badgesClose.addEventListener('click', () => close('badgesSheet'));
+  el.digestBtn.addEventListener('click', openDigests);
+  el.digestClose.addEventListener('click', () => close('digestSheet'));
+  el.digestNew.addEventListener('click', showDigestForm);
+  el.dgSave.addEventListener('click', saveDigest);
+  [el.dgChannel, el.dgFreq].forEach(cont => cont.querySelectorAll('.chip-btn').forEach(btn =>
+    btn.addEventListener('click', () => cont.querySelectorAll('.chip-btn').forEach(b => b.setAttribute('aria-pressed', String(b === btn))))));
+  el.digestInput.addEventListener('change', e => onDigestPhotos([...e.target.files]));
+  el.digestBanner.addEventListener('click', () => startDigestSend(nextDueDigest()));
   el.storyStyles.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
     state.storyStyle = btn.dataset.style;
     el.storyStyles.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
@@ -472,7 +483,7 @@ async function shareRecap(){
 function wipe(){
   if (!confirm('Delete your faceprint and all local data?')) return;
   localStorage.removeItem(KEY);
-  store.data = { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null, badges:[], streak:0, lastActive:null, sentTo:{} };
+  store.data = { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null, badges:[], streak:0, lastActive:null, sentTo:{}, digests:[] };
   ensureRefCode();
   state.refDescriptor = null; clearMatches(); clearFriendMatches();
   el.friendsGrid.innerHTML = ''; el.fHead.hidden = true;
@@ -919,6 +930,118 @@ async function shareStory(){
     addPoints(SHARE_REWARD, 'Story share'); confetti(); chime('develop');
     earnBadge('first_share');
   } catch (_) { toast('Could not build the story.'); }
+}
+
+// ---------- Family digest (photos aux grands-parents, sur un rythme) ----------
+function saveDigests(){ store.save(); }
+function freqDays(f){ return f === 'monthly' ? 30 : 7; }
+function digestDue(d){
+  if (!d.lastSent) return true;
+  return (Date.now() - new Date(d.lastSent).getTime()) / 86400000 >= freqDays(d.freq);
+}
+function nextDueDigest(){ return (store.data.digests || []).find(digestDue); }
+
+function renderDigestBanner(){
+  const due = nextDueDigest();
+  el.digestBanner.hidden = !due;
+  if (due) el.digestBanner.innerHTML = `💛 <span>Time to send <b>${escapeHtml(due.recipient)}</b> new photos</span>`;
+}
+
+function openDigests(){ el.digestForm.hidden = true; renderDigestList(); open('digestSheet'); }
+
+function renderDigestList(){
+  const ds = store.data.digests || [];
+  el.digestList.innerHTML = ds.length ? ds.map(d => `
+    <div class="digest-item" data-id="${d.id}">
+      <div class="r">${escapeHtml(d.recipient)} ${digestDue(d) ? '<span class="digest-due">Due</span>' : ''}</div>
+      <div class="meta">${escapeHtml(d.faces.join(', ') || 'no faces')} · ${d.freq} · via ${d.channel}</div>
+      <div class="row">
+        <button class="btn btn-primary" data-act="send">📤 Send now</button>
+        <button class="btn btn-bordered" data-act="del">Delete</button>
+      </div>
+    </div>`).join('') : '<p class="hint" style="text-align:center;padding:8px 0 4px">No digest yet.</p>';
+  el.digestList.querySelectorAll('.digest-item').forEach(it => {
+    const d = ds.find(x => x.id === it.dataset.id);
+    it.querySelector('[data-act="send"]').addEventListener('click', () => startDigestSend(d));
+    it.querySelector('[data-act="del"]').addEventListener('click', () => {
+      store.data.digests = ds.filter(x => x.id !== d.id); saveDigests(); renderDigestList(); renderDigestBanner();
+    });
+  });
+}
+
+function showDigestForm(){
+  el.digestForm.hidden = false;
+  el.dgName.value = '';
+  el.dgFaces.innerHTML = store.data.friends.length
+    ? store.data.friends.map(f => `<button class="chip-btn" data-face="${escapeHtml(f.name)}" aria-pressed="false">${escapeHtml(f.name)}</button>`).join('')
+    : '<span class="hint">Add friends first (their faces) in “With friends”.</span>';
+  el.dgFaces.querySelectorAll('.chip-btn').forEach(b => b.addEventListener('click', () =>
+    b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true')));
+}
+
+function chipValue(container, key){ const b = container.querySelector('[aria-pressed="true"]'); return b ? b.dataset[key] : null; }
+
+function saveDigest(){
+  const recipient = el.dgName.value.trim();
+  if (!recipient){ toast('Add a recipient name.'); return; }
+  const faces = [...el.dgFaces.querySelectorAll('[aria-pressed="true"]')].map(b => b.dataset.face);
+  if (!faces.length){ toast('Select at least one face.'); return; }
+  store.data.digests = store.data.digests || [];
+  store.data.digests.push({
+    id: 'd' + store.data.digests.length + '-' + Date.now(),
+    recipient, channel: chipValue(el.dgChannel, 'ch') || 'whatsapp',
+    freq: chipValue(el.dgFreq, 'f') || 'weekly', faces, lastSent: null,
+  });
+  saveDigests();
+  el.digestForm.hidden = true; renderDigestList(); renderDigestBanner();
+  toast(`Digest for ${recipient} saved 💛`);
+}
+
+function startDigestSend(d){
+  if (!d) return;
+  state.sendingDigest = d;
+  close('digestSheet');
+  el.digestInput.value = ''; el.digestInput.click();
+}
+
+async function onDigestPhotos(files){
+  const d = state.sendingDigest; if (!d || !files.length) return;
+  if (!state.modelsReady){ toast('Recognition still loading…'); return; }
+  const people = knownPeople();
+  const th = +store.data.threshold;
+  const picked = []; let already = 0;
+  toast('Finding matching photos…');
+  for (const file of files){
+    try {
+      const img = await loadImage(file);
+      const canvas = toCanvas(img, 640);
+      const results = await faceapi.detectAllFaces(canvas).withFaceLandmarks().withFaceDescriptors();
+      const present = new Set();
+      for (const r of results){
+        let best = Infinity, name = null;
+        for (const p of people){ const dd = faceapi.euclideanDistance(p.desc, r.descriptor); if (dd < best){ best = dd; name = p.name; } }
+        if (best <= th && name) present.add(name);
+      }
+      if (!d.faces.some(f => present.has(f))){ URL.revokeObjectURL(img.src); continue; }
+      const hash = pHash(canvas);
+      if (alreadySent(d.recipient, hash)){ already++; URL.revokeObjectURL(img.src); continue; }
+      if (picked.some(p => hammingHex(p.hash, hash) <= 4)){ URL.revokeObjectURL(img.src); continue; }
+      picked.push({ file, hash });
+    } catch (_) {}
+    await raf();
+  }
+  if (!picked.length){ toast(already ? `Nothing new for ${d.recipient} (already sent).` : 'No matching photos found.'); state.sendingDigest = null; return; }
+  const toShare = picked.map(p => p.file);
+  try {
+    if (navigator.canShare && navigator.canShare({ files: toShare })) await navigator.share({ files: toShare, title: 'Poze', text: `Photos for ${d.recipient} 💛` });
+    else { toShare.forEach(f => { const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name || 'photo.jpg'; a.click(); }); }
+  } catch (_) {}
+  picked.forEach(p => markSent(d.recipient, p.hash));
+  d.lastSent = new Date().toISOString().slice(0, 10); saveDigests();
+  confetti(); chime('develop');
+  toast(`Sent ${picked.length} photo(s) to ${d.recipient} 💛`);
+  renderDigestBanner();
+  state.sendingDigest = null;
 }
 
 // ---------- Détection de doublons (empreinte perceptuelle aHash) ----------

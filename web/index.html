@@ -60,6 +60,8 @@
       <button id="menuBtn" class="iconbtn" aria-label="Menu">⋯</button>
     </div>
 
+    <div id="digestBanner" class="digest-banner" hidden></div>
+
     <h2 class="sec-title">With friends</h2>
     <div class="event-list">
       <button class="event-card" id="friendsCard" type="button">
@@ -128,6 +130,7 @@
       🖼️ Send photos to a friend (no recognition)
     </label>
     <button class="btn btn-bordered" id="inviteBtn" type="button">➕ Invite a friend (not on Poze yet)</button>
+    <button class="btn btn-bordered" id="digestBtn" type="button">💛 Family digest</button>
 
     <div id="fProgress" class="progress-box" hidden>
       <div class="progress"><i id="fBar"></i></div>
@@ -242,6 +245,36 @@
     <p id="shWho" class="hint" style="text-align:center"></p>
     <div id="shBtns"></div>
     <button id="shClose" class="btn btn-plain">Close</button>
+  </div>
+</div>
+
+<!-- Feuille : digest famille -->
+<div id="digestSheet" class="backdrop" hidden>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h3>Family digest 💛</h3>
+    <p class="micro" style="margin-bottom:14px">Get reminded to send photos of chosen faces to someone, on a schedule. On-device, you always approve.</p>
+    <div id="digestList"></div>
+    <div id="digestForm" class="digest-form" hidden>
+      <label>Recipient</label>
+      <input id="dgName" type="text" placeholder="e.g. Grandma" autocomplete="off">
+      <label>Send via</label>
+      <div class="chips" id="dgChannel">
+        <button class="chip-btn" data-ch="whatsapp" aria-pressed="true">WhatsApp</button>
+        <button class="chip-btn" data-ch="email" aria-pressed="false">Email</button>
+      </div>
+      <label>Faces to include</label>
+      <div class="chips" id="dgFaces"></div>
+      <label>Frequency</label>
+      <div class="chips" id="dgFreq">
+        <button class="chip-btn" data-f="weekly" aria-pressed="true">Weekly</button>
+        <button class="chip-btn" data-f="monthly" aria-pressed="false">Monthly</button>
+      </div>
+      <button id="dgSave" class="btn btn-primary" style="margin-top:16px">Save digest</button>
+    </div>
+    <button id="digestNew" class="btn btn-bordered">＋ New digest</button>
+    <input id="digestInput" type="file" accept="image/*" multiple hidden>
+    <button id="digestClose" class="btn btn-plain">Close</button>
   </div>
 </div>
 
