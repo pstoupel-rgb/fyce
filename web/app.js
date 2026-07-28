@@ -20,7 +20,7 @@ const EVENTS = [
 // ---- Persistance locale ----
 const KEY = 'pp_v1';
 const store = {
-  data: { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null, badges:[], streak:0, lastActive:null },
+  data: { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null, badges:[], streak:0, lastActive:null, sentTo:{} },
   load(){ try{ Object.assign(this.data, JSON.parse(localStorage.getItem(KEY)||'{}')); }catch(_){} },
   save(){ localStorage.setItem(KEY, JSON.stringify(this.data)); },
 };
@@ -472,7 +472,7 @@ async function shareRecap(){
 function wipe(){
   if (!confirm('Delete your faceprint and all local data?')) return;
   localStorage.removeItem(KEY);
-  store.data = { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null, badges:[], streak:0, lastActive:null };
+  store.data = { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null, badges:[], streak:0, lastActive:null, sentTo:{} };
   ensureRefCode();
   state.refDescriptor = null; clearMatches(); clearFriendMatches();
   el.friendsGrid.innerHTML = ''; el.fHead.hidden = true;
@@ -684,21 +684,23 @@ function openShareFriend(id){
   const others = m.who.filter(w => w !== 'You');
   el.shWho.textContent = m.who.length ? `In this photo: ${m.who.join(', ')}` : 'Choose who to send to';
 
+  const recip = (name, primary) => alreadySent(name, m.hash)
+    ? `<button class="btn btn-bordered" disabled style="opacity:.55">✓ Already sent to ${escapeHtml(name)}</button>`
+    : `<button class="btn ${primary ? 'btn-primary' : 'btn-bordered'}" data-who="${escapeHtml(name)}">📤 ${primary ? 'Share with ' : ''}${escapeHtml(name)}</button>`;
+
   let html = '';
-  // 1) Destinataires détectés sur la photo
-  others.forEach(o => html += `<button class="btn btn-primary" data-who="${escapeHtml(o)}">📤 Share with ${escapeHtml(o)}</button>`);
+  others.forEach(o => html += recip(o, true));
   if (others.length > 1) html += `<button class="btn btn-primary" data-who="__group">👥 Share with group</button>`;
 
-  // 2) N'importe quel autre pote (utile pour les photos de leurs enfants)
   const rest = store.data.friends.map(f => f.name).filter(n => !others.includes(n));
   if (rest.length){
     html += `<p class="hint" style="text-align:center;margin:12px 0 4px">${others.length ? 'Or send to another friend' : 'Send to a friend'}</p>`;
-    rest.forEach(n => html += `<button class="btn btn-bordered" data-who="${escapeHtml(n)}">📤 ${escapeHtml(n)}</button>`);
+    rest.forEach(n => html += recip(n, false));
   }
   if (!others.length && !rest.length) html += `<button class="btn btn-primary" data-who="__self">📤 Share the photo</button>`;
 
   el.shBtns.innerHTML = html;
-  el.shBtns.querySelectorAll('button').forEach(b => b.addEventListener('click', () => sharePhoto(m, b.dataset.who)));
+  el.shBtns.querySelectorAll('button[data-who]').forEach(b => b.addEventListener('click', () => sharePhoto(m, b.dataset.who)));
   el.shareSheet.hidden = false;
 }
 
@@ -735,6 +737,9 @@ async function sharePhoto(m, who){
       toast('Sharing not supported — photo downloaded.');
     }
   } catch (_) {}
+  // enregistre l'envoi -> on ne pourra plus renvoyer cette photo à la même personne
+  if (who === '__group') m.who.filter(w => w !== 'You').forEach(n => markSent(n, m.hash));
+  else if (who && who !== '__self') markSent(who, m.hash);
   el.shareSheet.hidden = true; el.faceSheet.hidden = true;
 }
 
@@ -934,6 +939,19 @@ function hammingHex(a, b){
 // Doublon si l'empreinte est très proche d'une photo déjà ajoutée (Hamming ≤ 4).
 function isDuplicatePhoto(hash){
   return !!hash && state.friendMatches.some(m => m.hash && hammingHex(m.hash, hash) <= 4);
+}
+// Registre « déjà envoyé » par destinataire (anti-renvoi de la même photo).
+function markSent(name, hash){
+  if (!name || !hash || name === '__self' || name === '__group') return;
+  store.data.sentTo = store.data.sentTo || {};
+  const arr = store.data.sentTo[name] || (store.data.sentTo[name] = []);
+  if (!arr.some(h => hammingHex(h, hash) <= 2)) arr.push(hash);
+  store.save();
+}
+function alreadySent(name, hash){
+  if (!name || !hash || name === '__self' || name === '__group') return false;
+  const arr = (store.data.sentTo || {})[name] || [];
+  return arr.some(h => hammingHex(h, hash) <= 4);
 }
 
 // ---------- Utils ----------
