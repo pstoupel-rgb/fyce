@@ -20,7 +20,7 @@ const EVENTS = [
 // ---- Persistance locale ----
 const KEY = 'pp_v1';
 const store = {
-  data: { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null, badges:[], streak:0, lastActive:null, sentTo:{}, digests:[] },
+  data: { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null, badges:[], streak:0, lastActive:null, sentTo:{}, digests:[], groups:[] },
   load(){ try{ Object.assign(this.data, JSON.parse(localStorage.getItem(KEY)||'{}')); }catch(_){} },
   save(){ localStorage.setItem(KEY, JSON.stringify(this.data)); },
 };
@@ -497,7 +497,7 @@ async function shareRecap(){
 function wipe(){
   if (!confirm('Delete your faceprint and all local data?')) return;
   localStorage.removeItem(KEY);
-  store.data = { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null, badges:[], streak:0, lastActive:null, sentTo:{}, digests:[] };
+  store.data = { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null, badges:[], streak:0, lastActive:null, sentTo:{}, digests:[], groups:[] };
   ensureRefCode();
   state.refDescriptor = null; clearMatches(); clearFriendMatches();
   el.friendsGrid.innerHTML = ''; el.fHead.hidden = true;

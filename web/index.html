@@ -148,6 +148,40 @@
     <div id="friendsGrid" class="grid"></div>
   </section>
 
+  <!-- ÉCRAN : Fiche ami (swipe façon Tinder) -->
+  <section class="screen" data-screen="frienddetail" hidden>
+    <button class="back" data-nav="friends">‹ Friends</button>
+    <div class="fd-head">
+      <div id="fdAvatar" class="avatar sm"></div>
+      <div><div id="fdName" class="me-hi">Friend</div><div id="fdSub" class="me-sub"></div></div>
+    </div>
+    <div class="fd-tabs">
+      <button class="fd-tab" data-fd="new" aria-selected="true">New photos</button>
+      <button class="fd-tab" data-fd="shared" aria-selected="false">Shared</button>
+    </div>
+
+    <div id="fdNew">
+      <label class="btn btn-primary" id="fdImportBtn">
+        <input id="fdInput" type="file" accept="image/*" multiple hidden>
+        📥 Scan my photos
+      </label>
+      <p class="micro">On-device. In the native app this scans your library automatically.</p>
+      <div id="deck" class="deck-stack"></div>
+      <div id="deckEmpty" class="placeholder" hidden>
+        <div class="ph-icon">📷</div><h3>No new photos</h3><p>Import photos to review new ones of this friend.</p>
+      </div>
+      <div id="deckActions" class="deck-actions" hidden>
+        <button class="deck-btn no" data-a="no" aria-label="Skip">✗</button>
+        <button class="deck-btn trash" data-a="trash" aria-label="Remove">🗑️</button>
+        <button class="deck-btn yes" data-a="yes" aria-label="Share">✓</button>
+      </div>
+    </div>
+
+    <div id="fdShared" hidden>
+      <p class="hint" id="fdSharedInfo" style="text-align:center;padding:8px 0"></p>
+    </div>
+  </section>
+
 </main>
 
 <!-- Barre d'onglets (navigation principale) -->
