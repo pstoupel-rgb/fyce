@@ -598,17 +598,22 @@ async function onFriendPhotos(files){
   el.friendsGrid.innerHTML = ''; el.fEmpty.hidden = true; el.fHead.hidden = true; el.fProgress.hidden = false;
   const people = knownPeople();
   const th = +store.data.threshold;
+  let dup = 0;
 
   for (let i = 0; i < files.length; i++){
     el.fBar.style.width = `${(i + 1) / files.length * 100}%`;
     el.fProgressTxt.textContent = `Analyzing ${i + 1}/${files.length} — ${state.friendMatches.length} found`;
     try {
       const m = await analyzeFriends(files[i], people, th);
-      if (m){ state.friendMatches.push(m); renderFriendsGrid(); }
+      if (m){
+        if (isDuplicatePhoto(m.hash)) dup++;
+        else { state.friendMatches.push(m); renderFriendsGrid(); }
+      }
     } catch (_) {}
     await raf();
   }
   el.fProgress.hidden = true;
+  if (dup) toast(`⚠️ ${dup} duplicate photo(s) skipped`);
   if (!state.friendMatches.length){ el.fEmpty.hidden = false; }
   else { el.fHead.hidden = false; el.fCount.textContent = `${state.friendMatches.length} photo(s) of you`; }
 }
@@ -637,7 +642,7 @@ async function analyzeFriends(file, people, threshold){
 
   const thumb = toCanvas(img, 300).toDataURL('image/jpeg', 0.72);
   const url = img.src; state.friendUrls.push(url);
-  return { id:`${file.name}-${file.size}-${file.lastModified}`, file, url, thumb, who:[...present], faces, blurred:new Set() };
+  return { id:`${file.name}-${file.size}-${file.lastModified}`, file, url, thumb, who:[...present], faces, blurred:new Set(), hash: pHash(canvas) };
 }
 
 function renderFriendsGrid(){
@@ -700,20 +705,22 @@ function openShareFriend(id){
 // Envoi manuel : pas de reconnaissance (ex. photos où seul l'enfant d'un ami apparaît).
 async function onManualPhotos(files){
   if (!files.length) return;
-  el.fEmpty.hidden = true;
+  el.fEmpty.hidden = true; let dup = 0;
   for (const file of files){
     try {
       const img = await loadImage(file);
+      const hash = pHash(img);
+      if (isDuplicatePhoto(hash)){ dup++; URL.revokeObjectURL(img.src); continue; }
       const thumb = toCanvas(img, 300).toDataURL('image/jpeg', 0.72);
       state.friendUrls.push(img.src);
-      state.friendMatches.unshift({ id:`m-${file.name}-${file.size}-${file.lastModified}`, file, url:img.src, thumb, who:[], faces:[], blurred:new Set() });
+      state.friendMatches.unshift({ id:`m-${file.name}-${file.size}-${file.lastModified}`, file, url:img.src, thumb, who:[], faces:[], blurred:new Set(), hash });
     } catch (_) {}
     await raf();
   }
   el.fHead.hidden = false;
   el.fCount.textContent = `${state.friendMatches.length} photo(s)`;
   renderFriendsGrid();
-  toast('Tap a photo then choose the friend to send it to');
+  toast(dup ? `⚠️ ${dup} duplicate(s) skipped · ${state.friendMatches.length} photo(s)` : 'Tap a photo then choose the friend to send it to');
 }
 
 async function sharePhoto(m, who){
@@ -909,6 +916,26 @@ async function shareStory(){
   } catch (_) { toast('Could not build the story.'); }
 }
 
+// ---------- Détection de doublons (empreinte perceptuelle aHash) ----------
+function pHash(src){
+  const c = document.createElement('canvas'); c.width = 8; c.height = 8;
+  const ctx = c.getContext('2d'); ctx.drawImage(src, 0, 0, 8, 8);
+  const d = ctx.getImageData(0, 0, 8, 8).data; const g = new Array(64); let sum = 0;
+  for (let i = 0; i < 64; i++){ const v = 0.299 * d[i*4] + 0.587 * d[i*4+1] + 0.114 * d[i*4+2]; g[i] = v; sum += v; }
+  const mean = sum / 64; let hex = '';
+  for (let i = 0; i < 64; i += 4){ let nib = 0; for (let j = 0; j < 4; j++) nib = (nib << 1) | (g[i+j] > mean ? 1 : 0); hex += nib.toString(16); }
+  return hex;
+}
+function hammingHex(a, b){
+  let d = 0;
+  for (let i = 0; i < a.length; i++){ let x = parseInt(a[i], 16) ^ parseInt(b[i], 16); while (x){ d += x & 1; x >>= 1; } }
+  return d;
+}
+// Doublon si l'empreinte est très proche d'une photo déjà ajoutée (Hamming ≤ 4).
+function isDuplicatePhoto(hash){
+  return !!hash && state.friendMatches.some(m => m.hash && hammingHex(m.hash, hash) <= 4);
+}
+
 // ---------- Utils ----------
 function loadImage(file){
   return new Promise((res, rej) => { const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=URL.createObjectURL(file); });
@@ -928,6 +955,6 @@ const raf = () => new Promise(r => requestAnimationFrame(() => r()));
 function registerSW(){ if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js').catch(()=>{}); }
 
 // Exposé pour tests/déboguage
-window.__pp = { store, state, showScreen, renderGrid, renderPoints, openUnlock, renderFriendsRow, renderFriendsGrid, openShareFriend, buildStoryCanvas, confetti };
+window.__pp = { store, state, showScreen, renderGrid, renderPoints, openUnlock, renderFriendsRow, renderFriendsGrid, openShareFriend, buildStoryCanvas, confetti, onManualPhotos, pHash, hammingHex };
 
 init();
