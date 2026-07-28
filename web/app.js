@@ -62,7 +62,7 @@ const el = {};
  'recapSheet','recapTitle','recapHero','recapGrid','recapShare','recapClose','storyStyles',
  'streakChip','badgesBtn','badgesSheet','badgesStreak','badgesList','badgesClose',
  'digestBtn','digestBanner','digestSheet','digestList','digestForm','dgName','dgChannel','dgFaces','dgFreq','dgSave','digestNew','digestInput','digestClose',
- 'menuBtn','menuSheet','threshold','threshVal','sbStatus','wipeBtn','menuClose','toast',
+ 'menuBtn','menuSheet','threshold','threshVal','sbStatus','wipeBtn','menuClose','toast','tabbar',
  'joinBtn',
  'friendsCard','friendsRow','friendPhotoInput','importFriendsBtn','friendsPhotosInput','manualShareBtn','manualInput',
  'fProgress','fBar','fProgressTxt','fEmpty','fHead','fCount','friendsGrid',
@@ -77,6 +77,19 @@ function showScreen(name){
   document.querySelectorAll('[data-screen]').forEach(s => s.hidden = s.dataset.screen !== name);
   const cur = document.querySelector(`[data-screen="${name}"]`);
   if (cur){ cur.classList.remove('enter'); void cur.offsetWidth; cur.classList.add('enter'); }
+  updateTabbar(name);
+}
+function updateTabbar(name){
+  if (!el.tabbar) return;
+  el.tabbar.hidden = (name === 'onboarding');
+  const active = { home:'events', event:'events', friends:'friends' }[name];
+  el.tabbar.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === active)));
+}
+function selectTab(tab){
+  if (tab === 'events') showScreen('home');
+  else if (tab === 'friends'){ renderFriendsRow(); showScreen('friends'); }
+  else if (tab === 'wallet') openWallet();
+  else if (tab === 'you') open('menuSheet');
 }
 document.querySelectorAll('[data-nav]').forEach(b => b.addEventListener('click', () => showScreen(b.dataset.nav)));
 
@@ -143,6 +156,7 @@ function wire(){
   el.photosInput.addEventListener('change', e => onPhotos([...e.target.files]));
   el.walletPill.addEventListener('click', openWallet);
   el.walletClose.addEventListener('click', () => close('walletSheet'));
+  el.tabbar.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => selectTab(t.dataset.tab)));
   el.menuBtn.addEventListener('click', () => open('menuSheet'));
   el.menuClose.addEventListener('click', () => close('menuSheet'));
   el.badgesBtn.addEventListener('click', () => { close('menuSheet'); openBadges(); });
