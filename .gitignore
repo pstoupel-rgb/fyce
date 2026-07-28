@@ -20,3 +20,7 @@ Secrets.xcconfig
 
 # macOS
 .DS_Store
+
+# Deck de présentation (gros binaires, régénérables)
+docs/poze-deck.html
+docs/Poze-Walkthrough.pdf
