@@ -640,7 +640,7 @@ async function onFriendPhotos(files){
   el.fProgress.hidden = true;
   if (dup) toast(`⚠️ ${dup} duplicate photo(s) skipped`);
   if (!state.friendMatches.length){ el.fEmpty.hidden = false; }
-  else { el.fHead.hidden = false; el.fCount.textContent = `${state.friendMatches.length} photo(s) of you`; }
+  else { el.fHead.hidden = false; el.fCount.textContent = `${state.friendMatches.length} photo(s) of you & friends`; }
 }
 
 async function analyzeFriends(file, people, threshold){
@@ -662,8 +662,8 @@ async function analyzeFriends(file, people, threshold){
     const box = r.detection.box;                // position normalisée (0-1)
     return { x:box.x/cw, y:box.y/ch, w:box.width/cw, h:box.height/ch, name };
   });
-  // On garde les photos où TOI es présent (photos de toi & tes amis).
-  if (!present.has('You')){ URL.revokeObjectURL(img.src); return null; }
+  // On garde toute photo contenant une personne connue (toi OU un ami).
+  if (present.size === 0){ URL.revokeObjectURL(img.src); return null; }
 
   const thumb = toCanvas(img, 300).toDataURL('image/jpeg', 0.72);
   const url = img.src; state.friendUrls.push(url);
