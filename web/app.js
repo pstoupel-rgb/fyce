@@ -20,7 +20,7 @@ const EVENTS = [
 // ---- Persistance locale ----
 const KEY = 'pp_v1';
 const store = {
-  data: { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null, badges:[] },
+  data: { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null, badges:[], streak:0, lastActive:null },
   load(){ try{ Object.assign(this.data, JSON.parse(localStorage.getItem(KEY)||'{}')); }catch(_){} },
   save(){ localStorage.setItem(KEY, JSON.stringify(this.data)); },
 };
@@ -37,6 +37,7 @@ const state = {
   selectMode:false,
   selected:new Set(),
   faceTarget:null,
+  storyStyle:'aurora',
   backend:false,        // passe à true si Supabase est configuré (voir maybeInitBackend)
   BE:null,
 };
@@ -57,7 +58,8 @@ const el = {};
  'eventList','evTitle','evMeta','photosInput','loadBtn','evProgress','evBar','evProgressTxt','evEmpty','matchHead','matchCount','recapBtn','grid',
  'unlockSheet','unlockImg','unlockTitle','unlockDesc','unlockConfirm','unlockDownload','unlockClose',
  'walletSheet','walletBal','contribBtn','simEarn','history','walletClose',
- 'recapSheet','recapTitle','recapHero','recapGrid','recapShare','recapClose',
+ 'recapSheet','recapTitle','recapHero','recapGrid','recapShare','recapClose','storyStyles',
+ 'streakChip','badgesBtn','badgesSheet','badgesStreak','badgesList','badgesClose',
  'menuBtn','menuSheet','threshold','threshVal','sbStatus','wipeBtn','menuClose','toast',
  'joinBtn',
  'friendsCard','friendsRow','friendPhotoInput','importFriendsBtn','friendsPhotosInput','manualShareBtn','manualInput',
@@ -71,6 +73,8 @@ const el = {};
 // ---------- Navigation ----------
 function showScreen(name){
   document.querySelectorAll('[data-screen]').forEach(s => s.hidden = s.dataset.screen !== name);
+  const cur = document.querySelector(`[data-screen="${name}"]`);
+  if (cur){ cur.classList.remove('enter'); void cur.offsetWidth; cur.classList.add('enter'); }
 }
 document.querySelectorAll('[data-nav]').forEach(b => b.addEventListener('click', () => showScreen(b.dataset.nav)));
 
@@ -96,6 +100,7 @@ async function init(){
   renderPoints();
   renderEvents();
   updateSupabaseStatus();
+  updateStreak();
   wire();
   maybeInitBackend();   // se branche sur Supabase si configuré (sinon : mode local)
 
@@ -137,6 +142,12 @@ function wire(){
   el.walletClose.addEventListener('click', () => close('walletSheet'));
   el.menuBtn.addEventListener('click', () => open('menuSheet'));
   el.menuClose.addEventListener('click', () => close('menuSheet'));
+  el.badgesBtn.addEventListener('click', () => { close('menuSheet'); openBadges(); });
+  el.badgesClose.addEventListener('click', () => close('badgesSheet'));
+  el.storyStyles.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+    state.storyStyle = btn.dataset.style;
+    el.storyStyles.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+  }));
   el.recapBtn.addEventListener('click', openRecap);
   el.recapClose.addEventListener('click', () => close('recapSheet'));
   el.recapShare.addEventListener('click', shareStory);
@@ -377,17 +388,44 @@ function chime(kind = 'success'){
 }
 
 const BADGES = {
-  first_develop: '🏆 First reveal',
-  five_photos:   '🎉 5 photos developed',
-  first_share:   '📲 Storyteller',
-  first_friend:  '🤝 First friend added',
+  first_develop: { icon:'✨', title:'First reveal', desc:'You developed your first photo' },
+  five_photos:   { icon:'🎉', title:'Regular',      desc:'5 photos developed' },
+  first_share:   { icon:'📲', title:'Storyteller',  desc:'You shared your first Story' },
+  first_friend:  { icon:'🤝', title:'Connector',    desc:'You added your first friend' },
 };
 function earnBadge(key){
   store.data.badges = store.data.badges || [];
   if (store.data.badges.includes(key) || !BADGES[key]) return;
   store.data.badges.push(key); store.save();
   confetti(); vibrate(45); chime('develop');
-  toast(`Badge unlocked · ${BADGES[key]}`);
+  toast(`Badge unlocked · ${BADGES[key].icon} ${BADGES[key].title}`);
+}
+function openBadges(){
+  const earned = store.data.badges || [];
+  el.badgesList.innerHTML = Object.entries(BADGES).map(([k, b]) => {
+    const has = earned.includes(k);
+    return `<div class="badge-item ${has ? '' : 'locked'}"><span class="ico">${has ? b.icon : '🔒'}</span>` +
+      `<div><div class="bt">${b.title}</div><div class="bd">${b.desc}</div></div></div>`;
+  }).join('');
+  el.badgesStreak.textContent = `🔥 ${store.data.streak || 0} night streak`;
+  open('badgesSheet');
+}
+
+// ---------- Streak (soirées d'affilée) ----------
+function updateStreak(){
+  const today = new Date().toISOString().slice(0, 10);
+  if (store.data.lastActive !== today){
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    store.data.streak = (store.data.lastActive === yesterday) ? (store.data.streak || 0) + 1 : 1;
+    store.data.lastActive = today; store.save();
+  }
+  renderStreak();
+}
+function renderStreak(){
+  const s = store.data.streak || 0;
+  if (!el.streakChip) return;
+  el.streakChip.hidden = s < 1;
+  const b = el.streakChip.querySelector('b'); if (b) b.textContent = s;
 }
 function addPoints(n, label){
   store.data.points += n;
@@ -434,7 +472,7 @@ async function shareRecap(){
 function wipe(){
   if (!confirm('Delete your faceprint and all local data?')) return;
   localStorage.removeItem(KEY);
-  store.data = { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null, badges:[] };
+  store.data = { face:null, faceThumb:null, points:0, unlocked:[], history:[], threshold:0.55, started:false, friends:[], refCode:'', invitedBy:null, badges:[], streak:0, lastActive:null };
   ensureRefCode();
   state.refDescriptor = null; clearMatches(); clearFriendMatches();
   el.friendsGrid.innerHTML = ''; el.fHead.hidden = true;
@@ -816,11 +854,20 @@ async function buildStoryCanvas(){
   const W = 1080, H = 1920;
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, W, H);
-  for (const [x, y, col] of [[0.2, 0.14, 'rgba(124,92,255,.85)'], [0.85, 0.12, 'rgba(34,211,238,.7)'], [0.62, 0.9, 'rgba(255,93,162,.6)'], [0.1, 0.86, 'rgba(124,92,255,.5)']]){
+  const PALETTES = {
+    aurora: { base:'#0a0a14', blobs:[[0.2,0.14,'rgba(124,92,255,.85)'],[0.85,0.12,'rgba(34,211,238,.7)'],[0.62,0.9,'rgba(255,93,162,.6)'],[0.1,0.86,'rgba(124,92,255,.5)']] },
+    neon:   { base:'#05060a', blobs:[[0.15,0.1,'rgba(0,255,200,.8)'],[0.9,0.15,'rgba(120,0,255,.85)'],[0.5,0.95,'rgba(255,0,140,.7)'],[0.85,0.8,'rgba(0,200,255,.55)']] },
+    film:   { base:'#181310', blobs:[[0.25,0.15,'rgba(255,170,90,.6)'],[0.85,0.2,'rgba(200,80,60,.5)'],[0.5,0.92,'rgba(120,60,40,.6)'],[0.12,0.85,'rgba(255,140,70,.4)']] },
+  };
+  const pal = PALETTES[state.storyStyle] || PALETTES.aurora;
+  ctx.fillStyle = pal.base; ctx.fillRect(0, 0, W, H);
+  for (const [x, y, col] of pal.blobs){
     const g = ctx.createRadialGradient(x * W, y * H, 0, x * W, y * H, W * 0.62);
-    g.addColorStop(0, col); g.addColorStop(1, 'rgba(10,10,20,0)');
+    g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+  if (state.storyStyle === 'film'){
+    for (let i = 0; i < 2600; i++){ ctx.fillStyle = `rgba(255,240,220,${Math.random() * 0.05})`; ctx.fillRect(Math.random() * W, Math.random() * H, 2, 2); }
   }
   ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
   ctx.font = '800 62px -apple-system,"Segoe UI",Roboto,sans-serif'; ctx.fillText('Poze', W / 2, 150);

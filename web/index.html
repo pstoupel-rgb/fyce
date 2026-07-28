@@ -56,6 +56,7 @@
         <div class="me-hi">Hi 👋</div>
         <div class="me-sub">Your events</div>
       </div>
+      <span id="streakChip" class="streak" hidden style="margin-left:auto">🔥 <b>0</b></span>
       <button id="menuBtn" class="iconbtn" aria-label="Menu">⋯</button>
     </div>
 
@@ -197,6 +198,11 @@
     </div>
     <div id="recapHero" class="recap-hero"></div>
     <div id="recapGrid" class="recap-grid"></div>
+    <div class="story-styles" id="storyStyles">
+      <button data-style="aurora" aria-pressed="true">Aurora</button>
+      <button data-style="neon" aria-pressed="false">Neon</button>
+      <button data-style="film" aria-pressed="false">Film</button>
+    </div>
     <button id="recapShare" class="btn btn-primary">✨ Share my Story (+2)</button>
     <button id="recapClose" class="btn btn-plain">Close</button>
   </div>
@@ -207,6 +213,7 @@
   <div class="sheet">
     <div class="grab"></div>
     <h3>Menu</h3>
+    <button class="btn btn-bordered" id="badgesBtn" type="button" style="margin-top:2px">🏆 My badges</button>
     <div class="group">
       <div class="item">
         <span>Sensitivity</span>
@@ -235,6 +242,17 @@
     <p id="shWho" class="hint" style="text-align:center"></p>
     <div id="shBtns"></div>
     <button id="shClose" class="btn btn-plain">Close</button>
+  </div>
+</div>
+
+<!-- Feuille : mes badges -->
+<div id="badgesSheet" class="backdrop" hidden>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h3>My badges 🏆</h3>
+    <div id="badgesStreak" class="streak" style="margin:0 auto 16px;display:table"></div>
+    <div id="badgesList"></div>
+    <button id="badgesClose" class="btn btn-plain">Close</button>
   </div>
 </div>
 

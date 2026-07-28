@@ -196,6 +196,19 @@ body::before{
 .facebox.known .tag{background:var(--money);color:#062a1d}
 
 /* Motion & delight */
+.screen.enter{animation:screenIn .34s cubic-bezier(.2,.8,.2,1)}
+@keyframes screenIn{from{opacity:0;transform:translateY(12px) scale(.994)}to{opacity:1;transform:none}}
+.streak{display:inline-flex;align-items:center;gap:4px;font-weight:800;font-size:14px;background:rgba(255,93,162,.14);
+  border:1px solid rgba(255,93,162,.35);color:#ff8fbf;border-radius:999px;padding:5px 11px}
+.badge-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.badge-item .ico{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;
+  background:var(--card);border:1px solid var(--line);flex:none}
+.badge-item.locked{opacity:.4} .badge-item.locked .ico{filter:grayscale(1)}
+.badge-item .bt{font-weight:800;font-size:15px} .badge-item .bd{color:var(--muted);font-size:13px}
+.story-styles{display:flex;gap:8px;justify-content:center;margin:0 0 14px}
+.story-styles button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;
+  padding:7px 14px;font-weight:700;font-size:13px;cursor:pointer}
+.story-styles button[aria-pressed="true"]{background:var(--grad);color:#0a0a14;border-color:transparent}
 .btn{transition:transform .12s ease, box-shadow .2s ease}
 .btn:active{transform:scale(.97)}
 .tile img{transition:filter .8s ease, transform .8s ease}
