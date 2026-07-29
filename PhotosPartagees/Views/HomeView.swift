@@ -128,7 +128,13 @@ struct HomeView: View {
     private var friendsSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             SectionLabel(title: "Amis") {
-                Button { sheet = .addFriend } label: { addGlyph }
+                HStack(spacing: 14) {
+                    Button { sheet = .tagFaces } label: {
+                        Image(systemName: "viewfinder.circle").font(.body).foregroundStyle(Theme.muted)
+                    }
+                    .accessibilityLabel("Identifier un visage sur une photo")
+                    Button { sheet = .addFriend } label: { addGlyph }
+                }
             }
             if store.friends.isEmpty {
                 EmptyLine(text: "Ajoute un ami depuis une photo : l'app retrouvera ensuite toutes tes photos de lui.") { sheet = .addFriend }
@@ -175,6 +181,7 @@ struct HomeView: View {
         case .joinEvent:           EventJoinView(store: store)
         case .addFriend:           AddFriendView(store: store)
         case .activity:            ActivityFeedView()
+        case .tagFaces:            TagFacesView(store: store)
         }
     }
 }
@@ -183,7 +190,7 @@ struct HomeView: View {
 enum HomeSheet: Identifiable {
     case newGroup, editGroup(FriendGroup)
     case newEvent, editEvent(PozeEvent), shareEvent(PozeEvent), eventCloud(PozeEvent), joinEvent
-    case addFriend, activity
+    case addFriend, activity, tagFaces
 
     var id: String {
         switch self {
@@ -196,6 +203,7 @@ enum HomeSheet: Identifiable {
         case .joinEvent: return "joinEvent"
         case .addFriend: return "addFriend"
         case .activity: return "activity"
+        case .tagFaces: return "tagFaces"
         }
     }
 }

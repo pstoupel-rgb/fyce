@@ -55,6 +55,30 @@ final class FaceDetectionService: FaceDetecting, @unchecked Sendable {
         return first
     }
 
+    /// Détecte les visages avec leur position (pour l'écran de tagging manuel) :
+    /// bounding box normalisée **origine haut-gauche** (prête pour SwiftUI),
+    /// empreinte, et vignette recadrée.
+    func detectedFaces(in image: UIImage) throws -> [DetectedFace] {
+        guard let cgImage = image.cgImage else { throw FaceError.invalidImage }
+        let orientation = cgImageOrientation(from: image.imageOrientation)
+        let faces = try detectFaces(in: cgImage, orientation: orientation)
+        let ciImage = CIImage(cgImage: cgImage)
+
+        var results: [DetectedFace] = []
+        for face in faces {
+            let b = face.boundingBox   // normalisé, origine bas-gauche
+            let box = CGRect(x: b.minX, y: 1 - b.maxY, width: b.width, height: b.height)
+            guard let cropped = cropFace(face, from: ciImage, imageSize: cgImage.size),
+                  let print = try? featurePrint(for: cropped) else { continue }
+            var crop: UIImage?
+            if let cg = ciContext.createCGImage(cropped, from: cropped.extent) {
+                crop = UIImage(cgImage: cg)
+            }
+            results.append(DetectedFace(boundingBox: box, print: print, crop: crop))
+        }
+        return results
+    }
+
     // MARK: - Étapes Vision
 
     private func detectFaces(in cgImage: CGImage, orientation: CGImagePropertyOrientation) throws -> [VNFaceObservation] {

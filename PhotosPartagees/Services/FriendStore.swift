@@ -19,7 +19,7 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
     private let defaults: UserDefaults
     // _v2 : les blobs sont désormais chiffrés au repos (AES-GCM). On ne relit pas
     // l'ancien format en clair — la biométrie ne doit jamais rester déchiffrable.
-    private let friendsKey = "friends_v2"
+    private let friendsKey = "friends_v3"   // v3 : multi-références par ami
     private let groupsKey = "groups_v2"
     private let eventsKey = "events_v2"
     private let sharedKeyPrefix = "review_shared_"    // + historyKey
@@ -61,6 +61,13 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
     func link(_ friend: Friend, toUserID userID: String) {
         guard let idx = friends.firstIndex(where: { $0.id == friend.id }) else { return }
         friends[idx].remoteUserID = userID
+        persistFriends()
+    }
+
+    /// Ajoute une empreinte de référence à un ami (tagging manuel → l'app apprend).
+    func addReference(_ print: VNFeaturePrintObservation, to friend: Friend) {
+        guard let idx = friends.firstIndex(where: { $0.id == friend.id }) else { return }
+        friends[idx].addReference(print)
         persistFriends()
     }
 
@@ -227,12 +234,13 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
 
     private func encodeFriend(_ friend: Friend) -> Data? {
         do {
-            let printData = try NSKeyedArchiver.archivedData(
-                withRootObject: friend.referencePrint, requiringSecureCoding: true)
+            // Toutes les empreintes de référence (multi-références).
+            let printsData = try NSKeyedArchiver.archivedData(
+                withRootObject: friend.referencePrints, requiringSecureCoding: true)
             var dict: [String: Any] = [
                 "id": friend.id.uuidString,
                 "name": friend.name,
-                "print": printData,
+                "prints": printsData,
                 "isMinor": friend.isMinor,
                 "parentalConsent": friend.parentalConsent
             ]
@@ -251,16 +259,18 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
 
     private func decodeFriend(_ data: Data) -> Friend? {
         do {
-            let allowed: [AnyClass] = [NSDictionary.self, NSString.self, NSData.self,
+            let allowed: [AnyClass] = [NSDictionary.self, NSArray.self, NSString.self, NSData.self,
                                        NSNumber.self, VNFeaturePrintObservation.self]
             guard let dict = try NSKeyedUnarchiver.unarchivedObject(
                     ofClasses: allowed, from: data) as? [String: Any],
                   let idString = dict["id"] as? String,
                   let id = UUID(uuidString: idString),
                   let name = dict["name"] as? String,
-                  let printData = dict["print"] as? Data,
-                  let print = try NSKeyedUnarchiver.unarchivedObject(
-                    ofClass: VNFeaturePrintObservation.self, from: printData)
+                  let printsData = dict["prints"] as? Data,
+                  let prints = try NSKeyedUnarchiver.unarchivedObject(
+                    ofClasses: [NSArray.self, VNFeaturePrintObservation.self],
+                    from: printsData) as? [VNFeaturePrintObservation],
+                  !prints.isEmpty
             else { return nil }
 
             var thumb: UIImage?
@@ -269,7 +279,7 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
             let consent = dict["parentalConsent"] as? Bool ?? false
             let contact = dict["parentContact"] as? String
             let remoteUID = dict["remoteUserID"] as? String
-            return Friend(id: id, name: name, referencePrint: print, thumbnail: thumb,
+            return Friend(id: id, name: name, referencePrints: prints, thumbnail: thumb,
                           isMinor: isMinor, parentalConsent: consent, parentContact: contact,
                           remoteUserID: remoteUID)
         } catch {

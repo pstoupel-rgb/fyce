@@ -30,7 +30,7 @@ struct ReviewSubject {
                       title: f.name,
                       subtitle: "Tes photos de \(f.name)",
                       colorway: .aurora,
-                      references: [f.referencePrint],
+                      references: f.referencePrints,
                       avatars: [f.thumbnail])
     }
 
@@ -39,7 +39,7 @@ struct ReviewSubject {
                       title: g.name,
                       subtitle: "\(members.count) membre\(members.count > 1 ? "s" : "")",
                       colorway: g.colorway,
-                      references: members.map(\.referencePrint),
+                      references: members.flatMap(\.referencePrints),
                       avatars: members.map(\.thumbnail))
     }
 
@@ -48,7 +48,7 @@ struct ReviewSubject {
                       title: e.name,
                       subtitle: e.date.formatted(date: .abbreviated, time: .omitted),
                       colorway: e.colorway,
-                      references: members.map(\.referencePrint),
+                      references: members.flatMap(\.referencePrints),
                       avatars: members.map(\.thumbnail))
     }
 }
