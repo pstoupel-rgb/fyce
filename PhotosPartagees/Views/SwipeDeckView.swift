@@ -4,7 +4,7 @@ import SwiftUI
 /// passer, vers le bas pour supprimer du téléphone. Les boutons ✓ ✗ 🗑️ dupliquent
 /// ces gestes pour l'accessibilité.
 struct SwipeDeckView: View {
-    @ObservedObject var viewModel: FriendReviewViewModel
+    @ObservedObject var viewModel: ReviewViewModel
 
     /// Décalage de la carte du dessus pendant le glissé.
     @State private var drag: CGSize = .zero
@@ -109,7 +109,7 @@ struct SwipeDeckView: View {
             Text("Tout est trié 🎉")
                 .font(.headline)
             if viewModel.keptThisSession > 0 {
-                Text("\(viewModel.keptThisSession) photo\(viewModel.keptThisSession > 1 ? "s" : "") gardée\(viewModel.keptThisSession > 1 ? "s" : "") pour \(viewModel.friend.name)")
+                Text("\(viewModel.keptThisSession) photo\(viewModel.keptThisSession > 1 ? "s" : "") gardée\(viewModel.keptThisSession > 1 ? "s" : "") pour \(viewModel.subject.title)")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

@@ -4,7 +4,56 @@ import Photos
 import Vision
 import os
 
-/// Une photo proposée à la revue pour un ami (image chargée pour l'affichage).
+/// Stockage de l'historique « gardé / passé » d'un sujet de revue, keyé par une
+/// chaîne stable (id d'ami, de groupe ou d'event).
+@MainActor
+protocol ReviewHistoryStoring: AnyObject {
+    func sharedIDs(forKey key: String) -> Set<String>
+    func skippedIDs(forKey key: String) -> Set<String>
+    func markShared(_ photoID: String, forKey key: String)
+    func markSkipped(_ photoID: String, forKey key: String)
+    func resetHistory(forKey key: String)
+}
+
+/// Ce que l'on passe en revue : un ami, un groupe ou un event. On le décrit par
+/// ses empreintes de référence (un ou plusieurs visages), un titre et des avatars.
+struct ReviewSubject {
+    let historyKey: String
+    let title: String
+    let subtitle: String
+    let colorway: Colorway
+    let references: [VNFeaturePrintObservation]
+    let avatars: [UIImage?]
+
+    static func friend(_ f: Friend) -> ReviewSubject {
+        ReviewSubject(historyKey: f.id.uuidString,
+                      title: f.name,
+                      subtitle: "Tes photos de \(f.name)",
+                      colorway: .aurora,
+                      references: [f.referencePrint],
+                      avatars: [f.thumbnail])
+    }
+
+    static func group(_ g: FriendGroup, members: [Friend]) -> ReviewSubject {
+        ReviewSubject(historyKey: g.id.uuidString,
+                      title: g.name,
+                      subtitle: "\(members.count) membre\(members.count > 1 ? "s" : "")",
+                      colorway: g.colorway,
+                      references: members.map(\.referencePrint),
+                      avatars: members.map(\.thumbnail))
+    }
+
+    static func event(_ e: PozeEvent, members: [Friend]) -> ReviewSubject {
+        ReviewSubject(historyKey: e.id.uuidString,
+                      title: e.name,
+                      subtitle: e.date.formatted(date: .abbreviated, time: .omitted),
+                      colorway: e.colorway,
+                      references: members.map(\.referencePrint),
+                      avatars: members.map(\.thumbnail))
+    }
+}
+
+/// Une photo proposée à la revue (image chargée pour l'affichage).
 struct ReviewPhoto: Identifiable, Equatable {
     let id: String              // PHAsset.localIdentifier
     let asset: PHAsset
@@ -14,52 +63,49 @@ struct ReviewPhoto: Identifiable, Equatable {
     static func == (lhs: ReviewPhoto, rhs: ReviewPhoto) -> Bool { lhs.id == rhs.id }
 }
 
-/// Pilote la revue « façon Tinder » des photos d'un ami :
-/// scan de la pellicule → visages correspondants → file de nouvelles photos.
-/// Actions : garder (partager), passer, ou supprimer réellement du téléphone.
+/// Moteur de revue « façon Tinder » : scan de la pellicule (on-device) pour le
+/// sujet, file de nouvelles photos à trier, actions garder / passer / supprimer.
 @MainActor
-final class FriendReviewViewModel: ObservableObject {
+final class ReviewViewModel: ObservableObject {
 
     enum Phase: Equatable {
         case idle
         case needsAccess
+        case noReference
         case scanning(processed: Int, total: Int)
         case ready
         case error(String)
     }
 
     @Published var phase: Phase = .idle
-    /// File des nouvelles photos à trier (la première de la pile est celle du dessus).
     @Published var queue: [ReviewPhoto] = []
-    /// Photos déjà partagées avec cet ami (galerie).
     @Published var shared: [ReviewPhoto] = []
-    /// Nombre de photos gardées pendant cette session (pour le récap).
     @Published var keptThisSession = 0
 
-    let friend: Friend
+    let subject: ReviewSubject
 
+    private let store: ReviewHistoryStoring
     private let photoLibrary: PhotoLibraryProviding
     private let faceDetection: FaceDetecting
-    private let store: FriendStore
     private var scanTask: Task<Void, Never>?
 
-    init(friend: Friend,
-         store: FriendStore,
+    init(subject: ReviewSubject,
+         store: ReviewHistoryStoring,
          photoLibrary: PhotoLibraryProviding = PhotoLibraryService(),
          faceDetection: FaceDetecting = FaceDetectionService()) {
-        self.friend = friend
+        self.subject = subject
         self.store = store
         self.photoLibrary = photoLibrary
         self.faceDetection = faceDetection
     }
 
-    var topCard: ReviewPhoto? { queue.first }
     var remaining: Int { queue.count }
 
     // MARK: - Scan
 
     func start() {
         guard scanTask == nil else { return }
+        guard !subject.references.isEmpty else { phase = .noReference; return }
         scanTask = Task { await runScan() }
     }
 
@@ -77,16 +123,12 @@ final class FriendReviewViewModel: ObservableObject {
             }
         }
 
-        // Matcher dédié à cet ami (empreinte de référence = visage de l'ami).
-        let matcher = FaceMatcher()
-        matcher.setReference(friend.referencePrint)
-
+        let matcher = MultiFaceMatcher(references: subject.references)
         let photos = photoLibrary.fetchAllPhotos()
-        let sharedIDs = store.sharedIDs(for: friend)
-        let skippedIDs = store.skippedIDs(for: friend)
+        let sharedIDs = store.sharedIDs(forKey: subject.historyKey)
+        let skippedIDs = store.skippedIDs(forKey: subject.historyKey)
         phase = .scanning(processed: 0, total: photos.count)
-        queue = []
-        shared = []
+        queue = []; shared = []
 
         let scanner = FaceScanner(photoLibrary: photoLibrary,
                                   faceDetection: faceDetection, matcher: matcher)
@@ -120,14 +162,12 @@ final class FriendReviewViewModel: ObservableObject {
         }
 
         if Task.isCancelled { return }
-        // Trie la file par pertinence (meilleure correspondance en premier).
         queue.sort { $0.distance < $1.distance }
         await preloadThumbnails()
-        Logger.scan.info("Revue \(self.friend.name, privacy: .public) : \(self.queue.count) nouvelles, \(self.shared.count) partagées")
+        Logger.scan.info("Revue \(self.subject.title, privacy: .public) : \(self.queue.count) nouvelles, \(self.shared.count) partagées")
         phase = .ready
     }
 
-    /// Charge les images des quelques premières cartes + de la galerie partagée.
     private func preloadThumbnails() async {
         let target = CGSize(width: 900, height: 900)
         for i in queue.indices.prefix(6) {
@@ -143,7 +183,6 @@ final class FriendReviewViewModel: ObservableObject {
         }
     }
 
-    /// Charge l'image de la carte suivante au fil des swipes (préchargement doux).
     private func loadImageIfNeeded(at index: Int) {
         guard queue.indices.contains(index), queue[index].image == nil else { return }
         let asset = queue[index].asset
@@ -158,11 +197,11 @@ final class FriendReviewViewModel: ObservableObject {
 
     // MARK: - Actions de swipe
 
-    /// Swipe droite (✓) : garder pour partager avec cet ami.
+    /// Swipe droite (✓) : garder pour partager.
     func keepTop() {
         guard let card = queue.first else { return }
-        store.markShared(card.id, for: friend)
-        shared.insert(card, at: 0)   // conserve l'image déjà chargée
+        store.markShared(card.id, forKey: subject.historyKey)
+        shared.insert(card, at: 0)
         keptThisSession += 1
         popTop()
     }
@@ -170,22 +209,20 @@ final class FriendReviewViewModel: ObservableObject {
     /// Swipe gauche (✗) : passer, on ne le repropose plus.
     func skipTop() {
         guard let card = queue.first else { return }
-        store.markSkipped(card.id, for: friend)
+        store.markSkipped(card.id, forKey: subject.historyKey)
         popTop()
     }
 
-    /// Swipe bas (🗑️) : supprimer réellement la photo du téléphone.
-    /// iOS affiche sa propre confirmation système avant suppression.
+    /// Swipe bas (🗑️) : supprimer réellement la photo du téléphone (confirmation système iOS).
     func trashTop() async {
         guard let card = queue.first else { return }
         do {
             try await PHPhotoLibrary.shared().performChanges {
                 PHAssetChangeRequest.deleteAssets([card.asset] as NSArray)
             }
-            store.markSkipped(card.id, for: friend)  // ne pas la reproposer
+            store.markSkipped(card.id, forKey: subject.historyKey)
             popTop()
         } catch {
-            // L'utilisateur a annulé la confirmation système, ou erreur : on garde la carte.
             Logger.app.debug("Suppression annulée/échouée : \(error.localizedDescription, privacy: .public)")
         }
     }
@@ -195,13 +232,5 @@ final class FriendReviewViewModel: ObservableObject {
         queue.removeFirst()
         loadImageIfNeeded(at: 0)
         loadImageIfNeeded(at: 1)
-    }
-
-    func resetHistory() {
-        store.resetHistory(for: friend)
-        cancel()
-        scanTask = nil
-        phase = .idle
-        keptThisSession = 0
     }
 }

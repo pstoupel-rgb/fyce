@@ -1,34 +1,34 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var viewModel = ScanViewModel()
+    @StateObject private var scanViewModel = ScanViewModel()
+    @StateObject private var friendStore = FriendStore()
     @State private var showSettings = false
 
     var body: some View {
         TabView {
+            // Onglet « Accueil » : la vitrine — groupes, events et amis configurables.
+            HomeView()
+                .environmentObject(friendStore)
+                .tabItem { Label("Accueil", systemImage: "sparkles") }
+
             // Onglet « Moi » : le flux historique (mon visage → mes photos).
             NavigationStack {
-                ScanView(viewModel: viewModel)
-                    .navigationTitle("Poze")
+                ScanView(viewModel: scanViewModel)
+                    .navigationTitle("Moi")
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
-                            Button {
-                                showSettings = true
-                            } label: {
-                                Image(systemName: "gearshape")
-                            }
+                            Button { showSettings = true } label: { Image(systemName: "gearshape") }
                         }
                     }
                     .sheet(isPresented: $showSettings) {
-                        SettingsView(viewModel: viewModel)
+                        SettingsView(viewModel: scanViewModel)
                     }
             }
             .tabItem { Label("Moi", systemImage: "person.crop.square") }
-
-            // Onglet « Amis » : scan de la pellicule par ami + revue façon Tinder.
-            FriendsView()
-                .tabItem { Label("Amis", systemImage: "person.2.fill") }
         }
+        .tint(Theme.accent)
+        .preferredColorScheme(.dark)
     }
 }
 
