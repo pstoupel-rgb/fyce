@@ -32,6 +32,47 @@ actor EventBackendService {
     }
 
     struct RemoteEvent: Decodable { let id: String; let name: String; let join_code: String? }
+    struct RemotePhoto: Decodable, Identifiable { let id: String; let storage_path: String; let created_at: String? }
+
+    private let storage = SupabaseService()
+
+    // MARK: - Photos d'event
+
+    /// Envoie une photo au stockage et l'enregistre pour l'event distant.
+    func uploadEventPhoto(remoteEventID: String, data: Data,
+                          fileName: String, contentType: String) async throws {
+        guard isEnabled else { throw BackendError.notConfigured }
+        let token = try await ensureSession()
+
+        // 1) upload binaire dans le bucket Storage
+        let storagePath = try await storage.upload(
+            data: data, fileName: "events/\(remoteEventID)/\(fileName)", contentType: contentType)
+
+        // 2) enregistre la ligne photos (event_id, storage_path)
+        var request = restRequest(path: "rest/v1/photos", token: token)
+        request.httpMethod = "POST"
+        request.setValue("return=minimal", forHTTPHeaderField: "Prefer")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "event_id": remoteEventID, "storage_path": storagePath])
+        let (respData, response) = try await session.data(for: request)
+        try Self.check(response, respData)
+    }
+
+    /// Liste les photos partagées d'un event.
+    func listEventPhotos(remoteEventID: String) async throws -> [RemotePhoto] {
+        guard isEnabled else { throw BackendError.notConfigured }
+        let token = try await ensureSession()
+        let path = "rest/v1/photos?event_id=eq.\(remoteEventID)&select=id,storage_path,created_at&order=created_at.desc"
+        var request = restRequest(path: path, token: token)
+        request.httpMethod = "GET"
+        return try await send(request)
+    }
+
+    /// URL signée temporaire pour télécharger une photo (`bucket/objet`).
+    func signedURL(for storagePath: String) async throws -> URL {
+        guard isEnabled else { throw BackendError.notConfigured }
+        return try await storage.createSignedURL(path: storagePath, expiresIn: 3600)
+    }
 
     // MARK: - API publique
 
@@ -101,7 +142,11 @@ actor EventBackendService {
     // MARK: - Helpers
 
     private func restRequest(path: String, token: String) -> URLRequest {
-        var request = URLRequest(url: config.url.appendingPathComponent(path))
+        // Construit l'URL par concaténation pour préserver les query strings
+        // (appendingPathComponent encoderait `?`/`=`).
+        let base = config.url.absoluteString
+        let url = URL(string: base + "/" + path) ?? config.url
+        var request = URLRequest(url: url)
         request.setValue(config.anonKey, forHTTPHeaderField: "apikey")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

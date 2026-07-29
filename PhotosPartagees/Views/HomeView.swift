@@ -97,6 +97,9 @@ struct HomeView: View {
                             .buttonStyle(.plain)
                             .contextMenu {
                                 Button { sheet = .shareEvent(event) } label: { Label("Partager (QR code)", systemImage: "qrcode") }
+                                if EventBackendService.shared.isEnabled {
+                                    Button { sheet = .eventCloud(event) } label: { Label("Photos de l'event", systemImage: "icloud") }
+                                }
                                 Button { sheet = .editEvent(event) } label: { Label("Modifier", systemImage: "pencil") }
                                 Button(role: .destructive) { store.remove(event) } label: { Label("Supprimer", systemImage: "trash") }
                             }
@@ -158,6 +161,7 @@ struct HomeView: View {
         case .newEvent:            EventEditorView(store: store, event: nil)
         case .editEvent(let e):    EventEditorView(store: store, event: e)
         case .shareEvent(let e):   EventShareView(event: e)
+        case .eventCloud(let e):   EventCloudView(event: e, store: store)
         case .joinEvent:           EventJoinView(store: store)
         case .addFriend:           AddFriendView(store: store)
         }
@@ -167,7 +171,7 @@ struct HomeView: View {
 /// Les feuilles présentables depuis l'accueil.
 enum HomeSheet: Identifiable {
     case newGroup, editGroup(FriendGroup)
-    case newEvent, editEvent(PozeEvent), shareEvent(PozeEvent), joinEvent
+    case newEvent, editEvent(PozeEvent), shareEvent(PozeEvent), eventCloud(PozeEvent), joinEvent
     case addFriend
 
     var id: String {
@@ -177,6 +181,7 @@ enum HomeSheet: Identifiable {
         case .newEvent: return "newEvent"
         case .editEvent(let e): return "editEvent-\(e.id)"
         case .shareEvent(let e): return "shareEvent-\(e.id)"
+        case .eventCloud(let e): return "eventCloud-\(e.id)"
         case .joinEvent: return "joinEvent"
         case .addFriend: return "addFriend"
         }

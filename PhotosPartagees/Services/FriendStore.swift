@@ -92,6 +92,14 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
         resetHistory(forKey: event.id.uuidString)
     }
 
+    /// Mémorise l'identifiant serveur d'un event (après création/adhésion backend).
+    func setRemoteID(_ remoteID: String, for event: PozeEvent) {
+        guard let idx = events.firstIndex(where: { $0.id == event.id }) else { return }
+        guard events[idx].remoteID != remoteID else { return }
+        events[idx].remoteID = remoteID
+        persistEvents()
+    }
+
     // MARK: - Historique par sujet (ReviewHistoryStoring)
 
     func sharedIDs(forKey key: String) -> Set<String> {

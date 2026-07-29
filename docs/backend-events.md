@@ -54,11 +54,41 @@ SUPABASE_BUCKET = shared-photos
 Au prochain build, la création d'un event et le scan d'un QR appelleront le backend
 **en best-effort** (create event / `join_event`), sans jamais bloquer le flux local.
 
+## 5. Partage des photos d'event (push / pull)
+
+Une fois l'event synchronisé (créé ou rejoint → `remoteID` connu), l'écran
+**« Photos de l'event »** (menu contextuel sur une tuile event) permet de :
+
+- **push** : envoyer tes photos gardées pour l'event vers le Storage + insérer une
+  ligne dans `photos` (`event_id`, `storage_path`) ;
+- **pull** : lister les photos de l'event (`GET /rest/v1/photos?event_id=eq.…`), les
+  télécharger via URL signée, et les enregistrer dans ta pellicule.
+
+Politiques nécessaires (exemple) :
+
+```sql
+-- Storage : autoriser l'upload/lecture dans le bucket configuré (ex. shared-photos)
+-- via l'UI Storage → Policies, pour le rôle authenticated.
+
+create policy "members can add event photos"
+  on public.photos for insert to authenticated
+  with check (
+    event_id in (select event_id from public.event_members where user_id = auth.uid())
+  );
+
+create policy "members can read event photos"
+  on public.photos for select to authenticated
+  using (
+    event_id in (select event_id from public.event_members where user_id = auth.uid())
+  );
+```
+
 ## Limites (honnête)
 
 - Ce client REST **n'a pas été testé contre un projet live** — il est écrit pour
   s'activer proprement une fois les clés en place, mais prévois une passe de test.
-- Le **partage des photos** d'un event entre membres n'est pas encore branché :
-  l'upload/stockage existe déjà (`SupabaseService`), mais le lien photos↔event
-  (tables `photos` / `photo_faces`) reste à câbler. C'est la prochaine étape logique.
+- Le push/pull des photos est câblé côté app ; il faut les **politiques Storage +
+  `photos`** ci-dessus pour qu'il fonctionne réellement.
+- La reconnaissance faciale reste **on-device** : on ne pousse jamais d'empreinte
+  de visage au serveur, seulement les photos que tu choisis de partager.
 - Ne mets **jamais** la clé `service_role` dans l'app. Clé `anon` + RLS uniquement.

@@ -81,7 +81,11 @@ struct EventJoinView: View {
         store.addOrUpdate(event)
         // Best-effort : enregistre l'adhésion côté serveur si Supabase est configuré.
         if EventBackendService.shared.isEnabled {
-            Task { try? await EventBackendService.shared.joinEvent(code: invite.code) }
+            Task {
+                if let remoteID = try? await EventBackendService.shared.joinEvent(code: invite.code) {
+                    await MainActor.run { store.setRemoteID(remoteID, for: event) }
+                }
+            }
         }
         joined = event
     }

@@ -10,19 +10,24 @@ struct PozeEvent: Identifiable, Codable, Equatable {
     var colorway: Colorway
     var memberIDs: [UUID]
     var symbol: String
+    /// Identifiant de l'event côté serveur (Supabase), une fois créé/rejoint.
+    /// `nil` en mode local. Permet de lier les photos partagées à cet event.
+    var remoteID: String?
 
     init(id: UUID = UUID(),
          name: String,
          date: Date,
          colorway: Colorway = .sunset,
          memberIDs: [UUID] = [],
-         symbol: String = "party.popper.fill") {
+         symbol: String = "party.popper.fill",
+         remoteID: String? = nil) {
         self.id = id
         self.name = name
         self.date = date
         self.colorway = colorway
         self.memberIDs = memberIDs
         self.symbol = symbol
+        self.remoteID = remoteID
     }
 
     /// Code court, lisible et stable, dérivé de l'id — partagé via QR pour

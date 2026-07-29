@@ -76,8 +76,12 @@ struct EventEditorView: View {
         store.addOrUpdate(updated)
         // Best-effort : crée aussi l'event côté serveur si Supabase est configuré.
         if EventBackendService.shared.isEnabled {
-            Task { try? await EventBackendService.shared.createEvent(
-                name: updated.name, joinCode: updated.joinCode, startsAt: updated.date) }
+            Task {
+                if let remoteID = try? await EventBackendService.shared.createEvent(
+                    name: updated.name, joinCode: updated.joinCode, startsAt: updated.date) {
+                    await MainActor.run { store.setRemoteID(remoteID, for: updated) }
+                }
+            }
         }
         Haptics.success()
         dismiss()

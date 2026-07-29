@@ -24,6 +24,8 @@
 	<string>Poze utilise l'appareil photo pour scanner le QR code d'un event et le rejoindre.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Poze accède à vos photos pour retrouver, sur votre appareil, celles où vous ou vos amis apparaissez, et vous laisser les partager ou les supprimer. La reconnaissance se fait entièrement sur votre téléphone.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Poze enregistre dans votre pellicule les photos d'event que vous choisissez de sauvegarder.</string>
 	<key>SUPABASE_HOST</key>
 	<string>$(SUPABASE_HOST)</string>
 	<key>SUPABASE_ANON_KEY</key>
