@@ -56,6 +56,14 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
 
     func friend(withID id: UUID) -> Friend? { friends.first { $0.id == id } }
 
+    /// Rattache un ami local à son compte serveur (quand il a rejoint via ton lien).
+    /// Nécessaire pour que la « notif magique » cible la bonne personne.
+    func link(_ friend: Friend, toUserID userID: String) {
+        guard let idx = friends.firstIndex(where: { $0.id == friend.id }) else { return }
+        friends[idx].remoteUserID = userID
+        persistFriends()
+    }
+
     func members(ofIDs ids: [UUID]) -> [Friend] {
         ids.compactMap { id in friends.first { $0.id == id } }
     }
@@ -232,6 +240,7 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
                 dict["thumb"] = jpeg
             }
             if let contact = friend.parentContact { dict["parentContact"] = contact }
+            if let uid = friend.remoteUserID { dict["remoteUserID"] = uid }
             return try NSKeyedArchiver.archivedData(
                 withRootObject: dict, requiringSecureCoding: false)
         } catch {
@@ -259,8 +268,10 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
             let isMinor = dict["isMinor"] as? Bool ?? false
             let consent = dict["parentalConsent"] as? Bool ?? false
             let contact = dict["parentContact"] as? String
+            let remoteUID = dict["remoteUserID"] as? String
             return Friend(id: id, name: name, referencePrint: print, thumbnail: thumb,
-                          isMinor: isMinor, parentalConsent: consent, parentContact: contact)
+                          isMinor: isMinor, parentalConsent: consent, parentContact: contact,
+                          remoteUserID: remoteUID)
         } catch {
             Logger.app.error("Échec lecture ami : \(error.localizedDescription, privacy: .public)")
             return nil

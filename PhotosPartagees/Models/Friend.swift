@@ -17,6 +17,9 @@ final class Friend: Identifiable {
     var isMinor: Bool
     var parentalConsent: Bool
     var parentContact: String?
+    /// Identifiant du compte serveur de cet ami, une fois qu'il a rejoint Poze
+    /// (via ton lien/QR). Permet à la « notif magique » de cibler la bonne personne.
+    var remoteUserID: String?
 
     init(id: UUID = UUID(),
          name: String,
@@ -24,7 +27,8 @@ final class Friend: Identifiable {
          thumbnail: UIImage? = nil,
          isMinor: Bool = false,
          parentalConsent: Bool = false,
-         parentContact: String? = nil) {
+         parentContact: String? = nil,
+         remoteUserID: String? = nil) {
         self.id = id
         self.name = name
         self.referencePrint = referencePrint
@@ -32,6 +36,7 @@ final class Friend: Identifiable {
         self.isMinor = isMinor
         self.parentalConsent = parentalConsent
         self.parentContact = parentContact
+        self.remoteUserID = remoteUserID
     }
 
     /// Utilisable pour la recherche/partage : un mineur exige le consentement.
