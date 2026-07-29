@@ -18,7 +18,10 @@ final class AppLockService: ObservableObject {
         get { UserDefaults.standard.bool(forKey: key) }
         set {
             UserDefaults.standard.set(newValue, forKey: key)
-            isLocked = newValue
+            // Activer le verrou ne doit pas verrouiller la session en cours ; il
+            // s'appliquera au prochain passage en arrière-plan. Le désactiver lève
+            // immédiatement un éventuel verrou.
+            if !newValue { isLocked = false }
             objectWillChange.send()
         }
     }

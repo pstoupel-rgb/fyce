@@ -13,7 +13,7 @@ struct PrivacyCenterView: View {
             Theme.bg.ignoresSafeArea()
             List {
                 Section {
-                    ForEach(pledges, id: \.text) { pledge in
+                    ForEach(pledges) { pledge in
                         Label {
                             Text(pledge.text).font(.subheadline)
                         } icon: {
@@ -82,10 +82,16 @@ struct PrivacyCenterView: View {
         LabeledContent(label) { Text("\(value)").monospacedDigit().foregroundStyle(Theme.muted) }
     }
 
-    private let pledges: [(icon: String, text: String)] = [
-        ("iphone", "Tout reste sur ton téléphone."),
-        ("lock.fill", "Les empreintes de visage sont chiffrées au repos."),
-        ("antenna.radiowaves.left.and.right.slash", "Aucun tracking, aucune publicité, aucun analytics tiers."),
-        ("hand.raised.fill", "Consentement parental requis pour les mineurs.")
+    private struct Pledge: Identifiable {
+        let id = UUID()
+        let icon: String
+        let text: String
+    }
+
+    private let pledges: [Pledge] = [
+        Pledge(icon: "iphone", text: "Tout reste sur ton téléphone."),
+        Pledge(icon: "lock.fill", text: "Les empreintes de visage sont chiffrées au repos."),
+        Pledge(icon: "antenna.radiowaves.left.and.right.slash", text: "Aucun tracking, aucune publicité, aucun analytics tiers."),
+        Pledge(icon: "hand.raised.fill", text: "Consentement parental requis pour les mineurs.")
     ]
 }
