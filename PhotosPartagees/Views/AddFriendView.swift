@@ -70,7 +70,7 @@ struct AddFriendView: View {
                     Image(uiImage: image).resizable().scaledToFill()
                 } else {
                     VStack(spacing: 10) {
-                        Image(systemName: "person.crop.square.badge.camera")
+                        Image(systemName: "person.crop.square")
                             .font(.system(size: 44)).foregroundStyle(Theme.muted2)
                         Text("Choisir une photo du visage").foregroundStyle(Theme.muted)
                     }

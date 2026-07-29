@@ -38,6 +38,7 @@ final class AuthService: NSObject, ObservableObject {
     private let config = SupabaseConfiguration.current
     private let session: URLSession = .shared
     private var webSession: ASWebAuthenticationSession?
+    private var appleController: ASAuthorizationController?
 
     private let kStatus = "auth_status_v1"     // "guest" | "signed:<label>"
     private let kToken = "auth_access_token"
@@ -101,6 +102,7 @@ final class AuthService: NSObject, ObservableObject {
         let controller = ASAuthorizationController(authorizationRequests: [request])
         controller.delegate = self
         controller.presentationContextProvider = self
+        appleController = controller   // conserve une référence forte le temps de la requête
         controller.performRequests()
     }
 
@@ -191,6 +193,7 @@ extension AuthService: ASAuthorizationControllerDelegate, ASAuthorizationControl
 
     func authorizationController(controller: ASAuthorizationController,
                                  didCompleteWithAuthorization authorization: ASAuthorization) {
+        defer { appleController = nil }
         guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else { return }
         let label = credential.email
             ?? [credential.fullName?.givenName, credential.fullName?.familyName].compactMap { $0 }.joined(separator: " ")
@@ -204,6 +207,7 @@ extension AuthService: ASAuthorizationControllerDelegate, ASAuthorizationControl
     }
 
     func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        appleController = nil
         Logger.app.debug("Apple sign-in : \(error.localizedDescription, privacy: .public)")
     }
 

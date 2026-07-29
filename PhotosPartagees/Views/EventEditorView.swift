@@ -89,5 +89,5 @@ struct EventEditorView: View {
 
     static let symbols = ["party.popper.fill", "music.mic", "wineglass.fill", "birthday.cake.fill",
                           "airplane", "beach.umbrella.fill", "gift.fill", "sparkles",
-                          "figure.dance", "fireworks", "camera.fill", "heart.fill"]
+                          "figure.dance", "star.fill", "camera.fill", "heart.fill"]
 }

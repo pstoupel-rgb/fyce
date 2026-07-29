@@ -16,7 +16,7 @@ struct OnboardingView: View {
         Page(symbol: "rectangle.stack",
              title: "Trie d'un swipe",
              body: "Garde, passe ou supprime d'un geste. Partage ce que tu veux, avec qui tu veux — un ami, un groupe, un event."),
-        Page(symbol: "figure.2.and.child.holdinghands",
+        Page(symbol: "hand.raised.fill",
              title: "On protège les mineurs",
              body: "Ajouter un mineur exige le consentement d'un parent ou tuteur. C'est une règle, pas une option.")
     ]

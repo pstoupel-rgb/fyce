@@ -43,7 +43,7 @@ struct SwipeDeckView: View {
             .offset(x: isTop ? drag.width : 0, y: (isTop ? drag.height : yOffset))
             .rotationEffect(.degrees(isTop ? Double(drag.width / 20) : 0))
             .brightness(isTop ? 0 : -0.12 * Double(index))
-            .gesture(isTop ? dragGesture : nil)
+            .gesture(dragGesture, including: isTop ? .all : .subviews)
             .animation(.spring(response: 0.35, dampingFraction: 0.8), value: drag)
             .animation(.spring(response: 0.4, dampingFraction: 0.85), value: viewModel.queue.count)
             .allowsHitTesting(isTop)
