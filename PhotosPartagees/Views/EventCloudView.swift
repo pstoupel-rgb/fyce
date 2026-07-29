@@ -5,8 +5,10 @@ import UIKit
 /// récupère celles que les autres ont partagées. Nécessite un backend configuré.
 struct EventCloudView: View {
     @StateObject private var viewModel: EventCloudViewModel
+    @ObservedObject private var wallet = Wallet.shared
     @Environment(\.dismiss) private var dismiss
-    @State private var preview: CloudPhoto?
+    @State private var selection: Set<String> = []
+    @State private var showPaywall = false
 
     private let columns = [GridItem(.adaptive(minimum: 104), spacing: 5)]
 
@@ -20,17 +22,32 @@ struct EventCloudView: View {
                 Theme.bg.ignoresSafeArea()
                 VStack(spacing: 0) {
                     content
-                    pushBar
+                    bottomBar
                 }
             }
             .navigationTitle(viewModel.event.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarColorScheme(.dark, for: .navigationBar)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("OK") { dismiss() } } }
-            .task { await viewModel.load() }
-            .sheet(item: $preview) { photo in
-                CloudPreview(photo: photo) { Task { await viewModel.saveToLibrary(photo) } }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("OK") { dismiss() } }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Label("\(wallet.reveals)", systemImage: "sparkles").font(.footnote).foregroundStyle(Theme.muted)
+                }
             }
+            .task { await viewModel.load() }
+            .sheet(isPresented: $showPaywall) { PaywallView() }
+        }
+    }
+
+    /// Développe (télécharge) uniquement les photos sélectionnées, en dépensant
+    /// autant de reveals. Ouvre la boutique si le solde est insuffisant.
+    private func developSelection() {
+        let chosen = viewModel.photos.filter { selection.contains($0.id) && $0.image != nil }
+        guard !chosen.isEmpty else { return }
+        guard wallet.spend(chosen.count) else { showPaywall = true; return }
+        Task {
+            for photo in chosen { await viewModel.saveToLibrary(photo) }
+            selection.removeAll()
         }
     }
 
@@ -46,14 +63,18 @@ struct EventCloudView: View {
                 message("Aucune photo partagée", "Sois le premier à partager tes photos de l'event.",
                         system: "photo.stack")
             } else {
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: 5) {
-                        ForEach(viewModel.photos) { photo in
-                            thumb(photo).onTapGesture { if photo.image != nil { preview = photo } }
+                VStack(spacing: 6) {
+                    Text("Choisis les photos à développer.").font(.caption).foregroundStyle(Theme.muted2)
+                    ScrollView {
+                        LazyVGrid(columns: columns, spacing: 5) {
+                            ForEach(viewModel.photos) { photo in
+                                thumb(photo).onTapGesture { toggle(photo) }
+                            }
                         }
+                        .padding(.horizontal, 16)
                     }
-                    .padding(.horizontal, 16).padding(.top, 12)
                 }
+                .padding(.top, 10)
             }
         }
         if let status = viewModel.statusText {
@@ -61,29 +82,48 @@ struct EventCloudView: View {
         }
     }
 
-    private var pushBar: some View {
+    private func toggle(_ photo: CloudPhoto) {
+        guard photo.image != nil else { return }
+        if selection.contains(photo.id) { selection.remove(photo.id) } else { selection.insert(photo.id) }
+    }
+
+    /// Barre du bas contextuelle : développer la sélection, ou (rien de sélectionné)
+    /// partager ses propres photos gardées.
+    @ViewBuilder
+    private var bottomBar: some View {
         VStack(spacing: 0) {
             Divider().overlay(Theme.line)
-            Button {
-                Task { await viewModel.pushLocalShared() }
-            } label: {
-                HStack(spacing: 8) {
-                    if viewModel.pushing { ProgressView().tint(.black) }
-                    Text(viewModel.pushing ? "Envoi…" : "Partager mes \(viewModel.localSharedCount) photo\(viewModel.localSharedCount > 1 ? "s" : "") gardée\(viewModel.localSharedCount > 1 ? "s" : "")")
-                        .font(.system(size: 15, weight: .semibold))
+            if selection.isEmpty {
+                Button {
+                    Task { await viewModel.pushLocalShared() }
+                } label: {
+                    HStack(spacing: 8) {
+                        if viewModel.pushing { ProgressView().tint(.black) }
+                        Text(viewModel.pushing ? "Envoi…" : "Partager mes \(viewModel.localSharedCount) photo\(viewModel.localSharedCount > 1 ? "s" : "") gardée\(viewModel.localSharedCount > 1 ? "s" : "")")
+                            .font(.system(size: 15, weight: .semibold))
+                    }
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity).padding(.vertical, 14)
+                    .background(Theme.txt, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
-                .foregroundStyle(.black)
-                .frame(maxWidth: .infinity).padding(.vertical, 14)
-                .background(Theme.txt, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .disabled(viewModel.pushing || viewModel.localSharedCount == 0)
+                .opacity(viewModel.localSharedCount == 0 ? 0.4 : 1)
+                .padding(16)
+            } else {
+                Button(action: developSelection) {
+                    Text("Développer \(selection.count) photo\(selection.count > 1 ? "s" : "") · \(selection.count) reveal\(selection.count > 1 ? "s" : "")")
+                        .font(.system(size: 15, weight: .semibold)).foregroundStyle(.black)
+                        .frame(maxWidth: .infinity).padding(.vertical, 14)
+                        .background(Theme.txt, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .padding(16)
             }
-            .disabled(viewModel.pushing || viewModel.localSharedCount == 0)
-            .opacity(viewModel.localSharedCount == 0 ? 0.4 : 1)
-            .padding(16)
         }
     }
 
     private func thumb(_ photo: CloudPhoto) -> some View {
-        Group {
+        let selected = selection.contains(photo.id)
+        return Group {
             if let image = photo.image {
                 Image(uiImage: image).resizable().scaledToFill()
             } else {
@@ -92,6 +132,15 @@ struct EventCloudView: View {
         }
         .frame(height: 104)
         .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Theme.txt, lineWidth: selected ? 3 : 0))
+        .overlay(alignment: .topTrailing) {
+            if selected {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(Theme.txt, Theme.accent)
+                    .padding(5)
+            }
+        }
+        .opacity(photo.image == nil ? 0.6 : 1)
     }
 
     private var spinner: some View {
@@ -110,30 +159,5 @@ struct EventCloudView: View {
                 .multilineTextAlignment(.center).padding(.horizontal, 30)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
-/// Aperçu plein écran d'une photo cloud + bouton d'enregistrement.
-private struct CloudPreview: View {
-    let photo: CloudPhoto
-    let onSave: () -> Void
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                if let image = photo.image {
-                    Image(uiImage: image).resizable().scaledToFit()
-                }
-            }
-            .toolbarColorScheme(.dark, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
-                ToolbarItem(placement: .primaryAction) {
-                    Button { onSave() } label: { Label("Enregistrer", systemImage: "square.and.arrow.down") }
-                }
-            }
-        }
     }
 }

@@ -1,0 +1,42 @@
+{
+  "identifier" : "POZE_STOREKIT",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "reveals10",
+      "localizations" : [
+        { "description" : "10 reveals pour développer 10 photos.", "displayName" : "10 reveals", "locale" : "fr_FR" }
+      ],
+      "productID" : "com.photospartagees.app.reveals10",
+      "referenceName" : "10 reveals",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "6.99",
+      "familyShareable" : false,
+      "internalID" : "reveals30",
+      "localizations" : [
+        { "description" : "30 reveals pour développer 30 photos.", "displayName" : "30 reveals", "locale" : "fr_FR" }
+      ],
+      "productID" : "com.photospartagees.app.reveals30",
+      "referenceName" : "30 reveals",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "19.99",
+      "familyShareable" : false,
+      "internalID" : "reveals100",
+      "localizations" : [
+        { "description" : "100 reveals pour développer 100 photos.", "displayName" : "100 reveals", "locale" : "fr_FR" }
+      ],
+      "productID" : "com.photospartagees.app.reveals100",
+      "referenceName" : "100 reveals",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : { },
+  "subscriptionGroups" : [],
+  "version" : { "major" : 3, "minor" : 0 }
+}

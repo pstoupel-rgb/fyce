@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poze — Boutique</title>
+<style>
+  :root{--bg:#08080a;--surface:#141416;--line:rgba(255,255,255,.10);--txt:#f4f3ef;--muted:#8a8a8f;--accent:#7c5cff}
+  *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  body{background:var(--bg);color:var(--txt);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .card{width:100%;max-width:420px}
+  h1{font-size:26px;font-weight:700;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .pack{display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--line);
+    border-radius:16px;padding:16px 18px;margin-bottom:12px;cursor:pointer}
+  .pack:hover{border-color:rgba(255,255,255,.25)}
+  .pack .n{font-size:16px;font-weight:600}
+  .pack .d{font-size:12px;color:var(--muted)}
+  .price{background:var(--txt);color:#000;font-weight:700;padding:9px 16px;border-radius:22px;font-size:14px}
+  .methods{display:flex;gap:10px;align-items:center;justify-content:center;color:var(--muted);font-size:12px;margin-top:18px;flex-wrap:wrap}
+  .chip{border:1px solid var(--line);border-radius:8px;padding:5px 10px}
+  .foot{color:var(--muted);font-size:12px;margin-top:22px;text-align:center;line-height:1.6}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Boutique Poze</h1>
+    <div class="sub">Recharge tes reveals — 1 reveal = 1 photo développée.</div>
+
+    <div class="pack" onclick="buy('reveals10')"><div><div class="n">10 reveals</div><div class="d">développe 10 photos</div></div><div class="price">2,99 €</div></div>
+    <div class="pack" onclick="buy('reveals30')"><div><div class="n">30 reveals</div><div class="d">le plus populaire</div></div><div class="price">6,99 €</div></div>
+    <div class="pack" onclick="buy('reveals100')"><div><div class="n">100 reveals</div><div class="d">meilleur prix</div></div><div class="price">19,99 €</div></div>
+
+    <div class="methods">
+      <span class="chip">Bancontact</span><span class="chip">Carte</span>
+      <span class="chip">Apple&nbsp;Pay</span><span class="chip">iDEAL</span>
+    </div>
+    <div class="foot">Paiement sécurisé via Mollie. Après paiement, tes reveals sont
+    crédités sur ton compte Poze.</div>
+  </div>
+
+  <script>
+    // Appelle la fonction serveur qui crée un paiement Mollie et renvoie l'URL
+    // de redirection. Voir backend/functions/create-payment/ et docs/paiements.md.
+    async function buy(pack){
+      try{
+        const res = await fetch('/functions/v1/create-payment', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ pack })
+        });
+        const { checkoutUrl } = await res.json();
+        if (checkoutUrl) window.location.href = checkoutUrl;
+        else alert("Paiement indisponible pour le moment.");
+      }catch(e){ alert("Erreur : "+e.message); }
+    }
+  </script>
+</body>
+</html>

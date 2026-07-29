@@ -6,8 +6,10 @@ struct SettingsView: View {
     @ObservedObject var auth: AuthService
     @ObservedObject var appLock: AppLockService
     @ObservedObject var store: FriendStore
+    @ObservedObject private var wallet = Wallet.shared
     @Environment(\.dismiss) private var dismiss
     @State private var showResetConfirm = false
+    @State private var showPaywall = false
 
     var body: some View {
         NavigationStack {
@@ -44,6 +46,16 @@ struct SettingsView: View {
                     Text("Historique des partages")
                 } footer: {
                     Text("Les photos déjà partagées ne sont pas reproposées. Réinitialiser permet de les repartager.")
+                }
+
+                Section("Reveals") {
+                    Button { showPaywall = true } label: {
+                        HStack {
+                            Label("\(wallet.reveals) reveals", systemImage: "sparkles")
+                            Spacer()
+                            Text("Boutique").foregroundStyle(Theme.accent)
+                        }
+                    }
                 }
 
                 Section {
@@ -92,6 +104,7 @@ struct SettingsView: View {
                     Button("OK") { dismiss() }
                 }
             }
+            .sheet(isPresented: $showPaywall) { PaywallView() }
             .confirmationDialog(
                 "Réinitialiser l'historique des partages ?",
                 isPresented: $showResetConfirm,
