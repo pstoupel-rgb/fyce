@@ -11,6 +11,7 @@ struct EventEditorView: View {
     @State private var colorway: Colorway
     @State private var symbol: String
     @State private var selected: Set<UUID>
+    @State private var showShare = false
 
     init(store: FriendStore, event: PozeEvent?) {
         self.store = store
@@ -33,6 +34,18 @@ struct EventEditorView: View {
                         DatePicker("Quand", selection: $date, displayedComponents: .date)
                     }
                     MemberPicker(friends: store.friends, selected: $selected, colorway: colorway)
+
+                    if let event {
+                        Section("Inviter") {
+                            Button {
+                                showShare = true
+                            } label: {
+                                Label("Partager via QR code", systemImage: "qrcode")
+                            }
+                            Text("Code : \(event.joinCode)")
+                                .font(.footnote.monospaced()).foregroundStyle(.secondary)
+                        }
+                    }
                 }
                 .scrollContentBackground(.hidden)
             }
@@ -44,6 +57,9 @@ struct EventEditorView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Enregistrer", action: save).disabled(!canSave).bold()
                 }
+            }
+            .sheet(isPresented: $showShare) {
+                if let event { EventShareView(event: event) }
             }
         }
     }

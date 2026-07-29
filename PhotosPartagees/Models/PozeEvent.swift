@@ -24,4 +24,10 @@ struct PozeEvent: Identifiable, Codable, Equatable {
         self.memberIDs = memberIDs
         self.symbol = symbol
     }
+
+    /// Code court, lisible et stable, dérivé de l'id — partagé via QR pour
+    /// rejoindre l'event (ex. "A1B2C3").
+    var joinCode: String {
+        String(id.uuidString.replacingOccurrences(of: "-", with: "").prefix(6)).uppercased()
+    }
 }

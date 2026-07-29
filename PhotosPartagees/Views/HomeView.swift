@@ -79,7 +79,23 @@ struct HomeView: View {
 
     private var eventsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionHeader("Events", systemAdd: "plus") { sheet = .newEvent }
+            HStack {
+                Text("Events").font(.title3.bold())
+                Spacer()
+                Button { sheet = .joinEvent } label: {
+                    Image(systemName: "qrcode.viewfinder").font(.subheadline.weight(.bold))
+                        .frame(width: 30, height: 30)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Rejoindre un event en scannant un QR")
+                Button { sheet = .newEvent } label: {
+                    Image(systemName: "plus").font(.subheadline.weight(.bold))
+                        .frame(width: 30, height: 30)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+                .buttonStyle(.plain)
+            }
             if store.events.isEmpty {
                 hint("Ajoute un event (soirée, mariage, vacances) pour retrouver qui était là.")
             } else {
@@ -94,6 +110,7 @@ struct HomeView: View {
                             }
                             .buttonStyle(.plain)
                             .contextMenu {
+                                Button { sheet = .shareEvent(event) } label: { Label("Partager (QR code)", systemImage: "qrcode") }
                                 Button { sheet = .editEvent(event) } label: { Label("Modifier", systemImage: "pencil") }
                                 Button(role: .destructive) { store.remove(event) } label: { Label("Supprimer", systemImage: "trash") }
                             }
@@ -184,6 +201,8 @@ struct HomeView: View {
         case .editGroup(let g):    GroupEditorView(store: store, group: g)
         case .newEvent:            EventEditorView(store: store, event: nil)
         case .editEvent(let e):    EventEditorView(store: store, event: e)
+        case .shareEvent(let e):   EventShareView(event: e)
+        case .joinEvent:           EventJoinView(store: store)
         case .addFriend:           AddFriendView(store: store)
         }
     }
@@ -191,7 +210,9 @@ struct HomeView: View {
 
 /// Les feuilles présentables depuis l'accueil.
 enum HomeSheet: Identifiable {
-    case newGroup, editGroup(FriendGroup), newEvent, editEvent(PozeEvent), addFriend
+    case newGroup, editGroup(FriendGroup)
+    case newEvent, editEvent(PozeEvent), shareEvent(PozeEvent), joinEvent
+    case addFriend
 
     var id: String {
         switch self {
@@ -199,6 +220,8 @@ enum HomeSheet: Identifiable {
         case .editGroup(let g): return "editGroup-\(g.id)"
         case .newEvent: return "newEvent"
         case .editEvent(let e): return "editEvent-\(e.id)"
+        case .shareEvent(let e): return "shareEvent-\(e.id)"
+        case .joinEvent: return "joinEvent"
         case .addFriend: return "addFriend"
         }
     }

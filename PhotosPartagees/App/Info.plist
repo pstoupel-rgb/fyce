@@ -20,6 +20,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Poze utilise l'appareil photo pour scanner le QR code d'un event et le rejoindre.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Poze accède à vos photos pour retrouver, sur votre appareil, celles où vous ou vos amis apparaissez, et vous laisser les partager ou les supprimer. La reconnaissance se fait entièrement sur votre téléphone.</string>
 	<key>SUPABASE_HOST</key>
