@@ -1,0 +1,126 @@
+import Foundation
+import os
+
+/// Client REST minimal pour les events partagés via Supabase (PostgREST + GoTrue).
+///
+/// Entièrement **optionnel** : si Supabase n'est pas configuré (clés absentes),
+/// `isEnabled` est faux et l'app fonctionne 100 % en local. Chaque appel est
+/// « best-effort » : en cas d'erreur réseau/backend, on ne casse jamais le flux
+/// local. Ce code n'a pas été testé contre un projet live — voir
+/// `docs/backend-events.md` pour le déploiement du schéma et l'activation de
+/// l'auth anonyme.
+actor EventBackendService {
+    static let shared = EventBackendService()
+
+    private let config = SupabaseConfiguration.current
+    private let session: URLSession = .shared
+    private var accessToken: String?
+
+    /// Le backend est-il utilisable (clés présentes) ?
+    nonisolated var isEnabled: Bool { config.isConfigured }
+
+    enum BackendError: LocalizedError {
+        case notConfigured, auth, http(Int, String), decode
+        var errorDescription: String? {
+            switch self {
+            case .notConfigured: return "Supabase non configuré."
+            case .auth: return "Auth anonyme échouée."
+            case .http(let s, let b): return "HTTP \(s) : \(b)"
+            case .decode: return "Réponse illisible."
+            }
+        }
+    }
+
+    struct RemoteEvent: Decodable { let id: String; let name: String; let join_code: String? }
+
+    // MARK: - API publique
+
+    /// Crée l'event côté serveur (idempotent sur `join_code`). Renvoie l'id distant.
+    @discardableResult
+    func createEvent(name: String, joinCode: String, startsAt: Date) async throws -> String {
+        guard isEnabled else { throw BackendError.notConfigured }
+        let token = try await ensureSession()
+
+        let body: [String: Any] = [
+            "name": name,
+            "join_code": joinCode,
+            "starts_at": ISO8601DateFormatter().string(from: startsAt)
+        ]
+        var request = restRequest(path: "rest/v1/events", token: token)
+        request.httpMethod = "POST"
+        request.setValue("resolution=merge-duplicates,return=representation",
+                         forHTTPHeaderField: "Prefer")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let rows: [RemoteEvent] = try await send(request)
+        guard let id = rows.first?.id else { throw BackendError.decode }
+        Logger.upload.info("Event distant créé : \(id, privacy: .public)")
+        return id
+    }
+
+    /// Rejoint un event par son code (RPC `join_event`). Renvoie l'id distant.
+    @discardableResult
+    func joinEvent(code: String) async throws -> String {
+        guard isEnabled else { throw BackendError.notConfigured }
+        let token = try await ensureSession()
+
+        var request = restRequest(path: "rest/v1/rpc/join_event", token: token)
+        request.httpMethod = "POST"
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["p_code": code])
+
+        let (data, response) = try await session.data(for: request)
+        try Self.check(response, data)
+        // La fonction renvoie un uuid (chaîne JSON).
+        if let id = try? JSONDecoder().decode(String.self, from: data) { return id }
+        throw BackendError.decode
+    }
+
+    // MARK: - Auth anonyme (GoTrue)
+
+    private func ensureSession() async throws -> String {
+        if let accessToken { return accessToken }
+        let url = config.url.appendingPathComponent("auth/v1/signup")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue(config.anonKey, forHTTPHeaderField: "apikey")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // Sign-in anonyme : signup sans identifiant (à activer côté projet).
+        request.httpBody = try JSONSerialization.data(
+            withJSONObject: ["data": [:], "gotrue_meta_security": [:]])
+
+        let (data, response) = try await session.data(for: request)
+        try Self.check(response, data)
+        struct Session: Decodable { let access_token: String? }
+        guard let token = (try? JSONDecoder().decode(Session.self, from: data))?.access_token else {
+            throw BackendError.auth
+        }
+        accessToken = token
+        return token
+    }
+
+    // MARK: - Helpers
+
+    private func restRequest(path: String, token: String) -> URLRequest {
+        var request = URLRequest(url: config.url.appendingPathComponent(path))
+        request.setValue(config.anonKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        return request
+    }
+
+    private func send<T: Decodable>(_ request: URLRequest) async throws -> T {
+        let (data, response) = try await session.data(for: request)
+        try Self.check(response, data)
+        guard let decoded = try? JSONDecoder().decode(T.self, from: data) else {
+            throw BackendError.decode
+        }
+        return decoded
+    }
+
+    private static func check(_ response: URLResponse, _ data: Data) throws {
+        guard let http = response as? HTTPURLResponse else { throw BackendError.decode }
+        guard (200...299).contains(http.statusCode) else {
+            throw BackendError.http(http.statusCode, String(data: data, encoding: .utf8) ?? "")
+        }
+    }
+}

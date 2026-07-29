@@ -74,6 +74,11 @@ struct EventEditorView: View {
                                 memberIDs: Array(selected),
                                 symbol: symbol)
         store.addOrUpdate(updated)
+        // Best-effort : crée aussi l'event côté serveur si Supabase est configuré.
+        if EventBackendService.shared.isEnabled {
+            Task { try? await EventBackendService.shared.createEvent(
+                name: updated.name, joinCode: updated.joinCode, startsAt: updated.date) }
+        }
         Haptics.success()
         dismiss()
     }
