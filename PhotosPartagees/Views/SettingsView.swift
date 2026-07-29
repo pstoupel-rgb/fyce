@@ -4,6 +4,8 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var viewModel: ScanViewModel
     @ObservedObject var auth: AuthService
+    @ObservedObject var appLock: AppLockService
+    @ObservedObject var store: FriendStore
     @Environment(\.dismiss) private var dismiss
     @State private var showResetConfirm = false
 
@@ -42,6 +44,26 @@ struct SettingsView: View {
                     Text("Historique des partages")
                 } footer: {
                     Text("Les photos déjà partagées ne sont pas reproposées. Réinitialiser permet de les repartager.")
+                }
+
+                Section {
+                    NavigationLink {
+                        PrivacyCenterView(store: store)
+                    } label: {
+                        Label("Centre de confidentialité", systemImage: "hand.raised.fill")
+                    }
+                    Toggle(isOn: Binding(
+                        get: { appLock.isEnabled },
+                        set: { appLock.isEnabled = $0 })) {
+                        Label("Verrou Face ID / code", systemImage: "faceid")
+                    }
+                    .disabled(!appLock.biometryAvailable)
+                } header: {
+                    Text("Confidentialité")
+                } footer: {
+                    Text(appLock.biometryAvailable
+                         ? "Exige Face ID, Touch ID ou ton code pour ouvrir Poze."
+                         : "Aucune authentification configurée sur cet appareil.")
                 }
 
                 Section("Compte") {

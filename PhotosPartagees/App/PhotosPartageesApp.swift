@@ -7,30 +7,45 @@ struct PhotosPartageesApp: App {
 
     @AppStorage("has_onboarded_v1") private var hasOnboarded = false
     @StateObject private var auth = AuthService()
+    @StateObject private var appLock = AppLockService()
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showSplash = true
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if showSplash {
-                    SplashView()
-                        .transition(.opacity)
-                        .task {
-                            try? await Task.sleep(nanoseconds: 1_400_000_000)
-                            withAnimation(.easeInOut(duration: 0.4)) { showSplash = false }
-                        }
-                } else if !hasOnboarded {
-                    OnboardingView { hasOnboarded = true }.transition(.opacity)
-                } else if auth.needsLogin {
-                    LoginView(auth: auth).transition(.opacity)
-                } else {
-                    ContentView().environmentObject(auth)
+            ZStack {
+                Group {
+                    if showSplash {
+                        SplashView()
+                            .transition(.opacity)
+                            .task {
+                                try? await Task.sleep(nanoseconds: 1_400_000_000)
+                                withAnimation(.easeInOut(duration: 0.4)) { showSplash = false }
+                            }
+                    } else if !hasOnboarded {
+                        OnboardingView { hasOnboarded = true }.transition(.opacity)
+                    } else if auth.needsLogin {
+                        LoginView(auth: auth).transition(.opacity)
+                    } else {
+                        ContentView()
+                            .environmentObject(auth)
+                            .environmentObject(appLock)
+                    }
+                }
+
+                // Verrou biométrique par-dessus tout le contenu.
+                if appLock.isEnabled && appLock.isLocked && !showSplash {
+                    LockView(lock: appLock).transition(.opacity)
                 }
             }
             .preferredColorScheme(.dark)
             .animation(.easeInOut, value: showSplash)
             .animation(.easeInOut, value: hasOnboarded)
             .animation(.easeInOut, value: auth.needsLogin)
+            .animation(.easeInOut, value: appLock.isLocked)
+            .onChange(of: scenePhase) { phase in
+                if phase == .background { appLock.lockIfNeeded() }
+            }
         }
     }
 }

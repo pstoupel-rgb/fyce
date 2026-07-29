@@ -39,4 +39,13 @@ enum KeychainHelper {
     static func delete(_ key: String) {
         set(nil, for: key)
     }
+
+    /// Supprime tous les secrets de l'app (clé de chiffrement, jeton d'auth…).
+    static func wipe() {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
 }

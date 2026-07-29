@@ -17,9 +17,11 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
     @Published private(set) var events: [PozeEvent] = []
 
     private let defaults: UserDefaults
-    private let friendsKey = "friends_v1"
-    private let groupsKey = "groups_v1"
-    private let eventsKey = "events_v1"
+    // _v2 : les blobs sont désormais chiffrés au repos (AES-GCM). On ne relit pas
+    // l'ancien format en clair — la biométrie ne doit jamais rester déchiffrable.
+    private let friendsKey = "friends_v2"
+    private let groupsKey = "groups_v2"
+    private let eventsKey = "events_v2"
     private let sharedKeyPrefix = "review_shared_"    // + historyKey
     private let skippedKeyPrefix = "review_skipped_"   // + historyKey
 
@@ -127,36 +129,92 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
         defaults.removeObject(forKey: skippedKeyPrefix + key)
     }
 
-    // MARK: - Persistance JSON (groupes / events)
+    // MARK: - Confidentialité (transparence, export, droit à l'oubli)
+
+    struct DataSummary {
+        var friends: Int
+        var groups: Int
+        var events: Int
+        var facePrints: Int      // une empreinte par ami
+        var sharedRecords: Int   // photos marquées partagées (tous sujets)
+    }
+
+    func dataSummary() -> DataSummary {
+        let shared = defaults.dictionaryRepresentation().keys
+            .filter { $0.hasPrefix(sharedKeyPrefix) }
+            .reduce(0) { $0 + (defaults.stringArray(forKey: $1)?.count ?? 0) }
+        return DataSummary(friends: friends.count, groups: groups.count, events: events.count,
+                           facePrints: friends.count, sharedRecords: shared)
+    }
+
+    /// Export de portabilité — **métadonnées uniquement**, jamais d'empreinte de visage.
+    func exportJSON() -> Data? {
+        let iso = ISO8601DateFormatter()
+        let payload: [String: Any] = [
+            "app": "Poze",
+            "note": "Aucune empreinte de visage n'est exportée (biométrie strictement on-device).",
+            "friends": friends.map { ["name": $0.name, "isMinor": $0.isMinor] },
+            "groups": groups.map { ["name": $0.name, "members": $0.memberIDs.count] },
+            "events": events.map { ["name": $0.name, "date": iso.string(from: $0.date)] }
+        ]
+        return try? JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys])
+    }
+
+    /// Droit à l'oubli : efface toutes les données locales + les secrets (Keychain).
+    func wipeAll() {
+        friends = []; groups = []; events = []
+        let keys = defaults.dictionaryRepresentation().keys.filter {
+            $0 == friendsKey || $0 == groupsKey || $0 == eventsKey ||
+            $0.hasPrefix(sharedKeyPrefix) || $0.hasPrefix(skippedKeyPrefix)
+        }
+        keys.forEach { defaults.removeObject(forKey: $0) }
+        KeychainHelper.wipe()   // clé de chiffrement + jeton d'auth
+        objectWillChange.send()
+    }
+
+    // MARK: - Persistance chiffrée (groupes / events)
 
     private func loadGroups() {
-        guard let data = defaults.data(forKey: groupsKey) else { return }
+        guard let sealed = defaults.data(forKey: groupsKey),
+              let data = CryptoBox.open(sealed) else { return }
         groups = (try? JSONDecoder().decode([FriendGroup].self, from: data)) ?? []
     }
 
     private func persistGroups() {
-        if let data = try? JSONEncoder().encode(groups) { defaults.set(data, forKey: groupsKey) }
+        guard let data = try? JSONEncoder().encode(groups),
+              let sealed = CryptoBox.seal(data) else { return }
+        defaults.set(sealed, forKey: groupsKey)
     }
 
     private func loadEvents() {
-        guard let data = defaults.data(forKey: eventsKey) else { return }
+        guard let sealed = defaults.data(forKey: eventsKey),
+              let data = CryptoBox.open(sealed) else { return }
         events = (try? JSONDecoder().decode([PozeEvent].self, from: data)) ?? []
     }
 
     private func persistEvents() {
-        if let data = try? JSONEncoder().encode(events) { defaults.set(data, forKey: eventsKey) }
+        guard let data = try? JSONEncoder().encode(events),
+              let sealed = CryptoBox.seal(data) else { return }
+        defaults.set(sealed, forKey: eventsKey)
     }
 
-    // MARK: - Archivage des amis (NSSecureCoding)
+    // MARK: - Archivage chiffré des amis (empreintes de visage = biométrie)
 
     private func loadFriends() {
-        guard let raw = defaults.array(forKey: friendsKey) as? [Data] else { return }
+        guard let sealed = defaults.data(forKey: friendsKey),
+              let blob = CryptoBox.open(sealed),
+              let raw = (try? NSKeyedUnarchiver.unarchivedObject(
+                ofClasses: [NSArray.self, NSData.self], from: blob)) as? [Data]
+        else { return }
         friends = raw.compactMap(decodeFriend)
     }
 
     private func persistFriends() {
-        let raw = friends.compactMap(encodeFriend)
-        defaults.set(raw, forKey: friendsKey)
+        let raw = friends.compactMap(encodeFriend)   // [Data]
+        guard let blob = try? NSKeyedArchiver.archivedData(
+                withRootObject: raw, requiringSecureCoding: false),
+              let sealed = CryptoBox.seal(blob) else { return }
+        defaults.set(sealed, forKey: friendsKey)
     }
 
     private func encodeFriend(_ friend: Friend) -> Data? {

@@ -20,6 +20,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Poze utilise Face ID pour verrouiller l'accès à l'application, si vous activez cette option.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Poze utilise l'appareil photo pour scanner le QR code d'un event et le rejoindre.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

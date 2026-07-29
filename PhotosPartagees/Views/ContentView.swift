@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var auth: AuthService
+    @EnvironmentObject private var appLock: AppLockService
     @StateObject private var scanViewModel = ScanViewModel()
     @StateObject private var friendStore = FriendStore()
     @State private var showSettings = false
@@ -23,7 +24,7 @@ struct ContentView: View {
                         }
                     }
                     .sheet(isPresented: $showSettings) {
-                        SettingsView(viewModel: scanViewModel, auth: auth)
+                        SettingsView(viewModel: scanViewModel, auth: auth, appLock: appLock, store: friendStore)
                     }
             }
             .tabItem { Label("Moi", systemImage: "person.crop.circle") }
@@ -34,5 +35,7 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView().environmentObject(AuthService())
+    ContentView()
+        .environmentObject(AuthService())
+        .environmentObject(AppLockService())
 }

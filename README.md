@@ -127,11 +127,19 @@ lance SwiftLint à chaque push/PR.
 `NSCameraUsageDescription` (scan d'un QR d'event). Le scheme d'URL `poze` (OAuth)
 est déclaré via `CFBundleURLTypes`, et l'entitlement *Sign in with Apple* est actif.
 
-## Sécurité
+## Sécurité & confidentialité (la confiance comme produit)
 
-- Jetons d'authentification stockés dans le **Keychain** (`KeychainHelper`).
-- Clé `anon` uniquement côté client + RLS ; jamais de `service_role`.
-- Reconnaissance faciale on-device ; consentement requis pour les mineurs.
+- **Empreintes de visage chiffrées au repos** : AES-GCM (`CryptoBox`) avec une clé
+  256 bits dans le Keychain. La biométrie n'est jamais en clair sur le disque.
+- **Verrou Face ID / code** optionnel (`AppLockService`, `LocalAuthentication`).
+- **Centre de confidentialité** (`PrivacyCenterView`) : transparence sur ce qui est
+  stocké, **export de portabilité** (métadonnées, jamais d'empreinte), et
+  **droit à l'oubli** en un tap (efface données locales + secrets Keychain).
+- **Privacy Manifest Apple** (`PrivacyInfo.xcprivacy`) : zéro tracking, zéro
+  collecte, raison d'usage `UserDefaults` déclarée.
+- Jetons d'authentification dans le **Keychain** ; clé `anon` + RLS uniquement,
+  jamais de `service_role`.
+- Reconnaissance faciale **on-device** (Vision) ; consentement requis pour les mineurs.
 
 ## Documentation
 
