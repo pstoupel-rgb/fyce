@@ -2,8 +2,12 @@ import SwiftUI
 
 /// Le symbole Poze (diaphragme d'objectif) dessiné nativement — recolorable et
 /// animable. Même géométrie que l'icône d'app (iris 6 lames dans un carré 256).
+///
+/// `reveal` (0 → 1) anime l'ouverture : le cercle se trace, puis les lames
+/// apparaissent l'une après l'autre en s'ouvrant (scale + rotation).
 struct ApertureMark: View {
     var color: Color = Theme.txt
+    var reveal: CGFloat = 1
 
     var body: some View {
         GeometryReader { geo in
@@ -11,9 +15,15 @@ struct ApertureMark: View {
             ZStack {
                 Circle()
                     .inset(by: 28 * s)
-                    .stroke(color.opacity(0.92), lineWidth: 10 * s)
+                    .trim(from: 0, to: reveal)
+                    .stroke(color.opacity(0.92), style: StrokeStyle(lineWidth: 10 * s, lineCap: .round))
+                    .rotationEffect(.degrees(-90))   // départ du tracé en haut
                 ApertureBlades()
+                    .trim(from: 0, to: reveal)
                     .stroke(color, style: StrokeStyle(lineWidth: 12 * s, lineCap: .round, lineJoin: .round))
+                    .scaleEffect(0.55 + 0.45 * reveal)
+                    .rotationEffect(.degrees(Double(1 - reveal) * -45))
+                    .opacity(Double(reveal))
             }
         }
         .aspectRatio(1, contentMode: .fit)
@@ -60,27 +70,26 @@ struct HaloBackground: View {
     }
 }
 
-/// Écran de lancement animé : le diaphragme « s'ouvre » sur le halo, puis laisse
-/// place à l'app. Donne une continuité directe avec l'icône.
+/// Écran de lancement animé : le diaphragme s'ouvre lame par lame sur le halo,
+/// puis le mot-symbole apparaît. Continuité directe avec l'icône d'app.
 struct SplashView: View {
-    @State private var open = false
+    @State private var reveal: CGFloat = 0
+    @State private var showText = false
 
     var body: some View {
         ZStack {
             HaloBackground()
             VStack(spacing: 22) {
-                ApertureMark(color: Theme.txt)
-                    .frame(width: 116, height: 116)
-                    .rotationEffect(.degrees(open ? 0 : -55))
-                    .scaleEffect(open ? 1 : 0.65)
-                    .opacity(open ? 1 : 0)
+                ApertureMark(color: Theme.txt, reveal: reveal)
+                    .frame(width: 118, height: 118)
                 Wordmark(size: 34)
-                    .opacity(open ? 1 : 0)
-                    .offset(y: open ? 0 : 8)
+                    .opacity(showText ? 1 : 0)
+                    .offset(y: showText ? 0 : 8)
             }
         }
         .onAppear {
-            withAnimation(.spring(response: 0.75, dampingFraction: 0.72)) { open = true }
+            withAnimation(.easeOut(duration: 0.95)) { reveal = 1 }
+            withAnimation(.easeOut(duration: 0.5).delay(0.6)) { showText = true }
         }
     }
 }
