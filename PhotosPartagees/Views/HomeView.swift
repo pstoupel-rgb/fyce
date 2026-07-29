@@ -31,10 +31,20 @@ struct HomeView: View {
     // MARK: - En-tête
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Wordmark()
-            Text("Retrouve tes photos, avec les bonnes personnes.")
-                .font(.subheadline).foregroundStyle(Theme.muted)
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 3) {
+                Wordmark()
+                Text("Retrouve tes photos, avec les bonnes personnes.")
+                    .font(.subheadline).foregroundStyle(Theme.muted)
+            }
+            Spacer()
+            Button { sheet = .activity } label: {
+                Image(systemName: "bell").font(.body.weight(.medium)).foregroundStyle(Theme.txt)
+                    .frame(width: 38, height: 38)
+                    .background(.ultraThinMaterial, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Activité — nouvelles photos de toi")
         }
         .padding(.top, 8)
     }
@@ -164,6 +174,7 @@ struct HomeView: View {
         case .eventCloud(let e):   EventCloudView(event: e, store: store)
         case .joinEvent:           EventJoinView(store: store)
         case .addFriend:           AddFriendView(store: store)
+        case .activity:            ActivityFeedView()
         }
     }
 }
@@ -172,7 +183,7 @@ struct HomeView: View {
 enum HomeSheet: Identifiable {
     case newGroup, editGroup(FriendGroup)
     case newEvent, editEvent(PozeEvent), shareEvent(PozeEvent), eventCloud(PozeEvent), joinEvent
-    case addFriend
+    case addFriend, activity
 
     var id: String {
         switch self {
@@ -184,6 +195,7 @@ enum HomeSheet: Identifiable {
         case .eventCloud(let e): return "eventCloud-\(e.id)"
         case .joinEvent: return "joinEvent"
         case .addFriend: return "addFriend"
+        case .activity: return "activity"
         }
     }
 }

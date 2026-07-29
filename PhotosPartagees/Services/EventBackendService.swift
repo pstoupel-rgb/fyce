@@ -33,6 +33,25 @@ actor EventBackendService {
 
     struct RemoteEvent: Decodable { let id: String; let name: String; let join_code: String? }
     struct RemotePhoto: Decodable, Identifiable { let id: String; let storage_path: String; let created_at: String? }
+    struct RemoteNotification: Decodable, Identifiable {
+        let id: Int
+        let kind: String
+        let body: String?
+        let created_at: String?
+        let seen_at: String?
+    }
+
+    /// Les notifications de l'utilisateur (« X a de nouvelles photos de toi »).
+    /// Lecture seule ; RLS limite déjà aux siennes.
+    func listNotifications() async throws -> [RemoteNotification] {
+        guard isEnabled else { throw BackendError.notConfigured }
+        let token = try await ensureSession()
+        var request = restRequest(
+            path: "rest/v1/notifications?select=id,kind,body,created_at,seen_at&order=created_at.desc&limit=50",
+            token: token)
+        request.httpMethod = "GET"
+        return try await send(request)
+    }
 
     private let storage = SupabaseService()
 
