@@ -9,7 +9,8 @@ struct OnboardingView: View {
     private let pages: [Page] = [
         Page(symbol: "camera.aperture",
              title: "Bienvenue sur Poze",
-             body: "Retrouve tes photos, et celles de tes proches, sans fouiller ta pellicule à la main."),
+             body: "Retrouve tes photos, et celles de tes proches, sans fouiller ta pellicule à la main.",
+             mark: true),
         Page(symbol: "lock.shield",
              title: "Rien ne quitte ton téléphone",
              body: "La reconnaissance des visages se fait entièrement sur ton appareil. Aucune photo, aucun visage n'est envoyé sans ton accord."),
@@ -23,7 +24,7 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack {
-            Theme.bg.ignoresSafeArea()
+            HaloBackground()
             VStack(spacing: 0) {
                 TabView(selection: $page) {
                     ForEach(pages.indices, id: \.self) { i in
@@ -41,12 +42,16 @@ struct OnboardingView: View {
     private func pageView(_ p: Page) -> some View {
         VStack(spacing: 22) {
             Spacer()
-            Image(systemName: p.symbol)
-                .font(.system(size: 60, weight: .regular))
-                .foregroundStyle(Theme.txt)
-                .frame(width: 120, height: 120)
-                .background(Theme.surface, in: Circle())
-                .overlay(Circle().strokeBorder(Theme.line2, lineWidth: 1))
+            if p.mark {
+                ApertureMark(color: Theme.txt).frame(width: 120, height: 120)
+            } else {
+                Image(systemName: p.symbol)
+                    .font(.system(size: 60, weight: .regular))
+                    .foregroundStyle(Theme.txt)
+                    .frame(width: 120, height: 120)
+                    .background(Theme.surface, in: Circle())
+                    .overlay(Circle().strokeBorder(Theme.line2, lineWidth: 1))
+            }
             VStack(spacing: 12) {
                 Text(p.title)
                     .font(.system(size: 26, weight: .semibold))
@@ -102,5 +107,6 @@ struct OnboardingView: View {
         let symbol: String
         let title: String
         let body: String
+        var mark: Bool = false
     }
 }

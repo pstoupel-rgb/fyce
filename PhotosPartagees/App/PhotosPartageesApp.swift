@@ -7,11 +7,19 @@ struct PhotosPartageesApp: App {
 
     @AppStorage("has_onboarded_v1") private var hasOnboarded = false
     @StateObject private var auth = AuthService()
+    @State private var showSplash = true
 
     var body: some Scene {
         WindowGroup {
             Group {
-                if !hasOnboarded {
+                if showSplash {
+                    SplashView()
+                        .transition(.opacity)
+                        .task {
+                            try? await Task.sleep(nanoseconds: 1_400_000_000)
+                            withAnimation(.easeInOut(duration: 0.4)) { showSplash = false }
+                        }
+                } else if !hasOnboarded {
                     OnboardingView { hasOnboarded = true }.transition(.opacity)
                 } else if auth.needsLogin {
                     LoginView(auth: auth).transition(.opacity)
@@ -20,6 +28,7 @@ struct PhotosPartageesApp: App {
                 }
             }
             .preferredColorScheme(.dark)
+            .animation(.easeInOut, value: showSplash)
             .animation(.easeInOut, value: hasOnboarded)
             .animation(.easeInOut, value: auth.needsLogin)
         }

@@ -10,10 +10,11 @@ struct LoginView: View {
 
     var body: some View {
         ZStack {
-            Theme.bg.ignoresSafeArea()
+            HaloBackground()
             VStack(spacing: 0) {
                 Spacer()
-                VStack(spacing: 10) {
+                VStack(spacing: 16) {
+                    ApertureMark(color: Theme.txt).frame(width: 72, height: 72)
                     Wordmark(size: 40)
                     Text("Crée ton compte pour retrouver et partager\ntes photos, où que tu sois.")
                         .font(.subheadline).foregroundStyle(Theme.muted)
