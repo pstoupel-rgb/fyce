@@ -1,76 +1,70 @@
 import SwiftUI
+import UIKit
 
-/// L'écran d'accueil-vitrine : fond aurora vivant, tuiles en verre pour tes
-/// groupes et events personnalisés, et tes amis en accès rapide. Tout est
-/// configurable — c'est ta page à toi.
+/// Écran d'accueil « éditorial » : wordmark discret, groupes en lignes avec
+/// vignette réelle et pastille de couleur sobre, events en couverture photo,
+/// amis en accès rapide. Calme, lisible, la photo au centre.
 struct HomeView: View {
     @EnvironmentObject private var store: FriendStore
     @State private var sheet: HomeSheet?
 
-    private let gridColumns = [GridItem(.flexible(), spacing: 14),
-                               GridItem(.flexible(), spacing: 14)]
-
     var body: some View {
         NavigationStack {
             ZStack {
-                AuroraBackground()
+                Theme.bg.ignoresSafeArea()
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 30) {
-                        hero
+                    VStack(alignment: .leading, spacing: 4) {
+                        header
                         groupsSection
                         eventsSection
                         friendsSection
-                        Color.clear.frame(height: 16)
+                        Color.clear.frame(height: 20)
                     }
-                    .padding(.horizontal)
-                    .padding(.top, 4)
+                    .padding(.horizontal, 20)
                 }
             }
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(item: $sheet, content: sheetContent)
         }
     }
 
-    // MARK: - Hero
+    // MARK: - En-tête
 
-    private var hero: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Poze")
-                .font(.system(size: 40, weight: .heavy, design: .rounded))
-                .foregroundStyle(Theme.brandGradient)
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Wordmark()
             Text("Retrouve tes photos, avec les bonnes personnes.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(.subheadline).foregroundStyle(Theme.muted)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, 8)
     }
 
     // MARK: - Groupes
 
     private var groupsSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            sectionHeader("Mes groupes", systemAdd: "plus") { sheet = .newGroup }
-            LazyVGrid(columns: gridColumns, spacing: 14) {
-                ForEach(store.groups) { group in
-                    let members = store.members(ofIDs: group.memberIDs)
-                    NavigationLink {
-                        ReviewView(subject: .group(group, members: members), store: store)
-                    } label: {
-                        GroupTile(group: group, members: members)
-                    }
-                    .buttonStyle(.plain)
-                    .contextMenu {
-                        Button { sheet = .editGroup(group) } label: { Label("Modifier", systemImage: "pencil") }
-                        Button(role: .destructive) { store.remove(group) } label: { Label("Supprimer", systemImage: "trash") }
-                    }
-                }
-                AddTile(title: "Nouveau groupe") { sheet = .newGroup }
+        VStack(alignment: .leading, spacing: 0) {
+            SectionLabel(title: "Groupes") {
+                Button { sheet = .newGroup } label: { addGlyph }
             }
             if store.groups.isEmpty {
-                hint("Crée un groupe (Famille, Potes, Boulot…) pour scanner d'un coup toutes tes photos de ses membres.")
+                EmptyLine(text: "Crée un groupe (Famille, Potes…) pour scanner d'un coup toutes tes photos de ses membres.") { sheet = .newGroup }
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(store.groups.enumerated()), id: \.element.id) { pair in
+                        let group = pair.element
+                        let members = store.members(ofIDs: group.memberIDs)
+                        NavigationLink {
+                            ReviewView(subject: .group(group, members: members), store: store)
+                        } label: {
+                            GroupRow(group: group, members: members, showDivider: pair.offset > 0)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button { sheet = .editGroup(group) } label: { Label("Modifier", systemImage: "pencil") }
+                            Button(role: .destructive) { store.remove(group) } label: { Label("Supprimer", systemImage: "trash") }
+                        }
+                    }
+                }
             }
         }
     }
@@ -78,35 +72,27 @@ struct HomeView: View {
     // MARK: - Events
 
     private var eventsSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text("Events").font(.title3.bold())
-                Spacer()
-                Button { sheet = .joinEvent } label: {
-                    Image(systemName: "qrcode.viewfinder").font(.subheadline.weight(.bold))
-                        .frame(width: 30, height: 30)
-                        .background(.ultraThinMaterial, in: Circle())
+        VStack(alignment: .leading, spacing: 0) {
+            SectionLabel(title: "Events") {
+                HStack(spacing: 14) {
+                    Button { sheet = .joinEvent } label: {
+                        Image(systemName: "qrcode.viewfinder").font(.body).foregroundStyle(Theme.muted)
+                    }
+                    .accessibilityLabel("Rejoindre un event en scannant un QR")
+                    Button { sheet = .newEvent } label: { addGlyph }
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Rejoindre un event en scannant un QR")
-                Button { sheet = .newEvent } label: {
-                    Image(systemName: "plus").font(.subheadline.weight(.bold))
-                        .frame(width: 30, height: 30)
-                        .background(.ultraThinMaterial, in: Circle())
-                }
-                .buttonStyle(.plain)
             }
             if store.events.isEmpty {
-                hint("Ajoute un event (soirée, mariage, vacances) pour retrouver qui était là.")
+                EmptyLine(text: "Ajoute un event (soirée, mariage, vacances) pour retrouver qui était là.") { sheet = .newEvent }
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 14) {
+                    HStack(spacing: 12) {
                         ForEach(store.events) { event in
                             let members = store.members(ofIDs: event.memberIDs)
                             NavigationLink {
                                 ReviewView(subject: .event(event, members: members), store: store)
                             } label: {
-                                EventCard(event: event, members: members)
+                                EventCoverCard(event: event, members: members)
                             }
                             .buttonStyle(.plain)
                             .contextMenu {
@@ -115,11 +101,11 @@ struct HomeView: View {
                                 Button(role: .destructive) { store.remove(event) } label: { Label("Supprimer", systemImage: "trash") }
                             }
                         }
-                        AddTile(title: "Nouvel event", compact: true) { sheet = .newEvent }
-                            .frame(width: 150)
                     }
-                    .padding(.vertical, 2)
+                    .padding(.vertical, 4)
                 }
+                .padding(.horizontal, -20)
+                .padding(.leading, 20)
             }
         }
     }
@@ -127,10 +113,12 @@ struct HomeView: View {
     // MARK: - Amis
 
     private var friendsSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            sectionHeader("Amis", systemAdd: "plus") { sheet = .addFriend }
+        VStack(alignment: .leading, spacing: 0) {
+            SectionLabel(title: "Amis") {
+                Button { sheet = .addFriend } label: { addGlyph }
+            }
             if store.friends.isEmpty {
-                hint("Ajoute un ami depuis une photo : l'app retrouvera ensuite toutes tes photos de lui.")
+                EmptyLine(text: "Ajoute un ami depuis une photo : l'app retrouvera ensuite toutes tes photos de lui.") { sheet = .addFriend }
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 16) {
@@ -147,51 +135,19 @@ struct HomeView: View {
                                 }
                             }
                         }
-                        addFriendChip
+                        Button { sheet = .addFriend } label: { AddChip() }
+                            .buttonStyle(.plain)
                     }
-                    .padding(.vertical, 2)
+                    .padding(.vertical, 4)
                 }
+                .padding(.horizontal, -20)
+                .padding(.leading, 20)
             }
         }
     }
 
-    private var addFriendChip: some View {
-        Button { sheet = .addFriend } label: {
-            VStack(spacing: 8) {
-                Image(systemName: "plus")
-                    .font(.title2.weight(.semibold))
-                    .frame(width: 64, height: 64)
-                    .background(.ultraThinMaterial, in: Circle())
-                    .overlay(Circle().strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [4])))
-                    .foregroundStyle(.secondary)
-                Text("Ajouter").font(.caption2).foregroundStyle(.secondary)
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    // MARK: - Briques
-
-    private func sectionHeader(_ title: String, systemAdd: String, add: @escaping () -> Void) -> some View {
-        HStack {
-            Text(title).font(.title3.bold())
-            Spacer()
-            Button(action: add) {
-                Image(systemName: systemAdd).font(.subheadline.weight(.bold))
-                    .frame(width: 30, height: 30)
-                    .background(.ultraThinMaterial, in: Circle())
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    private func hint(_ text: String) -> some View {
-        Text(text)
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(14)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    private var addGlyph: some View {
+        Image(systemName: "plus").font(.body.weight(.medium)).foregroundStyle(Theme.muted)
     }
 
     @ViewBuilder
@@ -227,139 +183,183 @@ enum HomeSheet: Identifiable {
     }
 }
 
-// MARK: - Tuiles
+// MARK: - Wordmark
 
-private struct GroupTile: View {
-    let group: FriendGroup
-    let members: [Friend]
-
+/// « poze » sobre, avec le « o » traité comme un objectif (anneau).
+struct Wordmark: View {
+    var size: CGFloat = 30
     var body: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .top) {
-                    Image(systemName: group.symbol)
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(width: 42, height: 42)
-                        .background(group.colorway.gradient,
-                                    in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    Spacer()
-                    MiniAvatars(members: members)
-                }
-                Spacer(minLength: 6)
-                Text(group.name).font(.headline).lineLimit(1)
-                Text("\(members.count) membre\(members.count > 1 ? "s" : "")")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            .padding(14)
-            .frame(height: 150, alignment: .topLeading)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        HStack(spacing: 0) {
+            Text("p").font(.system(size: size, weight: .semibold))
+            ApertureO(size: size * 0.82)
+            Text("ze").font(.system(size: size, weight: .semibold))
         }
-        .shadow(color: group.colorway.primary.opacity(0.30), radius: 16, y: 8)
+        .tracking(-0.5)
+        .foregroundStyle(Theme.txt)
     }
 }
 
-private struct EventCard: View {
+/// Le « o » = un diaphragme stylisé (deux anneaux fins).
+struct ApertureO: View {
+    var size: CGFloat = 24
+    var body: some View {
+        ZStack {
+            Circle().strokeBorder(Theme.txt, lineWidth: size * 0.14)
+            Circle().strokeBorder(Theme.txt.opacity(0.35), lineWidth: 1)
+                .padding(size * 0.26)
+        }
+        .frame(width: size, height: size)
+        .padding(.horizontal, 1)
+    }
+}
+
+// MARK: - Briques d'accueil
+
+private struct SectionLabel<Trailing: View>: View {
+    let title: String
+    @ViewBuilder var trailing: Trailing
+    var body: some View {
+        HStack {
+            Text(title.uppercased())
+                .font(.caption).fontWeight(.semibold)
+                .tracking(1.6).foregroundStyle(Theme.muted)
+            Spacer()
+            trailing
+        }
+        .padding(.top, 26).padding(.bottom, 12)
+    }
+}
+
+private struct GroupRow: View {
+    let group: FriendGroup
+    let members: [Friend]
+    let showDivider: Bool
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if showDivider { Divider().overlay(Theme.line) }
+            HStack(spacing: 14) {
+                Circle().fill(group.colorway.primary).frame(width: 9, height: 9)
+                Cover(image: members.first?.thumbnail, tint: group.colorway.primary, size: 46, corner: 13)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(group.name).font(.system(size: 16, weight: .semibold)).foregroundStyle(Theme.txt)
+                    Text(memberLine).font(.system(size: 12.5)).foregroundStyle(Theme.muted)
+                }
+                Spacer()
+                MiniAvatars(members: members)
+                Image(systemName: "chevron.right").font(.caption).foregroundStyle(Theme.muted2)
+            }
+            .padding(.vertical, 15)
+        }
+    }
+
+    private var memberLine: String {
+        let n = members.count
+        return "\(n) personne\(n > 1 ? "s" : "")"
+    }
+}
+
+private struct EventCoverCard: View {
     let event: PozeEvent
     let members: [Friend]
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(event.colorway.gradient)
-                .opacity(0.85)
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(.ultraThinMaterial).opacity(0.25)
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Image(systemName: event.symbol).font(.headline)
-                    Spacer()
-                    MiniAvatars(members: members)
-                }
-                Spacer()
-                Text(event.name).font(.headline).lineLimit(1)
+            Cover(image: members.first?.thumbnail, tint: event.colorway.primary, size: nil, corner: 16)
+            LinearGradient(colors: [.clear, .black.opacity(0.75)],
+                           startPoint: .center, endPoint: .bottom)
+            Circle().fill(event.colorway.primary).frame(width: 7, height: 7)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(12)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(event.name).font(.system(size: 14.5, weight: .semibold)).foregroundStyle(.white)
                 Text(event.date.formatted(date: .abbreviated, time: .omitted))
-                    .font(.caption).opacity(0.9)
+                    .font(.system(size: 11.5)).foregroundStyle(.white.opacity(0.72))
             }
-            .foregroundStyle(.white)
-            .padding(14)
+            .padding(12)
         }
-        .frame(width: 200, height: 150)
-        .shadow(color: event.colorway.primary.opacity(0.35), radius: 16, y: 8)
+        .frame(width: 168, height: 120)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
     }
 }
 
 private struct FriendChip: View {
     let friend: Friend
-
     var body: some View {
-        VStack(spacing: 8) {
-            Group {
-                if let thumb = friend.thumbnail {
-                    Image(uiImage: thumb).resizable().scaledToFill()
-                } else {
-                    Image(systemName: "person.crop.circle.fill")
-                        .resizable().scaledToFit().foregroundStyle(.secondary)
-                }
-            }
-            .frame(width: 64, height: 64)
-            .clipShape(Circle())
-            .overlay(Circle().strokeBorder(Theme.brandGradient, lineWidth: 2.5))
-            Text(friend.name).font(.caption2).lineLimit(1).frame(width: 72)
+        VStack(spacing: 7) {
+            Cover(image: friend.thumbnail, tint: Theme.surface2, size: 56, corner: 28)
+                .clipShape(Circle())
+                .overlay(Circle().strokeBorder(Theme.line2, lineWidth: 1))
+            Text(friend.name).font(.system(size: 11)).foregroundStyle(Theme.muted)
+                .lineLimit(1).frame(width: 62)
         }
     }
 }
 
-/// Petites pastilles de visages superposées pour les tuiles.
+private struct AddChip: View {
+    var body: some View {
+        VStack(spacing: 7) {
+            Image(systemName: "plus").font(.title3).foregroundStyle(Theme.muted)
+                .frame(width: 56, height: 56)
+                .overlay(Circle().strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4])).foregroundStyle(Theme.line2))
+            Text("Ajouter").font(.system(size: 11)).foregroundStyle(Theme.muted)
+        }
+    }
+}
+
+/// Vignette : photo réelle si disponible, sinon un aplat teinté sobre.
+private struct Cover: View {
+    let image: UIImage?
+    let tint: Color
+    let size: CGFloat?
+    let corner: CGFloat
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image).resizable().scaledToFill()
+            } else {
+                LinearGradient(colors: [tint.opacity(0.5), Theme.surface],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                    .overlay(Image(systemName: "person.fill").foregroundStyle(Theme.muted2))
+            }
+        }
+        .frame(width: size, height: size)
+        .frame(maxWidth: size == nil ? .infinity : nil, maxHeight: size == nil ? .infinity : nil)
+        .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
+    }
+}
+
 private struct MiniAvatars: View {
     let members: [Friend]
-    var diameter: CGFloat = 26
-
     var body: some View {
         let shown = Array(members.prefix(3))
-        HStack(spacing: -diameter * 0.4) {
+        HStack(spacing: -8) {
             ForEach(Array(shown.enumerated()), id: \.offset) { pair in
-                Group {
-                    if let thumb = pair.element.thumbnail {
-                        Image(uiImage: thumb).resizable().scaledToFill()
-                    } else {
-                        Image(systemName: "person.crop.circle.fill")
-                            .resizable().scaledToFit().foregroundStyle(.secondary)
-                    }
-                }
-                .frame(width: diameter, height: diameter)
-                .clipShape(Circle())
-                .overlay(Circle().strokeBorder(.white.opacity(0.5), lineWidth: 1))
-            }
-            if members.count > 3 {
-                Text("+\(members.count - 3)")
-                    .font(.system(size: 10, weight: .bold))
-                    .frame(width: diameter, height: diameter)
-                    .background(.ultraThinMaterial, in: Circle())
+                Cover(image: pair.element.thumbnail, tint: Theme.surface2, size: 22, corner: 11)
+                    .clipShape(Circle())
+                    .overlay(Circle().strokeBorder(Theme.bg, lineWidth: 1.5))
             }
         }
     }
 }
 
-private struct AddTile: View {
-    let title: String
-    var compact: Bool = false
+private struct EmptyLine: View {
+    let text: String
     let action: () -> Void
-
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 10) {
-                Image(systemName: "plus").font(.title2.weight(.semibold))
-                Text(title).font(.footnote.weight(.medium))
+            HStack(spacing: 10) {
+                Text(text).font(.footnote).foregroundStyle(Theme.muted)
+                    .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
+                Spacer()
+                Image(systemName: "plus.circle").foregroundStyle(Theme.muted)
             }
-            .foregroundStyle(.secondary)
+            .padding(16)
             .frame(maxWidth: .infinity)
-            .frame(height: 150)
-            .background(.ultraThinMaterial.opacity(0.5),
-                        in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6]))
-                .foregroundStyle(.white.opacity(0.25)))
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
         }
         .buttonStyle(.plain)
     }

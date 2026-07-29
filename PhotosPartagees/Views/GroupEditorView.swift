@@ -80,10 +80,10 @@ struct EditorFields: View {
                 HStack(spacing: 12) {
                     ForEach(Colorway.allCases) { c in
                         Circle()
-                            .fill(c.gradient)
-                            .frame(width: 40, height: 40)
-                            .overlay(Circle().strokeBorder(.white,
-                                        lineWidth: colorway == c ? 3 : 0))
+                            .fill(c.primary)
+                            .frame(width: 36, height: 36)
+                            .overlay(Circle().strokeBorder(Theme.txt,
+                                        lineWidth: colorway == c ? 2.5 : 0).padding(-3))
                             .onTapGesture { colorway = c }
                             .accessibilityLabel(c.label)
                     }
@@ -97,10 +97,10 @@ struct EditorFields: View {
                     Image(systemName: s)
                         .font(.title3)
                         .frame(width: 52, height: 52)
-                        .background(symbol == s ? AnyShapeStyle(colorway.gradient)
-                                                : AnyShapeStyle(Color.white.opacity(0.08)),
+                        .background(symbol == s ? AnyShapeStyle(Theme.txt)
+                                                : AnyShapeStyle(Color.white.opacity(0.06)),
                                     in: RoundedRectangle(cornerRadius: 12))
-                        .foregroundStyle(symbol == s ? .white : .primary)
+                        .foregroundStyle(symbol == s ? Color.black : Theme.txt)
                         .onTapGesture { symbol = s }
                 }
             }

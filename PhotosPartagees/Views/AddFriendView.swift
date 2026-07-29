@@ -22,22 +22,29 @@ struct AddFriendView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                photoWell
-                if status == .noFace {
-                    Label("Aucun visage net détecté. Essaie une autre photo.",
-                          systemImage: "exclamationmark.triangle")
-                        .font(.footnote).foregroundStyle(.orange)
+            ZStack {
+                Theme.bg.ignoresSafeArea()
+                VStack(spacing: 20) {
+                    photoWell
+                    if status == .noFace {
+                        Label("Aucun visage net détecté. Essaie une autre photo.",
+                              systemImage: "exclamationmark.triangle")
+                            .font(.footnote).foregroundStyle(Color(hex: 0xd9a066))
+                    } else if status == .ready {
+                        Label("Visage détecté · empreinte créée sur l'appareil", systemImage: "checkmark.circle")
+                            .font(.footnote).foregroundStyle(Theme.ok)
+                    }
+                    TextField("Prénom de l'ami", text: $name)
+                        .textFieldStyle(.roundedBorder)
+                        .disabled(referencePrint == nil)
+                    Spacer()
+                    saveButton
                 }
-                TextField("Prénom de l'ami", text: $name)
-                    .textFieldStyle(.roundedBorder)
-                    .disabled(referencePrint == nil)
-                Spacer()
-                saveButton
+                .padding()
             }
-            .padding()
             .navigationTitle("Nouvel ami")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") { dismiss() }
@@ -52,14 +59,14 @@ struct AddFriendView: View {
     private var photoWell: some View {
         PhotosPicker(selection: $pickerItem, matching: .images, photoLibrary: .shared()) {
             ZStack {
-                RoundedRectangle(cornerRadius: 22).fill(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: 20).fill(Theme.surface)
                 if let image {
                     Image(uiImage: image).resizable().scaledToFill()
                 } else {
                     VStack(spacing: 10) {
                         Image(systemName: "person.crop.square.badge.camera")
-                            .font(.system(size: 44)).foregroundStyle(.secondary)
-                        Text("Choisir une photo du visage").foregroundStyle(.secondary)
+                            .font(.system(size: 44)).foregroundStyle(Theme.muted2)
+                        Text("Choisir une photo du visage").foregroundStyle(Theme.muted)
                     }
                 }
                 if status == .analyzing {
@@ -68,7 +75,8 @@ struct AddFriendView: View {
                 }
             }
             .frame(height: 260)
-            .clipShape(RoundedRectangle(cornerRadius: 22))
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(Theme.line, lineWidth: 1))
         }
     }
 
@@ -77,15 +85,10 @@ struct AddFriendView: View {
             save()
         } label: {
             Text("Ajouter l'ami")
-                .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14)
-                .background(canSave
-                            ? AnyShapeStyle(LinearGradient(
-                                colors: [Color(red: 0.49, green: 0.36, blue: 1),
-                                         Color(red: 0.13, green: 0.83, blue: 0.93)],
-                                startPoint: .leading, endPoint: .trailing))
-                            : AnyShapeStyle(Color.gray.opacity(0.3)),
-                            in: RoundedRectangle(cornerRadius: 16))
-                .foregroundStyle(.white)
+                .font(.system(size: 15, weight: .semibold)).frame(maxWidth: .infinity).padding(.vertical, 14)
+                .background(canSave ? AnyShapeStyle(Theme.txt) : AnyShapeStyle(Theme.surface2),
+                            in: RoundedRectangle(cornerRadius: 14))
+                .foregroundStyle(canSave ? Color.black : Theme.muted2)
         }
         .disabled(!canSave)
     }

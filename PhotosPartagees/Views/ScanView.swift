@@ -26,6 +26,8 @@ struct ScanView: View {
             }
             .padding()
         }
+        .background(Theme.bg.ignoresSafeArea())
+        .toolbarColorScheme(.dark, for: .navigationBar)
         .sheet(item: $viewModel.summary) { summary in
             UploadSummaryView(
                 summary: summary,

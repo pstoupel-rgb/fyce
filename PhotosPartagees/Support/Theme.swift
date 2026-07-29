@@ -1,55 +1,57 @@
 import SwiftUI
 
-/// Système de couleurs « Aurora glass » de Poze : fond sombre profond, verre
-/// translucide, et une palette de dégradés au choix pour personnaliser groupes
-/// et events.
+/// Système visuel « éditorial / noir » de Poze : noir profond, typo confiante,
+/// une seule couleur d'accent chaude, des filets fins au lieu de verre. La photo
+/// apporte la couleur — l'interface reste neutre.
 enum Theme {
-    /// Fond général très sombre, légèrement bleuté.
-    static let bg = Color(red: 0.039, green: 0.039, blue: 0.078)      // #0a0a14
-    static let bgElevated = Color(red: 0.07, green: 0.07, blue: 0.12)
-    static let accent = Color(red: 0.486, green: 0.361, blue: 1.0)     // #7c5cff
-    static let accent2 = Color(red: 0.133, green: 0.827, blue: 0.933)  // #22d3ee
-
-    /// Dégradé signature (le « o » de Poze, l'objectif).
-    static var brandGradient: LinearGradient {
-        LinearGradient(colors: [accent, accent2],
-                       startPoint: .topLeading, endPoint: .bottomTrailing)
-    }
+    static let bg = Color(hex: 0x08080a)          // noir profond (OLED)
+    static let surface = Color(hex: 0x141416)
+    static let surface2 = Color(hex: 0x1b1b1e)
+    static let line = Color.white.opacity(0.09)   // filet fin
+    static let line2 = Color.white.opacity(0.14)
+    static let txt = Color(hex: 0xf4f3ef)         // blanc cassé chaud
+    static let muted = Color(hex: 0x8a8a8f)
+    static let muted2 = Color(hex: 0x5c5c61)
+    static let accent = Color(hex: 0xe7e3da)      // accent unique, quasi-blanc
+    static let ok = Color(hex: 0x7fb08a)          // vert discret (validation)
 }
 
-/// Dégradés prédéfinis pour habiller un groupe ou un event.
+/// Pastilles de couleur *sobres* pour différencier discrètement groupes et
+/// events. Les noms de cas restent stables (persistance) ; seules les teintes
+/// ont été assagies — plus d'arc-en-ciel.
 enum Colorway: String, CaseIterable, Codable, Identifiable {
     case aurora, sunset, ocean, forest, candy, gold
 
     var id: String { rawValue }
 
-    var colors: [Color] {
+    /// Couleur unie de la pastille.
+    var primary: Color {
         switch self {
-        case .aurora: return [Color(hex: 0x7c5cff), Color(hex: 0x22d3ee)]
-        case .sunset: return [Color(hex: 0xff6a5c), Color(hex: 0xffb35c)]
-        case .ocean:  return [Color(hex: 0x2563eb), Color(hex: 0x22d3ee)]
-        case .forest: return [Color(hex: 0x22c55e), Color(hex: 0x84cc16)]
-        case .candy:  return [Color(hex: 0xec4899), Color(hex: 0x8b5cf6)]
-        case .gold:   return [Color(hex: 0xf59e0b), Color(hex: 0xef4444)]
+        case .aurora: return Color(hex: 0x5b6b82)   // ardoise bleutée
+        case .sunset: return Color(hex: 0xa07d64)   // argile
+        case .ocean:  return Color(hex: 0x6b7280)   // gris-bleu
+        case .forest: return Color(hex: 0x7d8a72)   // sauge
+        case .candy:  return Color(hex: 0x9b7280)   // vieux rose
+        case .gold:   return Color(hex: 0x8a8560)   // olive
         }
     }
 
     var label: String {
         switch self {
-        case .aurora: return "Aurora"
-        case .sunset: return "Coucher"
-        case .ocean:  return "Océan"
-        case .forest: return "Forêt"
-        case .candy:  return "Bonbon"
-        case .gold:   return "Or"
+        case .aurora: return "Ardoise"
+        case .sunset: return "Argile"
+        case .ocean:  return "Gris-bleu"
+        case .forest: return "Sauge"
+        case .candy:  return "Vieux rose"
+        case .gold:   return "Olive"
         }
     }
 
+    /// Dégradé très resserré (deux nuances proches) — usage rare, jamais criard.
     var gradient: LinearGradient {
-        LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+        LinearGradient(colors: [primary.opacity(0.95), primary.opacity(0.65)],
+                       startPoint: .topLeading, endPoint: .bottomTrailing)
     }
-
-    var primary: Color { colors.first ?? Theme.accent }
 }
 
 extension Color {
@@ -63,18 +65,18 @@ extension Color {
     }
 }
 
-/// Carte en verre réutilisable (glassmorphism) — la brique visuelle de l'app.
-struct GlassCard<Content: View>: View {
-    var cornerRadius: CGFloat = 22
+/// Surface plate à filet fin — la brique visuelle sobre (remplace le verre).
+struct SurfaceCard<Content: View>: View {
+    var cornerRadius: CGFloat = 16
     @ViewBuilder var content: Content
 
     var body: some View {
         content
-            .background(.ultraThinMaterial,
+            .background(Theme.surface,
                         in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(.white.opacity(0.10), lineWidth: 1)
+                    .strokeBorder(Theme.line, lineWidth: 1)
             )
     }
 }

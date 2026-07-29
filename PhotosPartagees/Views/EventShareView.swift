@@ -18,10 +18,12 @@ struct EventShareView: View {
                 VStack(spacing: 18) {
                     Image(systemName: event.symbol)
                         .font(.title)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Theme.txt)
                         .frame(width: 54, height: 54)
-                        .background(event.colorway.gradient,
-                                    in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
+                        .overlay(Circle().fill(event.colorway.primary).frame(width: 8, height: 8)
+                                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing).padding(7))
                     Text(event.name).font(.title2.bold())
                     Text(event.date.formatted(date: .long, time: .omitted))
                         .font(.subheadline).foregroundStyle(.secondary)
@@ -38,10 +40,10 @@ struct EventShareView: View {
                     }
 
                     Text(event.joinCode)
-                        .font(.system(.title3, design: .monospaced).weight(.bold))
-                        .tracking(4)
+                        .font(.system(.title3, design: .monospaced).weight(.semibold))
+                        .tracking(4).foregroundStyle(Theme.muted)
                         .padding(.horizontal, 18).padding(.vertical, 8)
-                        .background(.ultraThinMaterial, in: Capsule())
+                        .overlay(Capsule().strokeBorder(Theme.line, lineWidth: 1))
 
                     Text("Fais scanner ce QR à tes amis pour qu'ils rejoignent l'event.")
                         .font(.footnote).foregroundStyle(.secondary)
@@ -55,9 +57,10 @@ struct EventShareView: View {
                         shareItems = items
                     } label: {
                         Label("Partager l'invitation", systemImage: "square.and.arrow.up")
-                            .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14)
-                            .background(event.colorway.gradient, in: RoundedRectangle(cornerRadius: 16))
-                            .foregroundStyle(.white)
+                            .font(.system(size: 15, weight: .semibold))
+                            .frame(maxWidth: .infinity).padding(.vertical, 14)
+                            .background(Theme.txt, in: RoundedRectangle(cornerRadius: 14))
+                            .foregroundStyle(.black)
                     }
                     .disabled(qrImage == nil)
                 }

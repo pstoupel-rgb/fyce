@@ -10,7 +10,7 @@ struct ContentView: View {
             // Onglet « Accueil » : la vitrine — groupes, events et amis configurables.
             HomeView()
                 .environmentObject(friendStore)
-                .tabItem { Label("Accueil", systemImage: "sparkles") }
+                .tabItem { Label("Accueil", systemImage: "square.grid.2x2") }
 
             // Onglet « Moi » : le flux historique (mon visage → mes photos).
             NavigationStack {
@@ -25,9 +25,9 @@ struct ContentView: View {
                         SettingsView(viewModel: scanViewModel)
                     }
             }
-            .tabItem { Label("Moi", systemImage: "person.crop.square") }
+            .tabItem { Label("Moi", systemImage: "person.crop.circle") }
         }
-        .tint(Theme.accent)
+        .tint(Theme.txt)
         .preferredColorScheme(.dark)
     }
 }

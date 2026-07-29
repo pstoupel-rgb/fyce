@@ -1,29 +1,28 @@
 import SwiftUI
+import UIKit
 import Photos
 
-/// Écran de revue d'un sujet (ami, groupe ou event) : ses visages en haut, puis
-/// deux onglets « Nouvelles » (deck façon Tinder) et « Partagées » (galerie).
+/// Écran de revue d'un sujet (ami, groupe ou event) : ses visages en haut, deux
+/// onglets soulignés « Nouvelles » (deck) et « Partagées » (galerie). Sobre, la
+/// photo au centre.
 struct ReviewView: View {
     @StateObject private var viewModel: ReviewViewModel
-    private let colorway: Colorway
 
     enum Tab: String, CaseIterable { case new = "Nouvelles", shared = "Partagées" }
     @State private var tab: Tab = .new
 
     init(subject: ReviewSubject, store: ReviewHistoryStoring) {
         _viewModel = StateObject(wrappedValue: ReviewViewModel(subject: subject, store: store))
-        self.colorway = subject.colorway
     }
 
     var body: some View {
         ZStack {
-            AuroraBackground()
-            VStack(spacing: 16) {
+            Theme.bg.ignoresSafeArea()
+            VStack(spacing: 0) {
                 header
-                picker
+                tabs
                 content
             }
-            .padding(.top, 8)
         }
         .navigationTitle(viewModel.subject.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -32,37 +31,42 @@ struct ReviewView: View {
         .onDisappear { viewModel.cancel() }
     }
 
-    // MARK: - En-tête : visages du sujet + compteurs
+    // MARK: - En-tête
 
     private var header: some View {
-        VStack(spacing: 10) {
-            AvatarStack(images: viewModel.subject.avatars, colorway: colorway)
-            Text(viewModel.subject.title).font(.title3.bold())
-            Text(viewModel.subject.subtitle).font(.caption).foregroundStyle(.secondary)
-            HStack(spacing: 18) {
-                counter(viewModel.remaining, "à trier")
-                counter(viewModel.shared.count, "partagées")
+        VStack(spacing: 7) {
+            AvatarStack(images: viewModel.subject.avatars)
+            Text(viewModel.subject.title).font(.system(size: 19, weight: .semibold)).foregroundStyle(Theme.txt)
+            Text(metaLine).font(.system(size: 12.5)).foregroundStyle(Theme.muted)
+        }
+        .padding(.top, 10)
+    }
+
+    private var metaLine: String {
+        "\(viewModel.subject.subtitle) · \(viewModel.remaining) à trier"
+    }
+
+    private var tabs: some View {
+        HStack(spacing: 26) {
+            ForEach(Tab.allCases, id: \.self) { t in
+                Button { withAnimation(.easeOut(duration: 0.15)) { tab = t } } label: {
+                    VStack(spacing: 9) {
+                        Text(t.rawValue)
+                            .font(.system(size: 13.5, weight: .medium))
+                            .foregroundStyle(tab == t ? Theme.txt : Theme.muted)
+                        Rectangle().fill(tab == t ? Theme.txt : .clear)
+                            .frame(height: 2).frame(width: 46)
+                    }
+                }
+                .buttonStyle(.plain)
             }
-            .font(.footnote).foregroundStyle(.secondary)
         }
+        .padding(.top, 16)
+        .overlay(alignment: .bottom) { Rectangle().fill(Theme.line).frame(height: 1) }
+        .padding(.bottom, 2)
     }
 
-    private func counter(_ value: Int, _ label: String) -> some View {
-        HStack(spacing: 4) {
-            Text("\(value)").font(.footnote.bold()).foregroundStyle(.primary)
-            Text(label)
-        }
-    }
-
-    private var picker: some View {
-        Picker("Vue", selection: $tab) {
-            ForEach(Tab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
-        }
-        .pickerStyle(.segmented)
-        .padding(.horizontal)
-    }
-
-    // MARK: - Contenu selon la phase + l'onglet
+    // MARK: - Contenu
 
     @ViewBuilder
     private var content: some View {
@@ -70,11 +74,9 @@ struct ReviewView: View {
         case .idle, .scanning:
             scanningView
         case .needsAccess:
-            message("Autorise l'accès aux photos", "Réglages → Photos → Poze",
-                    system: "photo.on.rectangle")
+            message("Autorise l'accès aux photos", "Réglages → Photos → Poze", system: "photo.on.rectangle")
         case .noReference:
-            message("Ajoute d'abord des membres",
-                    "Ce sujet n'a aucun visage de référence à chercher.",
+            message("Ajoute d'abord des membres", "Ce sujet n'a aucun visage de référence à chercher.",
                     system: "person.crop.circle.badge.questionmark")
         case .error(let msg):
             message("Oups", msg, system: "exclamationmark.triangle")
@@ -82,9 +84,7 @@ struct ReviewView: View {
             if tab == .new {
                 SwipeDeckView(viewModel: viewModel)
             } else {
-                SharedGalleryView(items: viewModel.shared,
-                                  subjectTitle: viewModel.subject.title,
-                                  colorway: colorway)
+                SharedGalleryView(items: viewModel.shared, subjectTitle: viewModel.subject.title)
             }
         }
         Spacer(minLength: 0)
@@ -92,40 +92,39 @@ struct ReviewView: View {
 
     private var scanningView: some View {
         VStack(spacing: 14) {
-            ProgressView().scaleEffect(1.3).tint(colorway.primary)
+            ProgressView().tint(Theme.txt).scaleEffect(1.2)
             if case .scanning(let processed, let total) = viewModel.phase {
                 Text("Analyse de tes photos… \(processed)/\(total)")
-                    .font(.subheadline).foregroundStyle(.secondary)
+                    .font(.subheadline).foregroundStyle(Theme.muted)
                 Text("Reconnaissance 100 % sur ton téléphone")
-                    .font(.caption).foregroundStyle(.tertiary)
+                    .font(.caption).foregroundStyle(Theme.muted2)
             } else {
-                Text("Préparation du scan…").font(.subheadline).foregroundStyle(.secondary)
+                Text("Préparation…").font(.subheadline).foregroundStyle(Theme.muted)
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 300)
+        .frame(maxWidth: .infinity, minHeight: 320)
     }
 
     private func message(_ title: String, _ subtitle: String, system: String) -> some View {
         VStack(spacing: 10) {
-            Image(systemName: system).font(.system(size: 40)).foregroundStyle(.secondary)
-            Text(title).font(.headline)
-            Text(subtitle).font(.subheadline).foregroundStyle(.secondary)
+            Image(systemName: system).font(.system(size: 38)).foregroundStyle(Theme.muted2)
+            Text(title).font(.headline).foregroundStyle(Theme.txt)
+            Text(subtitle).font(.subheadline).foregroundStyle(Theme.muted)
                 .multilineTextAlignment(.center)
         }
-        .frame(maxWidth: .infinity, minHeight: 300)
+        .frame(maxWidth: .infinity, minHeight: 320)
         .padding()
     }
 }
 
-/// Pile d'avatars superposés (un ami = un cercle ; un groupe = plusieurs).
+/// Pile d'avatars superposés à fin liseré (un ami = un cercle ; un groupe = plusieurs).
 struct AvatarStack: View {
     let images: [UIImage?]
-    let colorway: Colorway
-    var diameter: CGFloat = 88
+    var diameter: CGFloat = 70
 
     var body: some View {
         let shown = Array(images.prefix(4))
-        return HStack(spacing: -diameter * 0.32) {
+        HStack(spacing: -diameter * 0.34) {
             if shown.isEmpty {
                 circle(nil, index: 0)
             } else {
@@ -133,15 +132,7 @@ struct AvatarStack: View {
                     circle(pair.element, index: pair.offset)
                 }
             }
-            if images.count > 4 {
-                Text("+\(images.count - 4)")
-                    .font(.subheadline.bold())
-                    .frame(width: diameter * 0.62, height: diameter * 0.62)
-                    .background(.ultraThinMaterial, in: Circle())
-                    .overlay(Circle().strokeBorder(colorway.gradient, lineWidth: 2))
-            }
         }
-        .shadow(color: colorway.primary.opacity(0.4), radius: 14, y: 5)
     }
 
     private func circle(_ image: UIImage?, index: Int) -> some View {
@@ -149,59 +140,55 @@ struct AvatarStack: View {
             if let image {
                 Image(uiImage: image).resizable().scaledToFill()
             } else {
-                Image(systemName: "person.crop.circle.fill")
-                    .resizable().scaledToFit().foregroundStyle(.secondary)
+                Theme.surface2.overlay(Image(systemName: "person.fill").foregroundStyle(Theme.muted2))
             }
         }
         .frame(width: diameter, height: diameter)
         .clipShape(Circle())
-        .overlay(Circle().strokeBorder(colorway.gradient, lineWidth: 3))
+        .overlay(Circle().strokeBorder(Theme.line2, lineWidth: 1))
+        .background(Circle().fill(Theme.bg).padding(-2))
         .zIndex(Double(-index))
     }
 }
 
-/// Galerie des photos déjà partagées avec le sujet + bouton d'envoi natif.
+/// Galerie des photos partagées + bouton d'envoi natif (blanc franc).
 private struct SharedGalleryView: View {
     let items: [ReviewPhoto]
     let subjectTitle: String
-    let colorway: Colorway
     @State private var shareItems: [Any]?
 
-    private let columns = [GridItem(.adaptive(minimum: 104), spacing: 6)]
+    private let columns = [GridItem(.adaptive(minimum: 104), spacing: 5)]
 
     var body: some View {
         if items.isEmpty {
             VStack(spacing: 10) {
-                Image(systemName: "square.stack.3d.up.slash")
-                    .font(.system(size: 40)).foregroundStyle(.secondary)
-                Text("Rien de partagé pour l'instant").font(.headline)
+                Image(systemName: "square.stack.3d.up.slash").font(.system(size: 38)).foregroundStyle(Theme.muted2)
+                Text("Rien de partagé pour l'instant").font(.headline).foregroundStyle(Theme.txt)
                 Text("Garde des photos dans l'onglet « Nouvelles ».")
-                    .font(.subheadline).foregroundStyle(.secondary)
+                    .font(.subheadline).foregroundStyle(Theme.muted)
             }
-            .frame(maxWidth: .infinity, minHeight: 260)
+            .frame(maxWidth: .infinity, minHeight: 280)
         } else {
             VStack(spacing: 12) {
                 ScrollView {
-                    LazyVGrid(columns: columns, spacing: 6) {
+                    LazyVGrid(columns: columns, spacing: 5) {
                         ForEach(items) { thumb($0) }
                     }
-                    .padding(.horizontal)
+                    .padding(.horizontal, 16).padding(.top, 12)
                 }
                 Button {
                     shareItems = items.compactMap { $0.image }
                 } label: {
-                    Label("Envoyer \(items.count) photo\(items.count > 1 ? "s" : "")",
-                          systemImage: "square.and.arrow.up")
-                        .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14)
-                        .background(colorway.gradient, in: RoundedRectangle(cornerRadius: 16))
-                        .foregroundStyle(.white)
+                    Text("Envoyer \(items.count) photo\(items.count > 1 ? "s" : "")")
+                        .font(.system(size: 15, weight: .semibold)).foregroundStyle(.black)
+                        .frame(maxWidth: .infinity).padding(.vertical, 14)
+                        .background(Theme.txt, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 16).padding(.bottom, 8)
                 .disabled(items.allSatisfy { $0.image == nil })
             }
             .sheet(isPresented: Binding(
-                get: { shareItems != nil },
-                set: { if !$0 { shareItems = nil } })) {
+                get: { shareItems != nil }, set: { if !$0 { shareItems = nil } })) {
                 if let shareItems { ActivityView(items: shareItems) }
             }
         }
@@ -212,10 +199,10 @@ private struct SharedGalleryView: View {
             if let image = item.image {
                 Image(uiImage: image).resizable().scaledToFill()
             } else {
-                Rectangle().fill(.ultraThinMaterial).overlay(ProgressView())
+                Theme.surface.overlay(ProgressView().tint(Theme.muted))
             }
         }
         .frame(height: 104)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
