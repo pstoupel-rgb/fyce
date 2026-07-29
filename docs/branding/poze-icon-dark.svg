@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Poze">
+  <rect width="256" height="256" rx="56" fill="#0d0d12"/>
+  <g transform="translate(128 128) scale(0.72) translate(-128 -128)"
+     fill="none" stroke="#f4f3ef" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="128" cy="128" r="100" stroke-width="10" opacity="0.9"/>
+    <g stroke-width="12">
+      <line x1="51.40" y1="63.72" x2="204.60" y2="63.72"/>
+      <line x1="145.37" y1="29.52" x2="221.97" y2="162.20"/>
+      <line x1="221.97" y1="93.80" x2="145.37" y2="226.48"/>
+      <line x1="204.60" y1="192.28" x2="51.40" y2="192.28"/>
+      <line x1="110.63" y1="226.48" x2="34.03" y2="93.80"/>
+      <line x1="34.03" y1="162.20" x2="110.63" y2="29.52"/>
+    </g>
+  </g>
+</svg>
