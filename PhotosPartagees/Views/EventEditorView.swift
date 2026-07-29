@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 /// Créer ou modifier un event : nom, date, couleur, symbole et participants.
 struct EventEditorView: View {
@@ -12,6 +13,8 @@ struct EventEditorView: View {
     @State private var symbol: String
     @State private var selected: Set<UUID>
     @State private var showShare = false
+    @State private var logoData: Data?
+    @State private var logoItem: PhotosPickerItem?
 
     init(store: FriendStore, event: PozeEvent?) {
         self.store = store
@@ -21,6 +24,7 @@ struct EventEditorView: View {
         _colorway = State(initialValue: event?.colorway ?? .sunset)
         _symbol = State(initialValue: event?.symbol ?? "party.popper.fill")
         _selected = State(initialValue: Set(event?.memberIDs ?? []))
+        _logoData = State(initialValue: event?.logoData)
     }
 
     var body: some View {
@@ -34,6 +38,25 @@ struct EventEditorView: View {
                         DatePicker("Quand", selection: $date, displayedComponents: .date)
                     }
                     MemberPicker(friends: store.friends, selected: $selected, colorway: colorway)
+
+                    Section {
+                        PhotosPicker(selection: $logoItem, matching: .images) {
+                            HStack {
+                                Label("Logo de l'event", systemImage: "photo.badge.plus")
+                                Spacer()
+                                if let data = logoData, let ui = UIImage(data: data) {
+                                    Image(uiImage: ui).resizable().scaledToFit().frame(height: 30)
+                                }
+                            }
+                        }
+                        if logoData != nil {
+                            Button(role: .destructive) { logoData = nil; logoItem = nil } label: {
+                                Text("Retirer le logo")
+                            }
+                        }
+                    } footer: {
+                        Text("Utilisé pour brander les impressions « sharing box » de l'event.")
+                    }
 
                     if let event {
                         Section("Inviter") {
@@ -61,6 +84,15 @@ struct EventEditorView: View {
             .sheet(isPresented: $showShare) {
                 if let event { EventShareView(event: event) }
             }
+            .onChange(of: logoItem) { newValue in
+                Task {
+                    if let data = try? await newValue?.loadTransferable(type: Data.self),
+                       let ui = UIImage(data: data),
+                       let jpeg = ui.jpegData(compressionQuality: 0.8) {
+                        logoData = jpeg
+                    }
+                }
+            }
         }
     }
 
@@ -72,7 +104,9 @@ struct EventEditorView: View {
                                 date: date,
                                 colorway: colorway,
                                 memberIDs: Array(selected),
-                                symbol: symbol)
+                                symbol: symbol,
+                                remoteID: event?.remoteID,
+                                logoData: logoData)
         store.addOrUpdate(updated)
         // Best-effort : crée aussi l'event côté serveur si Supabase est configuré.
         if EventBackendService.shared.isEnabled {

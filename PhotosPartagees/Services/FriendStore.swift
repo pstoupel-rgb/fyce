@@ -158,8 +158,9 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
         let shared = defaults.dictionaryRepresentation().keys
             .filter { $0.hasPrefix(sharedKeyPrefix) }
             .reduce(0) { $0 + (defaults.stringArray(forKey: $1)?.count ?? 0) }
+        let prints = friends.reduce(0) { $0 + $1.referencePrints.count }
         return DataSummary(friends: friends.count, groups: groups.count, events: events.count,
-                           facePrints: friends.count, sharedRecords: shared)
+                           facePrints: prints, sharedRecords: shared)
     }
 
     /// Export de portabilité — **métadonnées uniquement**, jamais d'empreinte de visage.
