@@ -27,6 +27,7 @@ targets:
         INFOPLIST_FILE: PhotosPartagees/App/Info.plist
         CODE_SIGN_ENTITLEMENTS: PhotosPartagees/App/PhotosPartagees.entitlements
         TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     # Pour utiliser le SDK officiel Supabase à la place de l'implémentation REST :
     # dependencies:
     #   - package: Supabase
