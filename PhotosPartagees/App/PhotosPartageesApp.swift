@@ -6,19 +6,22 @@ struct PhotosPartageesApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     @AppStorage("has_onboarded_v1") private var hasOnboarded = false
+    @StateObject private var auth = AuthService()
 
     var body: some Scene {
         WindowGroup {
             Group {
-                if hasOnboarded {
-                    ContentView()
+                if !hasOnboarded {
+                    OnboardingView { hasOnboarded = true }.transition(.opacity)
+                } else if auth.needsLogin {
+                    LoginView(auth: auth).transition(.opacity)
                 } else {
-                    OnboardingView { hasOnboarded = true }
-                        .transition(.opacity)
+                    ContentView().environmentObject(auth)
                 }
             }
             .preferredColorScheme(.dark)
             .animation(.easeInOut, value: hasOnboarded)
+            .animation(.easeInOut, value: auth.needsLogin)
         }
     }
 }

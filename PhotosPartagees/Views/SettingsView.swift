@@ -3,6 +3,7 @@ import SwiftUI
 /// Réglages : sensibilité du matching et gestion de l'historique des partages.
 struct SettingsView: View {
     @ObservedObject var viewModel: ScanViewModel
+    @ObservedObject var auth: AuthService
     @Environment(\.dismiss) private var dismiss
     @State private var showResetConfirm = false
 
@@ -41,6 +42,23 @@ struct SettingsView: View {
                     Text("Historique des partages")
                 } footer: {
                     Text("Les photos déjà partagées ne sont pas reproposées. Réinitialiser permet de les repartager.")
+                }
+
+                Section("Compte") {
+                    switch auth.status {
+                    case .signedIn(let label):
+                        LabeledContent("Connecté", value: label)
+                        Button(role: .destructive) { auth.signOut() } label: {
+                            Label("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right")
+                        }
+                    case .guest:
+                        LabeledContent("Compte", value: "Invité (local)")
+                        Button { auth.signOut() } label: {
+                            Label("Créer un compte / se connecter", systemImage: "person.crop.circle.badge.plus")
+                        }
+                    case .signedOut:
+                        EmptyView()
+                    }
                 }
             }
             .scrollContentBackground(.hidden)
