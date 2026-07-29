@@ -5,9 +5,20 @@ import UIKit
 struct PhotosPartageesApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
+    @AppStorage("has_onboarded_v1") private var hasOnboarded = false
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            Group {
+                if hasOnboarded {
+                    ContentView()
+                } else {
+                    OnboardingView { hasOnboarded = true }
+                        .transition(.opacity)
+                }
+            }
+            .preferredColorScheme(.dark)
+            .animation(.easeInOut, value: hasOnboarded)
         }
     }
 }

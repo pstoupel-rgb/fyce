@@ -11,13 +11,29 @@ final class Friend: Identifiable {
     var thumbnail: UIImage?
     let referencePrint: VNFeaturePrintObservation
 
+    /// Protection des mineurs : si la personne est mineure, le consentement d'un
+    /// parent/tuteur est requis avant tout usage (recherche, partage). On conserve
+    /// une attestation + un contact — jamais de biométrie de l'enfant hors appareil.
+    var isMinor: Bool
+    var parentalConsent: Bool
+    var parentContact: String?
+
     init(id: UUID = UUID(),
          name: String,
          referencePrint: VNFeaturePrintObservation,
-         thumbnail: UIImage? = nil) {
+         thumbnail: UIImage? = nil,
+         isMinor: Bool = false,
+         parentalConsent: Bool = false,
+         parentContact: String? = nil) {
         self.id = id
         self.name = name
         self.referencePrint = referencePrint
         self.thumbnail = thumbnail
+        self.isMinor = isMinor
+        self.parentalConsent = parentalConsent
+        self.parentContact = parentContact
     }
+
+    /// Utilisable pour la recherche/partage : un mineur exige le consentement.
+    var isUsable: Bool { !isMinor || parentalConsent }
 }

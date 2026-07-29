@@ -16,6 +16,11 @@ struct AddFriendView: View {
     @State private var name = ""
     @State private var status: Status = .idle
 
+    // Protection des mineurs
+    @State private var isMinor = false
+    @State private var consent = false
+    @State private var parentContact = ""
+
     enum Status: Equatable {
         case idle, analyzing, noFace, ready, saved
     }
@@ -37,6 +42,7 @@ struct AddFriendView: View {
                     TextField("Prénom de l'ami", text: $name)
                         .textFieldStyle(.roundedBorder)
                         .disabled(referencePrint == nil)
+                    minorSection
                     Spacer()
                     saveButton
                 }
@@ -80,11 +86,50 @@ struct AddFriendView: View {
         }
     }
 
+    /// Protection des mineurs : bascule + consentement parental obligatoire.
+    private var minorSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Toggle(isOn: $isMinor) {
+                Text("Cette personne est mineure").font(.system(size: 15))
+            }
+            .tint(Theme.ok)
+
+            if isMinor {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("La loi l'exige : sans l'accord d'un parent ou tuteur, on ne peut pas rechercher ni partager les photos d'un mineur.")
+                        .font(.footnote).foregroundStyle(Theme.muted)
+
+                    TextField("Email du parent / tuteur", text: $parentContact)
+                        .textFieldStyle(.roundedBorder)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+
+                    Button {
+                        consent.toggle()
+                    } label: {
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: consent ? "checkmark.square.fill" : "square")
+                                .foregroundStyle(consent ? Theme.ok : Theme.muted)
+                            Text("J'atteste avoir l'autorisation du parent ou tuteur légal.")
+                                .font(.footnote).foregroundStyle(Theme.txt)
+                                .multilineTextAlignment(.leading)
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(14)
+                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
+            }
+        }
+    }
+
     private var saveButton: some View {
         Button {
             save()
         } label: {
-            Text("Ajouter l'ami")
+            Text(isMinor && !consent ? "Consentement requis" : "Ajouter l'ami")
                 .font(.system(size: 15, weight: .semibold)).frame(maxWidth: .infinity).padding(.vertical, 14)
                 .background(canSave ? AnyShapeStyle(Theme.txt) : AnyShapeStyle(Theme.surface2),
                             in: RoundedRectangle(cornerRadius: 14))
@@ -94,7 +139,9 @@ struct AddFriendView: View {
     }
 
     private var canSave: Bool {
-        referencePrint != nil && !name.trimmingCharacters(in: .whitespaces).isEmpty
+        guard referencePrint != nil, !name.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
+        if isMinor { return consent }   // un mineur exige le consentement
+        return true
     }
 
     private func load(_ item: PhotosPickerItem?) async {
@@ -121,7 +168,10 @@ struct AddFriendView: View {
         let thumb = image.map { cropSquare($0) }
         let friend = Friend(name: name.trimmingCharacters(in: .whitespaces),
                             referencePrint: referencePrint,
-                            thumbnail: thumb)
+                            thumbnail: thumb,
+                            isMinor: isMinor,
+                            parentalConsent: isMinor ? consent : false,
+                            parentContact: isMinor ? parentContact.trimmingCharacters(in: .whitespaces).nilIfEmpty : nil)
         store.add(friend)
         Haptics.success()
         dismiss()

@@ -158,11 +158,14 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
             var dict: [String: Any] = [
                 "id": friend.id.uuidString,
                 "name": friend.name,
-                "print": printData
+                "print": printData,
+                "isMinor": friend.isMinor,
+                "parentalConsent": friend.parentalConsent
             ]
             if let thumb = friend.thumbnail, let jpeg = thumb.jpegData(compressionQuality: 0.8) {
                 dict["thumb"] = jpeg
             }
+            if let contact = friend.parentContact { dict["parentContact"] = contact }
             return try NSKeyedArchiver.archivedData(
                 withRootObject: dict, requiringSecureCoding: false)
         } catch {
@@ -174,7 +177,7 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
     private func decodeFriend(_ data: Data) -> Friend? {
         do {
             let allowed: [AnyClass] = [NSDictionary.self, NSString.self, NSData.self,
-                                       VNFeaturePrintObservation.self]
+                                       NSNumber.self, VNFeaturePrintObservation.self]
             guard let dict = try NSKeyedUnarchiver.unarchivedObject(
                     ofClasses: allowed, from: data) as? [String: Any],
                   let idString = dict["id"] as? String,
@@ -187,7 +190,11 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
 
             var thumb: UIImage?
             if let thumbData = dict["thumb"] as? Data { thumb = UIImage(data: thumbData) }
-            return Friend(id: id, name: name, referencePrint: print, thumbnail: thumb)
+            let isMinor = dict["isMinor"] as? Bool ?? false
+            let consent = dict["parentalConsent"] as? Bool ?? false
+            let contact = dict["parentContact"] as? String
+            return Friend(id: id, name: name, referencePrint: print, thumbnail: thumb,
+                          isMinor: isMinor, parentalConsent: consent, parentContact: contact)
         } catch {
             Logger.app.error("Échec lecture ami : \(error.localizedDescription, privacy: .public)")
             return nil
