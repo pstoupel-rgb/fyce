@@ -4,6 +4,7 @@ import SwiftUI
 /// ce qui est stocké (et où), export de portabilité, et droit à l'oubli.
 struct PrivacyCenterView: View {
     @ObservedObject var store: FriendStore
+    @ObservedObject private var net = NetworkMonitor.shared
     @State private var summary = FriendStore.DataSummary(friends: 0, groups: 0, events: 0, facePrints: 0, sharedRecords: 0)
     @State private var exportItems: [Any]?
     @State private var showWipeConfirm = false
@@ -24,6 +25,18 @@ struct PrivacyCenterView: View {
                     Text("Nos engagements")
                 } footer: {
                     Text("La reconnaissance des visages est calculée sur ton appareil (Vision). Les empreintes sont chiffrées (AES-GCM) et ne quittent jamais ton téléphone.")
+                }
+
+                Section {
+                    HStack {
+                        Image(systemName: net.photosSent == 0 ? "checkmark.seal.fill" : "arrow.up.circle")
+                            .foregroundStyle(net.photosSent == 0 ? Theme.ok : Theme.muted)
+                        Text(net.summary).font(.subheadline)
+                    }
+                } header: {
+                    Text("Activité réseau (cette session)")
+                } footer: {
+                    Text("Seules les photos que tu choisis de partager sont envoyées. Rien d'autre ne quitte l'appareil.")
                 }
 
                 Section("Ce qui est stocké sur cet appareil") {

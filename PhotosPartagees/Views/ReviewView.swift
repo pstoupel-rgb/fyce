@@ -10,6 +10,7 @@ struct ReviewView: View {
 
     enum Tab: String, CaseIterable { case new = "Nouvelles", shared = "Partagées" }
     @State private var tab: Tab = .new
+    @State private var recapItems: [Any]?
 
     init(subject: ReviewSubject, store: ReviewHistoryStoring) {
         _viewModel = StateObject(wrappedValue: ReviewViewModel(subject: subject, store: store))
@@ -27,8 +28,29 @@ struct ReviewView: View {
         .navigationTitle(viewModel.subject.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbar {
+            if viewModel.phase == .ready {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: shareRecap) { Image(systemName: "square.and.arrow.up") }
+                        .accessibilityLabel("Partager mon récap")
+                }
+            }
+        }
+        .sheet(isPresented: Binding(get: { recapItems != nil }, set: { if !$0 { recapItems = nil } })) {
+            if let recapItems { ActivityView(items: recapItems) }
+        }
         .onAppear { viewModel.start() }
         .onDisappear { viewModel.cancel() }
+    }
+
+    private func shareRecap() {
+        let total = viewModel.remaining + viewModel.shared.count
+        let card = ShareCard(bigNumber: total,
+                             line1: "photos retrouvées",
+                             line2: "avec \(viewModel.subject.title) sur Poze")
+        if let image = ShareCardRenderer.image(card) {
+            recapItems = [image, "J'ai retrouvé mes photos avec Poze 📸"]
+        }
     }
 
     // MARK: - En-tête

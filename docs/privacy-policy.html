@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poze — Politique de confidentialité</title>
+<style>
+  :root{--bg:#08080a;--surface:#141416;--line:rgba(255,255,255,.09);--txt:#f4f3ef;--muted:#8a8a8f;--accent:#7c5cff}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt);
+    line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:720px;margin:0 auto;padding:64px 22px 96px}
+  h1{font-size:30px;font-weight:700;letter-spacing:-.01em;margin-bottom:6px}
+  .sub{color:var(--muted);margin-bottom:34px}
+  h2{font-size:18px;font-weight:600;margin:32px 0 10px}
+  p,li{color:#d9d8d3;font-size:15.5px}
+  ul{padding-left:20px;margin:8px 0}
+  li{margin:5px 0}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin:18px 0}
+  strong{color:var(--txt)}
+  a{color:#a99cff}
+  .foot{color:var(--muted);font-size:13px;margin-top:40px;border-top:1px solid var(--line);padding-top:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Politique de confidentialité — Poze</h1>
+  <div class="sub">Dernière mise à jour : 2026</div>
+
+  <div class="card">
+    <strong>En une phrase :</strong> Poze reconnaît les visages <strong>entièrement sur ton
+    appareil</strong>, ne collecte aucune donnée pour la vendre ou la tracer, et ne
+    partage que les photos que <strong>tu choisis</strong> d'envoyer.
+  </div>
+
+  <h2>1. Reconnaissance faciale — 100 % on-device</h2>
+  <p>La détection et la comparaison des visages sont calculées localement (framework
+  Vision d'Apple). Les <strong>empreintes de visage</strong> (données biométriques) sont
+  <strong>chiffrées</strong> au repos (AES-256-GCM, clé stockée dans le Keychain) et ne
+  quittent jamais ton téléphone. Nous n'envoyons aucune empreinte à un serveur.</p>
+
+  <h2>2. Ce que nous ne faisons pas</h2>
+  <ul>
+    <li>Aucun tracking publicitaire, aucun identifiant de suivi.</li>
+    <li>Aucun analytics tiers, aucun SDK de collecte.</li>
+    <li>Aucune vente ni location de données.</li>
+    <li>Aucune reconnaissance d'inconnus : on ne cherche que les visages que tu as ajoutés.</li>
+  </ul>
+
+  <h2>3. Photos</h2>
+  <p>L'app accède à ta photothèque pour retrouver, <em>sur l'appareil</em>, les photos où
+  tu apparais (toi ou tes proches). Une photo n'est envoyée que si tu appuies
+  explicitement sur « partager ». La suppression passe par la confirmation système d'iOS.</p>
+
+  <h2>4. Compte et fonctions en ligne (optionnelles)</h2>
+  <p>Tu peux utiliser Poze <strong>sans compte</strong> (mode local). Si tu crées un
+  compte (Apple, Google, Facebook ou email) ou rejoins un event partagé, les données
+  strictement nécessaires (email/identifiant, appartenance à l'event, photos que tu
+  partages) transitent par notre hébergeur <strong>Supabase</strong>, protégées par des
+  règles d'accès. Les jetons d'authentification sont stockés dans le Keychain.</p>
+
+  <h2>5. Mineurs</h2>
+  <p>Ajouter la photo d'un mineur exige le <strong>consentement d'un parent ou tuteur</strong>,
+  attesté dans l'app. Sans ce consentement, aucune recherche ni partage n'est possible.</p>
+
+  <h2>6. Tes droits</h2>
+  <ul>
+    <li><strong>Transparence</strong> : l'app montre ce qui est stocké (Réglages → Confidentialité).</li>
+    <li><strong>Portabilité</strong> : export de tes données (métadonnées) en JSON.</li>
+    <li><strong>Effacement</strong> : « Tout effacer » supprime définitivement données locales et clés.</li>
+  </ul>
+
+  <h2>7. Contact</h2>
+  <p>Pour toute question : <a href="mailto:privacy@poze.app">privacy@poze.app</a>.</p>
+
+  <div class="foot">Cette page peut être hébergée telle quelle (ex. GitHub Pages) et servir
+  d'URL de politique de confidentialité pour la fiche App Store.</div>
+</div>
+</body>
+</html>

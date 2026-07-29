@@ -59,6 +59,8 @@ final class SupabaseService: PhotoUploading, @unchecked Sendable {
             throw SupabaseError.uploadFailed(status: http.statusCode, body: body)
         }
         Logger.upload.info("Upload réussi: \(objectPath, privacy: .public)")
+        let sentBytes = data.count
+        await MainActor.run { NetworkMonitor.shared.recordUpload(bytes: sentBytes) }
         return objectPath
     }
 
