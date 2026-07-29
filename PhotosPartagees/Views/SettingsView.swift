@@ -43,7 +43,10 @@ struct SettingsView: View {
                     Text("Les photos déjà partagées ne sont pas reproposées. Réinitialiser permet de les repartager.")
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.bg.ignoresSafeArea())
             .navigationTitle("Réglages")
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("OK") { dismiss() }

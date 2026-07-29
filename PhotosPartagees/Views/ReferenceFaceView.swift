@@ -8,42 +8,38 @@ struct ReferenceFaceView: View {
     @State private var previewImage: UIImage?
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 14) {
             ZStack {
-                Circle()
-                    .fill(Color(.secondarySystemBackground))
-                    .frame(width: 96, height: 96)
+                Circle().fill(Theme.surface).frame(width: 104, height: 104)
                 if let previewImage {
                     Image(uiImage: previewImage)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 96, height: 96)
+                        .resizable().scaledToFill()
+                        .frame(width: 104, height: 104)
                         .clipShape(Circle())
                 } else {
-                    Image(systemName: "person.crop.circle.badge.questionmark")
-                        .font(.system(size: 40))
-                        .foregroundStyle(.secondary)
+                    Image(systemName: "person.crop.circle")
+                        .font(.system(size: 42)).foregroundStyle(Theme.muted2)
                 }
             }
+            .overlay(Circle().strokeBorder(Theme.line2, lineWidth: 1))
             .overlay(alignment: .bottomTrailing) {
                 if viewModel.hasReferenceFace {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                        .background(Circle().fill(.white))
+                        .font(.title3)
+                        .foregroundStyle(Theme.bg, Theme.ok)
                 }
             }
 
-            PhotosPicker(
-                selection: $selection,
-                matching: .images,
-                photoLibrary: .shared()
-            ) {
-                Label(
-                    viewModel.hasReferenceFace ? "Changer mon visage de référence" : "Choisir mon visage de référence",
-                    systemImage: "face.smiling"
-                )
+            PhotosPicker(selection: $selection, matching: .images, photoLibrary: .shared()) {
+                Text(viewModel.hasReferenceFace ? "Changer mon visage" : "Choisir mon visage")
+                    .font(.system(size: 14, weight: .medium)).foregroundStyle(Theme.txt)
+                    .padding(.horizontal, 18).padding(.vertical, 9)
+                    .background(Theme.surface, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Theme.line2, lineWidth: 1))
             }
-            .buttonStyle(.bordered)
+
+            Text("Reconnaissance 100 % sur ton téléphone")
+                .font(.caption).foregroundStyle(Theme.muted2)
         }
         .onChange(of: selection) { newValue in
             Task { await loadSelection(newValue) }

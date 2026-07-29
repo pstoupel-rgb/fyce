@@ -8,6 +8,16 @@ struct ScanView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
+                VStack(spacing: 4) {
+                    Text("Ton visage, tes photos")
+                        .font(.system(size: 20, weight: .semibold)).foregroundStyle(Theme.txt)
+                    Text("Choisis ton visage de référence, puis retrouve toutes tes photos.")
+                        .font(.subheadline).foregroundStyle(Theme.muted)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, 4)
+
                 ReferenceFaceView(viewModel: viewModel)
 
                 actionSection

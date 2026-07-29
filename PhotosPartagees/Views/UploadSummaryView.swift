@@ -21,7 +21,7 @@ struct UploadSummaryView: View {
             VStack(spacing: 24) {
                 Image(systemName: summary.hasFailures ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
                     .font(.system(size: 56))
-                    .foregroundStyle(summary.hasFailures ? .orange : .green)
+                    .foregroundStyle(summary.hasFailures ? Color(hex: 0xd9a066) : Theme.ok)
                     .padding(.top, 32)
 
                 Text(summary.hasFailures ? "Partage terminé avec des erreurs" : "Partage réussi")
@@ -29,7 +29,7 @@ struct UploadSummaryView: View {
                     .multilineTextAlignment(.center)
 
                 VStack(spacing: 8) {
-                    row(icon: "checkmark.circle.fill", color: .green,
+                    row(icon: "checkmark.circle.fill", color: Theme.ok,
                         text: "\(summary.succeeded) photo(s) partagée(s)")
                     if summary.hasFailures {
                         row(icon: "xmark.circle.fill", color: .red,
@@ -67,6 +67,8 @@ struct UploadSummaryView: View {
                 }
             }
             .padding()
+            .background(Theme.bg.ignoresSafeArea())
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
     }
 

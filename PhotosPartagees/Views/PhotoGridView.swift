@@ -71,8 +71,7 @@ private struct MatchedThumbnail: View {
                         .resizable()
                         .scaledToFill()
                 } else {
-                    Color(.secondarySystemBackground)
-                        .overlay(ProgressView())
+                    Theme.surface.overlay(ProgressView().tint(Theme.muted))
                 }
             }
             .frame(width: 100, height: 100)
@@ -119,7 +118,7 @@ private struct MatchedThumbnail: View {
         case .uploading:
             ProgressView().tint(.white).scaleEffect(0.7)
         case .uploaded:
-            Image(systemName: "checkmark.icloud.fill").foregroundStyle(.green)
+            Image(systemName: "checkmark.icloud.fill").foregroundStyle(Theme.ok)
         case .alreadyShared:
             Image(systemName: "clock.badge.checkmark.fill").foregroundStyle(.white, .blue)
         case .failed:
