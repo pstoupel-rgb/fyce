@@ -11,6 +11,32 @@ Application iOS native (SwiftUI, iOS 16+) qui :
 > visage recadré — bon point de départ, remplaçable par un modèle Core ML de
 > reconnaissance faciale dédié (FaceNet/ArcFace) pour plus de précision.
 
+## Poze — l'app complète
+
+Au-delà du scan « mon visage » d'origine, l'app (marque **Poze**) couvre :
+
+- **Onboarding** au premier lancement (confidentialité on-device mise en avant).
+- **Connexion** : Apple (natif), Google/Facebook (Supabase OAuth), compte email,
+  ou **mode invité** local. Voir `docs/auth-setup.md`.
+- **Accueil configurable** (design sobre « éditorial ») : **groupes** (Famille,
+  Potes…) et **events** que tu crées, plus tes **amis** en accès rapide.
+- **Amis / groupes / events** : sélectionne un sujet → scan on-device de la
+  pellicule → **revue façon Tinder** (swipe droite = garder, gauche = passer, bas
+  = supprimer réellement) + onglet « Partagées » avec envoi natif.
+- **Scan multi-visages** : un groupe/event cherche *n'importe lequel* de ses
+  membres en une passe.
+- **Events par QR** : génère un QR pour inviter, scanne-en un pour rejoindre
+  (`docs/backend-events.md`).
+- **Partage cloud des photos d'event** (optionnel, Supabase) : push/pull des
+  photos entre membres.
+- **Protection des mineurs** : ajouter un mineur exige un **consentement parental**.
+
+> Reconnaissance faciale **100 % on-device** (Vision). Aucune empreinte de visage
+> n'est envoyée au serveur — seulement les photos que tu choisis de partager.
+
+Backend et connexion sont **optionnels et gardés** : sans clés Supabase, l'app
+fonctionne intégralement en local (mode invité).
+
 ## Architecture
 
 Découpage **MVVM** + **injection de dépendances** (chaque service est derrière un
@@ -96,4 +122,18 @@ lance SwiftLint à chaque push/PR.
 
 ## Permissions
 
-`Info.plist` déclare `NSPhotoLibraryUsageDescription`.
+`Info.plist` déclare : `NSPhotoLibraryUsageDescription` (scan + suppression),
+`NSPhotoLibraryAddUsageDescription` (enregistrer une photo d'event),
+`NSCameraUsageDescription` (scan d'un QR d'event). Le scheme d'URL `poze` (OAuth)
+est déclaré via `CFBundleURLTypes`, et l'entitlement *Sign in with Apple* est actif.
+
+## Sécurité
+
+- Jetons d'authentification stockés dans le **Keychain** (`KeychainHelper`).
+- Clé `anon` uniquement côté client + RLS ; jamais de `service_role`.
+- Reconnaissance faciale on-device ; consentement requis pour les mineurs.
+
+## Documentation
+
+- `docs/auth-setup.md` — providers de connexion (Apple/Google/Facebook/email).
+- `docs/backend-events.md` — schéma, RLS, partage de photos d'event.

@@ -78,17 +78,20 @@ final class AuthService: NSObject, ObservableObject {
     }
 
     func signOut() {
-        defaults.removeObject(forKey: kToken)
+        KeychainHelper.delete(kToken)
         status = .signedOut
         persist()
     }
 
     private func complete(label: String, token: String?) {
-        if let token { defaults.set(token, forKey: kToken) }
+        if let token { KeychainHelper.set(token, for: kToken) }   // jeton = secret → Keychain
         status = .signedIn(label)
         persist()
         Haptics.success()
     }
+
+    /// Jeton d'accès courant (Keychain), s'il existe.
+    var accessToken: String? { KeychainHelper.get(kToken) }
 
     // MARK: - Apple (natif)
 
