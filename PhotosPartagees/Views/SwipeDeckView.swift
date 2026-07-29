@@ -5,9 +5,12 @@ import SwiftUI
 /// ces gestes. C'est le seul endroit où l'on se permet du mouvement.
 struct SwipeDeckView: View {
     @ObservedObject var viewModel: ReviewViewModel
+    /// Déclenché depuis la célébration de fin de session.
+    var onShareRecap: () -> Void = {}
 
     @State private var drag: CGSize = .zero
     @State private var flyingOut: SwipeDirection?
+    @State private var keepFlash = false
 
     enum SwipeDirection { case keep, skip, trash }
     private let threshold: CGFloat = 110
@@ -28,6 +31,12 @@ struct SwipeDeckView: View {
                 ForEach(Array(viewModel.queue.prefix(3).enumerated()).reversed(), id: \.element.id) { pair in
                     cardView(pair.element, index: pair.offset)
                 }
+                // Flash lumineux bref à la validation « garder ».
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(Theme.ok)
+                    .frame(width: 300, height: 400)
+                    .opacity(keepFlash ? 0.28 : 0)
+                    .allowsHitTesting(false)
             }
         }
         .frame(maxWidth: .infinity)
@@ -91,16 +100,9 @@ struct SwipeDeckView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "checkmark.circle").font(.system(size: 42)).foregroundStyle(Theme.ok)
-            Text("Tout est trié").font(.headline).foregroundStyle(Theme.txt)
-            if viewModel.keptThisSession > 0 {
-                Text("\(viewModel.keptThisSession) photo\(viewModel.keptThisSession > 1 ? "s" : "") gardée\(viewModel.keptThisSession > 1 ? "s" : "") pour \(viewModel.subject.title)")
-                    .font(.subheadline).foregroundStyle(Theme.muted)
-                    .multilineTextAlignment(.center)
-            }
-        }
-        .padding()
+        CelebrationView(kept: viewModel.keptThisSession,
+                        subject: viewModel.subject.title,
+                        onShareRecap: onShareRecap)
     }
 
     // MARK: - Animation de sortie
@@ -114,7 +116,11 @@ struct SwipeDeckView: View {
         case .skip:  off = CGSize(width: -700, height: 0)
         case .trash: off = CGSize(width: 0, height: 900)
         }
-        Haptics.tap(direction == .trash ? .heavy : .light)
+        switch direction {
+        case .keep:  Haptics.success(); pulseKeepFlash()
+        case .trash: Haptics.tap(.heavy)
+        case .skip:  Haptics.tap(.light)
+        }
         withAnimation(.easeIn(duration: 0.28)) { drag = off }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.26) {
@@ -125,6 +131,68 @@ struct SwipeDeckView: View {
             }
             drag = .zero
             flyingOut = nil
+        }
+    }
+
+    private func pulseKeepFlash() {
+        withAnimation(.easeOut(duration: 0.12)) { keepFlash = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.14) {
+            withAnimation(.easeIn(duration: 0.25)) { keepFlash = false }
+        }
+    }
+}
+
+/// Célébration de fin de session : le diaphragme s'ouvre, un compteur monte, des
+/// confettis sobres, et un accès direct au partage du récap. Le « moment magique ».
+private struct CelebrationView: View {
+    let kept: Int
+    let subject: String
+    let onShareRecap: () -> Void
+
+    @State private var reveal: CGFloat = 0
+    @State private var shown = 0
+    @State private var burst = false
+
+    var body: some View {
+        ZStack {
+            if burst { ConfettiView().frame(width: 320, height: 430) }
+            VStack(spacing: 14) {
+                ApertureMark(color: Theme.ok, reveal: reveal).frame(width: 84, height: 84)
+                if kept > 0 {
+                    Text("\(shown)")
+                        .font(.system(size: 52, weight: .bold, design: .rounded))
+                        .foregroundStyle(Theme.txt)
+                        .contentTransition(.numericText())
+                    Text("photo\(kept > 1 ? "s" : "") gardée\(kept > 1 ? "s" : "") pour \(subject)")
+                        .font(.subheadline).foregroundStyle(Theme.muted)
+                        .multilineTextAlignment(.center)
+                    Button(action: onShareRecap) {
+                        Label("Partager mon récap", systemImage: "square.and.arrow.up")
+                            .font(.system(size: 14, weight: .semibold)).foregroundStyle(.black)
+                            .padding(.horizontal, 18).padding(.vertical, 11)
+                            .background(Theme.txt, in: Capsule())
+                    }
+                    .padding(.top, 6)
+                } else {
+                    Text("Tout est trié").font(.headline).foregroundStyle(Theme.txt)
+                }
+            }
+        }
+        .padding()
+        .onAppear { runCelebration() }
+    }
+
+    private func runCelebration() {
+        withAnimation(.spring(response: 0.7, dampingFraction: 0.7)) { reveal = 1 }
+        guard kept > 0 else { return }
+        burst = true
+        Haptics.success()
+        Task {
+            let steps = max(kept, 1)
+            for n in 0...steps {
+                await MainActor.run { withAnimation(.easeOut(duration: 0.12)) { shown = n } }
+                try? await Task.sleep(nanoseconds: UInt64(600_000_000 / UInt64(steps)))
+            }
         }
     }
 }

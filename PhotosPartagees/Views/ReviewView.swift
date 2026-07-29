@@ -104,7 +104,7 @@ struct ReviewView: View {
             message("Oups", msg, system: "exclamationmark.triangle")
         case .ready:
             if tab == .new {
-                SwipeDeckView(viewModel: viewModel)
+                SwipeDeckView(viewModel: viewModel, onShareRecap: shareRecap)
             } else {
                 SharedGalleryView(items: viewModel.shared, subjectTitle: viewModel.subject.title)
             }
