@@ -79,12 +79,22 @@ struct EventCloudView: View {
                 message("Aucune photo partagée", "Sois le premier à partager tes photos de l'event.",
                         system: "photo.stack")
             } else {
-                VStack(spacing: 6) {
-                    Text("Choisis les photos à imprimer (gratuit) ou télécharger en HD.")
+                VStack(spacing: 8) {
+                    Picker("Vue", selection: Binding(
+                        get: { viewModel.matchedPaths != nil },
+                        set: { mine in Task { if mine { await viewModel.findMyPhotos() } else { viewModel.showAll() } } }
+                    )) {
+                        Text("Toutes").tag(false)
+                        Text("Mes photos").tag(true)
+                    }
+                    .pickerStyle(.segmented).padding(.horizontal, 16)
+                    if viewModel.matching { ProgressView().tint(Theme.txt) }
+
+                    Text("Touche les photos à imprimer (gratuit) ou télécharger en HD.")
                         .font(.caption).foregroundStyle(Theme.muted2)
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 5) {
-                            ForEach(viewModel.photos) { photo in
+                            ForEach(viewModel.displayPhotos) { photo in
                                 thumb(photo).onTapGesture { toggle(photo) }
                             }
                         }

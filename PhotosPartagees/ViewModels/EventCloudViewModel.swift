@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import UIKit
 import Photos
+import Vision
 import os
 
 /// Une photo partagée de l'event, telle qu'affichée (téléchargée depuis le cloud).
@@ -30,6 +31,10 @@ final class EventCloudViewModel: ObservableObject {
     @Published var photos: [CloudPhoto] = []
     @Published var pushing = false
     @Published var statusText: String?
+    /// Si non nil, on n'affiche que les photos où **tu** apparais (mode event,
+    /// matching on-device). Nil = toutes les photos.
+    @Published var matchedPaths: Set<String>?
+    @Published var matching = false
 
     let event: PozeEvent
     private let store: FriendStore
@@ -43,6 +48,45 @@ final class EventCloudViewModel: ObservableObject {
 
     /// Nombre de photos gardées localement pour cet event (candidates au partage).
     var localSharedCount: Int { store.sharedIDs(forKey: event.id.uuidString).count }
+
+    /// Photos à afficher : toutes, ou seulement les tiennes si un filtre est actif.
+    var displayPhotos: [CloudPhoto] {
+        guard let matchedPaths else { return photos }
+        return photos.filter { matchedPaths.contains($0.storagePath) }
+    }
+
+    // MARK: - « Trouve mes photos » (matching on-device, Option B)
+
+    func showAll() { matchedPaths = nil }
+
+    /// Récupère les empreintes anonymes de l'event et garde les photos où l'un de
+    /// tes visages correspond — **entièrement sur ton téléphone**.
+    func findMyPhotos() async {
+        guard let remoteID = event.remoteID, backend.isEnabled else {
+            statusText = "Event non synchronisé."
+            return
+        }
+        guard let selfPrint = SelfFaceStore.shared.referencePrint else {
+            statusText = "Ajoute d'abord ton visage dans l'onglet « Moi »."
+            return
+        }
+        matching = true
+        defer { matching = false }
+        do {
+            let faces = try await backend.listEventFacePrints(remoteEventID: remoteID)
+            var mine = Set<String>()
+            for face in faces {
+                guard let print = EventFaceMatcher.decode(face.print_b64) else { continue }
+                if EventFaceMatcher.isMine(print, selfPrints: [selfPrint]) {
+                    mine.insert(face.storage_path)
+                }
+            }
+            matchedPaths = mine
+            statusText = mine.isEmpty ? "Aucune photo de toi trouvée." : "\(mine.count) photo(s) de toi."
+        } catch {
+            statusText = "Recherche impossible : \(error.localizedDescription)"
+        }
+    }
 
     // MARK: - Pull
 

@@ -109,6 +109,7 @@ struct HomeView: View {
                                 Button { sheet = .shareEvent(event) } label: { Label("Partager (QR code)", systemImage: "qrcode") }
                                 if EventBackendService.shared.isEnabled {
                                     Button { sheet = .eventCloud(event) } label: { Label("Photos de l'event", systemImage: "icloud") }
+                                    Button { sheet = .photographer(event) } label: { Label("Mode photographe", systemImage: "camera.on.rectangle") }
                                 }
                                 Button { sheet = .editEvent(event) } label: { Label("Modifier", systemImage: "pencil") }
                                 Button(role: .destructive) { store.remove(event) } label: { Label("Supprimer", systemImage: "trash") }
@@ -178,6 +179,7 @@ struct HomeView: View {
         case .editEvent(let e):    EventEditorView(store: store, event: e)
         case .shareEvent(let e):   EventShareView(event: e)
         case .eventCloud(let e):   EventCloudView(event: e, store: store)
+        case .photographer(let e): EventPhotographerView(event: e)
         case .joinEvent:           EventJoinView(store: store)
         case .addFriend:           AddFriendView(store: store)
         case .activity:            ActivityFeedView()
@@ -189,7 +191,8 @@ struct HomeView: View {
 /// Les feuilles présentables depuis l'accueil.
 enum HomeSheet: Identifiable {
     case newGroup, editGroup(FriendGroup)
-    case newEvent, editEvent(PozeEvent), shareEvent(PozeEvent), eventCloud(PozeEvent), joinEvent
+    case newEvent, editEvent(PozeEvent), shareEvent(PozeEvent), eventCloud(PozeEvent)
+    case photographer(PozeEvent), joinEvent
     case addFriend, activity, tagFaces
 
     var id: String {
@@ -200,6 +203,7 @@ enum HomeSheet: Identifiable {
         case .editEvent(let e): return "editEvent-\(e.id)"
         case .shareEvent(let e): return "shareEvent-\(e.id)"
         case .eventCloud(let e): return "eventCloud-\(e.id)"
+        case .photographer(let e): return "photographer-\(e.id)"
         case .joinEvent: return "joinEvent"
         case .addFriend: return "addFriend"
         case .activity: return "activity"

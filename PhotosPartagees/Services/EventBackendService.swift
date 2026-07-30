@@ -58,8 +58,10 @@ actor EventBackendService {
     // MARK: - Photos d'event
 
     /// Envoie une photo au stockage et l'enregistre pour l'event distant.
+    /// Renvoie le `storage_path` (utile pour y rattacher des empreintes).
+    @discardableResult
     func uploadEventPhoto(remoteEventID: String, data: Data,
-                          fileName: String, contentType: String) async throws {
+                          fileName: String, contentType: String) async throws -> String {
         guard isEnabled else { throw BackendError.notConfigured }
         let token = try await ensureSession()
 
@@ -75,6 +77,34 @@ actor EventBackendService {
             "event_id": remoteEventID, "storage_path": storagePath])
         let (respData, response) = try await session.data(for: request)
         try Self.check(response, respData)
+        return storagePath
+    }
+
+    struct RemoteFacePrint: Decodable { let storage_path: String; let print_b64: String }
+
+    /// Publie une empreinte de visage **anonyme** rattachée à une photo d'event
+    /// (mode photographe, Option B). Aucune identité.
+    func publishEventFace(remoteEventID: String, storagePath: String, printB64: String) async throws {
+        guard isEnabled else { throw BackendError.notConfigured }
+        let token = try await ensureSession()
+        var request = restRequest(path: "rest/v1/event_face_prints", token: token)
+        request.httpMethod = "POST"
+        request.setValue("return=minimal", forHTTPHeaderField: "Prefer")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "event_id": remoteEventID, "storage_path": storagePath, "print_b64": printB64])
+        let (respData, response) = try await session.data(for: request)
+        try Self.check(response, respData)
+    }
+
+    /// Récupère les empreintes anonymes de l'event (l'invité matche en local).
+    func listEventFacePrints(remoteEventID: String) async throws -> [RemoteFacePrint] {
+        guard isEnabled else { throw BackendError.notConfigured }
+        let token = try await ensureSession()
+        var request = restRequest(
+            path: "rest/v1/event_face_prints?event_id=eq.\(remoteEventID)&select=storage_path,print_b64",
+            token: token)
+        request.httpMethod = "GET"
+        return try await send(request)
     }
 
     /// Liste les photos partagées d'un event.

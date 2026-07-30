@@ -52,6 +52,7 @@ final class ScanViewModel: ObservableObject {
         do {
             let print = try faceDetection.referenceFeaturePrint(from: image)
             matcher.setReference(print)
+            SelfFaceStore.shared.setFace(print)   // dispo pour le mode event (matching on-device)
             hasReferenceFace = true
             if case .needsReferenceFace = state { state = .idle }
         } catch {

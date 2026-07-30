@@ -304,3 +304,29 @@ create table if not exists public.device_tokens (
 alter table public.device_tokens enable row level security;
 create policy "own device tokens" on public.device_tokens for all
   using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- ─────────────────────────────────────────────────────────────
+-- Mode event photographe (Option B) : empreintes de visage ANONYMES.
+-- Le photographe publie une empreinte par visage détecté (aucune identité).
+-- L'invité télécharge ces empreintes et matche contre son propre visage,
+-- ENTIÈREMENT sur son téléphone. Aucune reconnaissance faciale côté serveur.
+-- ─────────────────────────────────────────────────────────────
+create table if not exists public.event_face_prints (
+  id           uuid primary key default gen_random_uuid(),
+  event_id     uuid not null references public.events(id) on delete cascade,
+  storage_path text not null,          -- la photo (bucket Storage)
+  print_b64    text not null,          -- VNFeaturePrintObservation archivé, base64
+  created_at   timestamptz not null default now()
+);
+create index if not exists event_face_prints_event_idx on public.event_face_prints(event_id);
+alter table public.event_face_prints enable row level security;
+
+-- Les membres de l'event peuvent lire les empreintes (pour matcher en local)…
+create policy "members read event face prints"
+  on public.event_face_prints for select to authenticated
+  using (event_id in (select event_id from public.event_members where user_id = auth.uid()));
+
+-- …et en insérer (le photographe est un membre de l'event).
+create policy "members add event face prints"
+  on public.event_face_prints for insert to authenticated
+  with check (event_id in (select event_id from public.event_members where user_id = auth.uid()));
