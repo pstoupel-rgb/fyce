@@ -1,7 +1,6 @@
 import Foundation
 import SwiftUI
 import Photos
-import Vision
 import os
 
 /// Stockage de l'historique « gardé / passé » d'un sujet de revue, keyé par une

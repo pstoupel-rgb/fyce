@@ -1,6 +1,5 @@
 import SwiftUI
 import PhotosUI
-import Vision
 
 /// « Tape un visage → dis qui c'est. » On détecte les visages d'une photo ; tu en
 /// touches un pour l'assigner à un ami (ce qui **ajoute une référence** — l'app

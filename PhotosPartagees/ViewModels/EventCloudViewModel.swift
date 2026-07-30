@@ -2,7 +2,6 @@ import Foundation
 import SwiftUI
 import UIKit
 import Photos
-import Vision
 import os
 
 /// Une photo partagée de l'event, telle qu'affichée (téléchargée depuis le cloud).

@@ -1,7 +1,6 @@
 import Foundation
 import UIKit
 import Photos
-import Vision
 
 /// Abstractions des services pour permettre l'injection de dépendances et les
 /// tests unitaires (chaque service concret est remplaçable par un mock).

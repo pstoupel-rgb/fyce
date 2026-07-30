@@ -1,6 +1,5 @@
 import SwiftUI
 import PhotosUI
-import Vision
 
 /// Ajoute un ami : on choisit une photo où son visage est net, l'app en extrait
 /// l'empreinte (on-device), puis on lui donne un nom.
