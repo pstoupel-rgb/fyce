@@ -28,8 +28,9 @@ final class FaceDetectionService: FaceDetecting, @unchecked Sendable {
 
     private let ciContext = CIContext()
 
-    /// Détecte les visages d'une image et renvoie une empreinte par visage.
-    func faceFeaturePrints(in image: UIImage) throws -> [VNFeaturePrintObservation] {
+    /// Détecte les visages d'une image et renvoie une **signature** par visage
+    /// (Core ML si dispo, sinon Vision).
+    func faceFeaturePrints(in image: UIImage) throws -> [FaceSignature] {
         guard let cgImage = image.cgImage else { throw FaceError.invalidImage }
 
         let orientation = cgImageOrientation(from: image.imageOrientation)
@@ -37,27 +38,27 @@ final class FaceDetectionService: FaceDetecting, @unchecked Sendable {
         guard !faceObservations.isEmpty else { throw FaceError.noFaceFound }
 
         let ciImage = CIImage(cgImage: cgImage)
-        var prints: [VNFeaturePrintObservation] = []
+        var signatures: [FaceSignature] = []
 
         for face in faceObservations {
             guard let cropped = cropFace(face, from: ciImage, imageSize: cgImage.size) else { continue }
-            if let print = try? featurePrint(for: cropped) {
-                prints.append(print)
+            if let sig = FaceEmbedder.shared.signature(for: cropped) {
+                signatures.append(sig)
             }
         }
-        return prints
+        return signatures
     }
 
-    /// Génère l'empreinte d'un visage de référence (échoue si aucun visage).
-    func referenceFeaturePrint(from image: UIImage) throws -> VNFeaturePrintObservation {
-        let prints = try faceFeaturePrints(in: image)
-        guard let first = prints.first else { throw FaceError.featurePrintFailed }
+    /// Signature d'un visage de référence (échoue si aucun visage).
+    func referenceFeaturePrint(from image: UIImage) throws -> FaceSignature {
+        let signatures = try faceFeaturePrints(in: image)
+        guard let first = signatures.first else { throw FaceError.featurePrintFailed }
         return first
     }
 
     /// Détecte les visages avec leur position (pour l'écran de tagging manuel) :
     /// bounding box normalisée **origine haut-gauche** (prête pour SwiftUI),
-    /// empreinte, et vignette recadrée.
+    /// signature, et vignette recadrée.
     func detectedFaces(in image: UIImage) throws -> [DetectedFace] {
         guard let cgImage = image.cgImage else { throw FaceError.invalidImage }
         let orientation = cgImageOrientation(from: image.imageOrientation)
@@ -69,12 +70,12 @@ final class FaceDetectionService: FaceDetecting, @unchecked Sendable {
             let b = face.boundingBox   // normalisé, origine bas-gauche
             let box = CGRect(x: b.minX, y: 1 - b.maxY, width: b.width, height: b.height)
             guard let cropped = cropFace(face, from: ciImage, imageSize: cgImage.size),
-                  let print = try? featurePrint(for: cropped) else { continue }
+                  let sig = FaceEmbedder.shared.signature(for: cropped) else { continue }
             var crop: UIImage?
             if let cg = ciContext.createCGImage(cropped, from: cropped.extent) {
                 crop = UIImage(cgImage: cg)
             }
-            results.append(DetectedFace(boundingBox: box, print: print, crop: crop))
+            results.append(DetectedFace(boundingBox: box, signature: sig, crop: crop))
         }
         return results
     }
@@ -86,14 +87,6 @@ final class FaceDetectionService: FaceDetecting, @unchecked Sendable {
         let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation, options: [:])
         try handler.perform([request])
         return request.results ?? []
-    }
-
-    private func featurePrint(for ciImage: CIImage) throws -> VNFeaturePrintObservation {
-        let request = VNGenerateImageFeaturePrintRequest()
-        let handler = VNImageRequestHandler(ciImage: ciImage, options: [:])
-        try handler.perform([request])
-        guard let result = request.results?.first else { throw FaceError.featurePrintFailed }
-        return result
     }
 
     // MARK: - Recadrage

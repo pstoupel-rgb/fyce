@@ -22,15 +22,15 @@ extension PhotoLibraryProviding {
 }
 
 protocol FaceDetecting: Sendable {
-    func faceFeaturePrints(in image: UIImage) throws -> [VNFeaturePrintObservation]
-    func referenceFeaturePrint(from image: UIImage) throws -> VNFeaturePrintObservation
+    func faceFeaturePrints(in image: UIImage) throws -> [FaceSignature]
+    func referenceFeaturePrint(from image: UIImage) throws -> FaceSignature
 }
 
 protocol FaceMatching: AnyObject, Sendable {
     var threshold: Float { get set }
     var hasReference: Bool { get }
-    func setReference(_ print: VNFeaturePrintObservation)
-    func match(against prints: [VNFeaturePrintObservation]) -> (isMatch: Bool, distance: Float)?
+    func setReference(_ signature: FaceSignature)
+    func match(against signatures: [FaceSignature]) -> (isMatch: Bool, distance: Float)?
 }
 
 protocol PhotoUploading: Sendable {

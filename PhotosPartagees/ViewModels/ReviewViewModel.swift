@@ -22,7 +22,7 @@ struct ReviewSubject {
     let title: String
     let subtitle: String
     let colorway: Colorway
-    let references: [VNFeaturePrintObservation]
+    let references: [FaceSignature]
     let avatars: [UIImage?]
 
     static func friend(_ f: Friend) -> ReviewSubject {

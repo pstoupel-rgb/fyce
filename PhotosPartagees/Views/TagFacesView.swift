@@ -106,8 +106,7 @@ struct TagFacesView: View {
         var best: (friend: Friend, distance: Float)?
         for friend in store.friends {
             for ref in friend.referencePrints {
-                var d: Float = 0
-                guard (try? ref.computeDistance(&d, to: face.print)) != nil else { continue }
+                let d = ref.distance(to: face.signature)
                 if best == nil || d < best!.distance { best = (friend, d) }
             }
         }
@@ -197,7 +196,7 @@ private struct AssignFaceSheet: View {
     }
 
     private func assign(to friend: Friend) {
-        store.addReference(face.print, to: friend)
+        store.addReference(face.signature, to: friend)
         Haptics.success()
         dismiss()
     }
@@ -205,7 +204,7 @@ private struct AssignFaceSheet: View {
     private func createNew() {
         let name = newName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
-        store.add(Friend(name: name, referencePrint: face.print, thumbnail: face.crop))
+        store.add(Friend(name: name, referencePrint: face.signature, thumbnail: face.crop))
         Haptics.success()
         dismiss()
     }

@@ -1,16 +1,14 @@
 import Foundation
-import Vision
 import UIKit
 
-/// Un ami : nom + une ou **plusieurs** empreintes de visage de référence
-/// (matching 100 % on-device). Plusieurs références = meilleure précision : on
-/// compare à chacune et on garde la meilleure correspondance. Le tagging manuel
-/// d'un visage ajoute une référence (l'app apprend).
+/// Un ami : nom + une ou **plusieurs** signatures de visage de référence
+/// (matching 100 % on-device). Plusieurs références = meilleure précision. Le
+/// tagging manuel d'un visage ajoute une référence (l'app apprend).
 final class Friend: Identifiable {
     let id: UUID
     var name: String
     var thumbnail: UIImage?
-    private(set) var referencePrints: [VNFeaturePrintObservation]
+    private(set) var referencePrints: [FaceSignature]
 
     /// Protection des mineurs : consentement parental requis avant tout usage.
     var isMinor: Bool
@@ -22,7 +20,7 @@ final class Friend: Identifiable {
 
     init(id: UUID = UUID(),
          name: String,
-         referencePrints: [VNFeaturePrintObservation],
+         referencePrints: [FaceSignature],
          thumbnail: UIImage? = nil,
          isMinor: Bool = false,
          parentalConsent: Bool = false,
@@ -30,7 +28,7 @@ final class Friend: Identifiable {
          remoteUserID: String? = nil) {
         self.id = id
         self.name = name
-        self.referencePrints = referencePrints.isEmpty ? [] : referencePrints
+        self.referencePrints = referencePrints
         self.thumbnail = thumbnail
         self.isMinor = isMinor
         self.parentalConsent = parentalConsent
@@ -41,7 +39,7 @@ final class Friend: Identifiable {
     /// Convenance : ami à une seule référence.
     convenience init(id: UUID = UUID(),
                      name: String,
-                     referencePrint: VNFeaturePrintObservation,
+                     referencePrint: FaceSignature,
                      thumbnail: UIImage? = nil,
                      isMinor: Bool = false,
                      parentalConsent: Bool = false,
@@ -52,12 +50,10 @@ final class Friend: Identifiable {
                   parentContact: parentContact, remoteUserID: remoteUserID)
     }
 
-    /// Première référence (compat / usage simple).
-    var referencePrint: VNFeaturePrintObservation? { referencePrints.first }
+    var referencePrint: FaceSignature? { referencePrints.first }
 
-    /// Ajoute une empreinte de référence (tagging manuel → apprentissage).
-    func addReference(_ print: VNFeaturePrintObservation) {
-        referencePrints.append(print)
+    func addReference(_ signature: FaceSignature) {
+        referencePrints.append(signature)
     }
 
     var isUsable: Bool { !isMinor || parentalConsent }

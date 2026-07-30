@@ -1,5 +1,4 @@
 import Foundation
-import Vision
 import UIKit
 import os
 
@@ -19,7 +18,7 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
     private let defaults: UserDefaults
     // _v2 : les blobs sont désormais chiffrés au repos (AES-GCM). On ne relit pas
     // l'ancien format en clair — la biométrie ne doit jamais rester déchiffrable.
-    private let friendsKey = "friends_v3"   // v3 : multi-références par ami
+    private let friendsKey = "friends_v4"   // v4 : signatures Codable (FaceSignature)
     private let groupsKey = "groups_v2"
     private let eventsKey = "events_v2"
     private let sharedKeyPrefix = "review_shared_"    // + historyKey
@@ -64,10 +63,10 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
         persistFriends()
     }
 
-    /// Ajoute une empreinte de référence à un ami (tagging manuel → l'app apprend).
-    func addReference(_ print: VNFeaturePrintObservation, to friend: Friend) {
+    /// Ajoute une signature de référence à un ami (tagging manuel → l'app apprend).
+    func addReference(_ signature: FaceSignature, to friend: Friend) {
         guard let idx = friends.firstIndex(where: { $0.id == friend.id }) else { return }
-        friends[idx].addReference(print)
+        friends[idx].addReference(signature)
         persistFriends()
     }
 
@@ -235,13 +234,12 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
 
     private func encodeFriend(_ friend: Friend) -> Data? {
         do {
-            // Toutes les empreintes de référence (multi-références).
-            let printsData = try NSKeyedArchiver.archivedData(
-                withRootObject: friend.referencePrints, requiringSecureCoding: true)
+            // Toutes les signatures de référence (multi-références), en JSON.
+            let sigsData = try JSONEncoder().encode(friend.referencePrints)
             var dict: [String: Any] = [
                 "id": friend.id.uuidString,
                 "name": friend.name,
-                "prints": printsData,
+                "sigs": sigsData,
                 "isMinor": friend.isMinor,
                 "parentalConsent": friend.parentalConsent
             ]
@@ -260,18 +258,16 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
 
     private func decodeFriend(_ data: Data) -> Friend? {
         do {
-            let allowed: [AnyClass] = [NSDictionary.self, NSArray.self, NSString.self, NSData.self,
-                                       NSNumber.self, VNFeaturePrintObservation.self]
+            let allowed: [AnyClass] = [NSDictionary.self, NSArray.self, NSString.self,
+                                       NSData.self, NSNumber.self]
             guard let dict = try NSKeyedUnarchiver.unarchivedObject(
                     ofClasses: allowed, from: data) as? [String: Any],
                   let idString = dict["id"] as? String,
                   let id = UUID(uuidString: idString),
                   let name = dict["name"] as? String,
-                  let printsData = dict["prints"] as? Data,
-                  let prints = try NSKeyedUnarchiver.unarchivedObject(
-                    ofClasses: [NSArray.self, VNFeaturePrintObservation.self],
-                    from: printsData) as? [VNFeaturePrintObservation],
-                  !prints.isEmpty
+                  let sigsData = dict["sigs"] as? Data,
+                  let sigs = try? JSONDecoder().decode([FaceSignature].self, from: sigsData),
+                  !sigs.isEmpty
             else { return nil }
 
             var thumb: UIImage?
@@ -280,7 +276,7 @@ final class FriendStore: ObservableObject, ReviewHistoryStoring {
             let consent = dict["parentalConsent"] as? Bool ?? false
             let contact = dict["parentContact"] as? String
             let remoteUID = dict["remoteUserID"] as? String
-            return Friend(id: id, name: name, referencePrints: prints, thumbnail: thumb,
+            return Friend(id: id, name: name, referencePrints: sigs, thumbnail: thumb,
                           isMinor: isMinor, parentalConsent: consent, parentContact: contact,
                           remoteUserID: remoteUID)
         } catch {

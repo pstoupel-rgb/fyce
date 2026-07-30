@@ -12,7 +12,7 @@ struct AddFriendView: View {
 
     @State private var pickerItem: PhotosPickerItem?
     @State private var image: UIImage?
-    @State private var referencePrint: VNFeaturePrintObservation?
+    @State private var referencePrint: FaceSignature?
     @State private var name = ""
     @State private var status: Status = .idle
 

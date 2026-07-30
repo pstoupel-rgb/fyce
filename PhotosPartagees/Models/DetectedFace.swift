@@ -1,5 +1,4 @@
 import Foundation
-import Vision
 import UIKit
 
 /// Un visage détecté dans une photo, pour le tagging manuel.
@@ -7,6 +6,6 @@ import UIKit
 struct DetectedFace: Identifiable {
     let id = UUID()
     let boundingBox: CGRect
-    let print: VNFeaturePrintObservation
+    let signature: FaceSignature
     let crop: UIImage?
 }
