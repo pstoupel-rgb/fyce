@@ -22,7 +22,7 @@ struct EventPhotographerView: View {
                     content
                     Spacer()
                     if case .working = viewModel.phase {} else {
-                        PhotosPicker(selection: $items, maxSelectionCount: 0, matching: .images) {
+                        PhotosPicker(selection: $items, matching: .images) {
                             Label(items.isEmpty ? "Choisir les photos" : "\(items.count) photos sélectionnées",
                                   systemImage: "photo.stack")
                                 .font(.system(size: 15, weight: .semibold)).foregroundStyle(Theme.txt)
@@ -108,12 +108,13 @@ final class EventPhotographerViewModel: ObservableObject {
         }
         guard !items.isEmpty else { return }
 
-        var doneCount = 0
+        var attempted = 0
+        var published = 0        // photos réellement uploadées
         var faceCount = 0
         phase = .working(done: 0, total: items.count, faces: 0)
 
         for item in items {
-            defer { doneCount += 1; phase = .working(done: doneCount, total: items.count, faces: faceCount) }
+            defer { attempted += 1; phase = .working(done: attempted, total: items.count, faces: faceCount) }
             guard let data = try? await item.loadTransferable(type: Data.self),
                   let ui = UIImage(data: data) else { continue }
 
@@ -122,6 +123,7 @@ final class EventPhotographerViewModel: ObservableObject {
             guard let path = try? await backend.uploadEventPhoto(
                 remoteEventID: remoteID, data: data,
                 fileName: meta.fileName, contentType: meta.contentType) else { continue }
+            published += 1
 
             for print in prints {
                 if let b64 = EventFaceMatcher.encode(print) {
@@ -130,6 +132,6 @@ final class EventPhotographerViewModel: ObservableObject {
                 }
             }
         }
-        phase = .done(photos: doneCount, faces: faceCount)
+        phase = .done(photos: published, faces: faceCount)
     }
 }
