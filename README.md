@@ -143,5 +143,11 @@ est déclaré via `CFBundleURLTypes`, et l'entitlement *Sign in with Apple* est 
 
 ## Documentation
 
+- `docs/testflight.md` — **mettre l'app sur TestFlight, pas à pas.**
+- `docs/coreml-face.md` — brancher un modèle Core ML (précision faciale).
 - `docs/auth-setup.md` — providers de connexion (Apple/Google/Facebook/email).
 - `docs/backend-events.md` — schéma, RLS, partage de photos d'event.
+- `docs/event-photographe.md` — mode photographe (matching on-device).
+- `docs/notif-magique.md` — la notif « X a de nouvelles photos de toi ».
+- `docs/paiements.md` — reveals (StoreKit) + checkout web (Mollie).
+- `docs/sharing-box.md` — impression brandée / téléchargement HD.

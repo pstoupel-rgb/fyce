@@ -20,6 +20,11 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- N'utilise que du chiffrement standard (HTTPS, Keychain, AES CryptoKit pour
+	     les données locales) → exempté. Évite la question de conformité à chaque
+	     build TestFlight. Vérifie que ça correspond bien à ton cas avant diffusion. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Poze utilise Face ID pour verrouiller l'accès à l'application, si vous activez cette option.</string>
 	<key>NSCameraUsageDescription</key>
